@@ -1,0 +1,132 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/auth/register",
+      "style": {
+        "navigationBarTitleText": "注册"
+      }
+    },
+    {
+      "path": "pages/tabbar/home",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/tabbar/square",
+      "style": {
+        "navigationBarTitleText": "广场"
+      }
+    },
+    {
+      "path": "pages/tabbar/message",
+      "style": {
+        "navigationBarTitleText": "消息"
+      }
+    },
+    {
+      "path": "pages/tabbar/mine",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/chat/list",
+      "style": {
+        "navigationBarTitleText": "聊天列表"
+      }
+    },
+    {
+      "path": "pages/chat/detail",
+      "style": {
+        "navigationBarTitleText": "聊天详情"
+      }
+    },
+    {
+      "path": "pages/friend/list",
+      "style": {
+        "navigationBarTitleText": "好友列表"
+      }
+    },
+    {
+      "path": "pages/friend/following",
+      "style": {
+        "navigationBarTitleText": "关注列表"
+      }
+    },
+    {
+      "path": "pages/square/index",
+      "style": {
+        "navigationBarTitleText": "广场"
+      }
+    },
+    {
+      "path": "pages/square/post",
+      "style": {
+        "navigationBarTitleText": "帖子详情"
+      }
+    },
+    {
+      "path": "pages/square/publish",
+      "style": {
+        "navigationBarTitleText": "发布帖子"
+      }
+    },
+    {
+      "path": "pages/user/profile",
+      "style": {
+        "navigationBarTitleText": "个人资料"
+      }
+    },
+    {
+      "path": "pages/user/settings",
+      "style": {
+        "navigationBarTitleText": "设置"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#007AFF",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "fontSize": "25rpx",
+    "list": [
+      {
+        "pagePath": "pages/tabbar/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/tabbar/square",
+        "text": "广场"
+      },
+      {
+        "pagePath": "pages/tabbar/message",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/tabbar/mine",
+        "text": "我的"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "WeTogether",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F8F8F8"
+  },
+  "uniIdRouter": {}
+}
