@@ -91,16 +91,18 @@ const goToProfile = () => {
 };
 
 const goToPostDetail = (id: number) => {
-  console.log(99, id);
-  debugger;
+  if (!id) {
+    return uni.showToast({
+      title: '先选择评论',
+      icon: 'none',
+    });
+  }
   uni.navigateTo({
     url: `/pages/square/post?id=${id}`,
   });
 };
 
 const handleLike = async (post: any) => {
-  console.log('like:', post);
-  debugger;
   try {
     await squareStore.toggleLike({
       targetId: post?.id,
@@ -112,6 +114,12 @@ const handleLike = async (post: any) => {
 };
 
 const handleComment = (post: any) => {
+  if (!id) {
+    return uni.showToast({
+      title: '先选择评论',
+      icon: 'none',
+    });
+  }
   uni.navigateTo({
     url: `/pages/square/post?id=${post?.id}`,
   });
