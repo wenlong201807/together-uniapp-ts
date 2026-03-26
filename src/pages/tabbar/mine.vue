@@ -11,7 +11,25 @@
       </view>
     </view>
 
+    <view class="points-card" @click="goToPoints">
+      <view class="points-info">
+        <text class="points-label">我的积分</text>
+        <text class="points-value">{{ pointsStore.balance.balance || 0 }}</text>
+      </view>
+      <view class="sign-btn" :class="{ signed: pointsStore.signStatus.signedToday }" @click.stop="handleSign">
+        <text>{{ pointsStore.signStatus.signedToday ? '已签到' : '签到' }}</text>
+      </view>
+      <view class="continuous-days" v-if="pointsStore.signStatus.continuousDays > 0">
+        <text>连续 {{ pointsStore.signStatus.continuousDays }} 天</text>
+      </view>
+    </view>
+
     <view class="menu-list">
+      <view class="menu-item" @click="goToPoints">
+        <text class="menu-icon">💰</text>
+        <text class="menu-text">积分明细</text>
+        <text class="menu-arrow">›</text>
+      </view>
       <view class="menu-item" @click="goToFriendList">
         <text class="menu-icon">👥</text>
         <text class="menu-text">好友列表</text>
@@ -30,6 +48,11 @@
     </view>
 
     <view class="menu-list">
+      <view class="menu-item" @click="goToCertification">
+        <text class="menu-icon">📋</text>
+        <text class="menu-text">认证中心</text>
+        <text class="menu-arrow">›</text>
+      </view>
       <view class="menu-item" @click="goToSettings">
         <text class="menu-icon">⚙️</text>
         <text class="menu-text">设置</text>
@@ -44,13 +67,34 @@
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from '@/stores'
+import { onShow } from '@dcloudio/uni-app'
+import { useAuthStore, usePointsStore } from '@/stores'
 
 const authStore = useAuthStore()
+const pointsStore = usePointsStore()
+
+onShow(() => {
+  if (authStore.isLoggedIn) {
+    pointsStore.fetchBalance()
+    pointsStore.fetchSignStatus()
+  }
+})
 
 const goToProfile = () => {
   uni.navigateTo({
     url: '/pages/user/profile'
+  })
+}
+
+const goToPoints = () => {
+  uni.navigateTo({
+    url: '/pages/points/index'
+  })
+}
+
+const goToCertification = () => {
+  uni.navigateTo({
+    url: '/pages/certification/index'
   })
 }
 
@@ -77,6 +121,31 @@ const goToSettings = () => {
   uni.navigateTo({
     url: '/pages/user/settings'
   })
+}
+
+const handleSign = async () => {
+  if (!authStore.isLoggedIn) {
+    uni.navigateTo({
+      url: '/pages/auth/login'
+    })
+    return
+  }
+  
+  if (pointsStore.signStatus.signedToday) {
+    uni.showToast({
+      title: '今日已签到',
+      icon: 'none'
+    })
+    return
+  }
+
+  const result = await pointsStore.sign()
+  if (result) {
+    uni.showToast({
+      title: `签到成功，获得 ${result.pointsEarned} 积分`,
+      icon: 'success'
+    })
+  }
 }
 
 const handleLogout = () => {
@@ -139,6 +208,54 @@ const handleLogout = () => {
       color: #fff;
       border-radius: 24rpx;
       font-size: 24rpx;
+    }
+  }
+
+  .points-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 30rpx 40rpx;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 0 20rpx 20rpx;
+    border-radius: 16rpx;
+
+    .points-info {
+      .points-label {
+        display: block;
+        font-size: 24rpx;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 8rpx;
+      }
+
+      .points-value {
+        display: block;
+        font-size: 48rpx;
+        font-weight: bold;
+        color: #fff;
+      }
+    }
+
+    .sign-btn {
+      padding: 16rpx 32rpx;
+      background: #fff;
+      color: #667eea;
+      border-radius: 30rpx;
+      font-size: 26rpx;
+      font-weight: bold;
+
+      &.signed {
+        background: rgba(255, 255, 255, 0.3);
+        color: #fff;
+      }
+    }
+
+    .continuous-days {
+      position: absolute;
+      right: 40rpx;
+      bottom: 16rpx;
+      font-size: 20rpx;
+      color: rgba(255, 255, 255, 0.7);
     }
   }
 

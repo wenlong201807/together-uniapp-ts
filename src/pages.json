@@ -95,6 +95,18 @@
       "style": {
         "navigationBarTitleText": "设置"
       }
+    },
+    {
+      "path": "pages/points/index",
+      "style": {
+        "navigationBarTitleText": "积分明细"
+      }
+    },
+    {
+      "path": "pages/certification/index",
+      "style": {
+        "navigationBarTitleText": "认证中心"
+      }
     }
   ],
   "tabBar": {
