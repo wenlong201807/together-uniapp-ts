@@ -52,6 +52,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores';
+import { authApi } from '@/api';
 import { Gender } from '@/types/enums';
 
 const authStore = useAuthStore();
@@ -81,8 +82,14 @@ const handleSave = async () => {
 
   loading.value = true;
   try {
-    // TODO 缺少接口请求，接口是ok的
-    // api/v1/user/me
+    const res = await authApi.updateUser({
+      nickname: formData.value.nickname,
+      gender: formData.value.gender,
+    });
+
+    authStore.updateUserInfo(res.data);
+    // uni.setStorageSync('userInfo', res.data);
+
     uni.showToast({
       title: '保存成功',
       icon: 'success',
@@ -92,6 +99,10 @@ const handleSave = async () => {
     }, 1500);
   } catch (error) {
     console.error('Save profile error:', error);
+    uni.showToast({
+      title: '保存失败',
+      icon: 'none',
+    });
   } finally {
     loading.value = false;
   }

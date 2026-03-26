@@ -31,7 +31,8 @@ export interface GetPostsParams {
 }
 
 export const squareApi = {
-  createPost: (data: CreatePostDto) => request.post<Post>('/square/post', data),
+  createPost: (data: CreatePostDto) =>
+    request.post<Post>('/square/posts', data),
 
   getPosts: (params?: GetPostsParams) =>
     request.get<{ list: Post[]; total: number }>('/square/posts', params),

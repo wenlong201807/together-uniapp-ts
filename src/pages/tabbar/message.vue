@@ -28,7 +28,7 @@
         >
           <image
             class="avatar"
-            :src="conversation.avatar || '/static/images/default-avatar.png'"
+            :src="conversation.avatarUrl || '/static/images/default-avatar.png'"
             mode="aspectFill"
           />
           <view class="conversation-info">
@@ -49,7 +49,7 @@
           </view>
         </view>
 
-        <Empty v-if="chatStore?.conversations.length === 0" text="暂无聊天" />
+        <Empty v-if="chatStore?.conversations?.length === 0" text="暂无聊天" />
       </view>
 
       <view v-if="activeTab === 'friend'">
@@ -61,13 +61,13 @@
             goToChat({
               userId: friend.friendId,
               nickname: friend.user?.nickname,
-              avatar: friend.user?.avatar,
+              avatarUrl: friend.user?.avatarUrl,
             })
           "
         >
           <image
             class="avatar"
-            :src="friend.user?.avatar || '/static/images/default-avatar.png'"
+            :src="friend.user?.avatarUrl || '/static/images/default-avatar.png'"
             mode="aspectFill"
           />
           <view class="friend-info">
@@ -75,7 +75,7 @@
           </view>
         </view>
 
-        <Empty v-if="friendStore.friendList.length === 0" text="暂无好友" />
+        <Empty v-if="friendStore?.friendList?.length === 0" text="暂无好友" />
       </view>
     </scroll-view>
   </view>
