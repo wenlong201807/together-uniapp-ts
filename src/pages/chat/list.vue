@@ -7,14 +7,22 @@
         class="conversation-item"
         @click="goToChat(conversation)"
       >
-        <image class="avatar" :src="conversation.avatar || '/static/images/default-avatar.png'" mode="aspectFill" />
+        <image
+          class="avatar"
+          :src="conversation.avatar || '/static/images/default-avatar.png'"
+          mode="aspectFill"
+        />
         <view class="conversation-info">
           <view class="conversation-header">
             <text class="nickname">{{ conversation.nickname }}</text>
-            <text class="time">{{ formatTime(conversation.lastMessageTime) }}</text>
+            <text class="time">{{
+              formatTime(conversation.lastMessageTime)
+            }}</text>
           </view>
           <view class="conversation-content">
-            <text class="last-message">{{ conversation.lastMessage || '暂无消息' }}</text>
+            <text class="last-message">{{
+              conversation.lastMessage || '暂无消息'
+            }}</text>
             <view v-if="conversation.unreadCount > 0" class="unread-badge">
               {{ conversation.unreadCount }}
             </view>
@@ -23,41 +31,44 @@
       </view>
 
       <Loading v-if="loading" text="加载中..." />
-      <Empty v-if="!loading && chatStore.conversations.length === 0" text="暂无聊天" />
+      <Empty
+        v-if="!loading && chatStore?.conversations.length === 0"
+        text="暂无聊天"
+      />
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useChatStore } from '@/stores'
-import { formatTime } from '@/utils'
-import Loading from '@/components/common/Loading.vue'
-import Empty from '@/components/common/Empty.vue'
+import { ref, onMounted } from 'vue';
+import { useChatStore } from '@/stores';
+import { formatTime } from '@/utils';
+import Loading from '@/components/common/Loading.vue';
+import Empty from '@/components/common/Empty.vue';
 
-const chatStore = useChatStore()
-const loading = ref(false)
+const chatStore = useChatStore();
+const loading = ref(false);
 
 onMounted(async () => {
-  await loadConversations()
-})
+  await loadConversations();
+});
 
 const loadConversations = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    await chatStore.fetchConversations()
+    await chatStore.fetchConversations();
   } catch (error) {
-    console.error('Load conversations error:', error)
+    console.error('Load conversations error:', error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const goToChat = (conversation: any) => {
   uni.navigateTo({
-    url: `/pages/chat/detail?userId=${conversation.userId}&nickname=${conversation.nickname}`
-  })
-}
+    url: `/pages/chat/detail?userId=${conversation.userId}&nickname=${conversation.nickname}`,
+  });
+};
 </script>
 
 <style scoped lang="scss">

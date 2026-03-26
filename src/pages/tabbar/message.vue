@@ -6,7 +6,9 @@
         @click="activeTab = 'chat'"
       >
         <text>聊天</text>
-        <view v-if="chatStore.unreadCount > 0" class="badge">{{ chatStore.unreadCount }}</view>
+        <view v-if="chatStore.unreadCount > 0" class="badge">{{
+          chatStore.unreadCount
+        }}</view>
       </view>
       <view
         :class="['tab-item', activeTab === 'friend' ? 'active' : '']"
@@ -24,14 +26,22 @@
           class="conversation-item"
           @click="goToChat(conversation)"
         >
-          <image class="avatar" :src="conversation.avatar || '/static/images/default-avatar.png'" mode="aspectFill" />
+          <image
+            class="avatar"
+            :src="conversation.avatar || '/static/images/default-avatar.png'"
+            mode="aspectFill"
+          />
           <view class="conversation-info">
             <view class="conversation-header">
               <text class="nickname">{{ conversation.nickname }}</text>
-              <text class="time">{{ formatTime(conversation.lastMessageTime) }}</text>
+              <text class="time">{{
+                formatTime(conversation.lastMessageTime)
+              }}</text>
             </view>
             <view class="conversation-content">
-              <text class="last-message">{{ conversation.lastMessage || '暂无消息' }}</text>
+              <text class="last-message">{{
+                conversation.lastMessage || '暂无消息'
+              }}</text>
               <view v-if="conversation.unreadCount > 0" class="unread-badge">
                 {{ conversation.unreadCount }}
               </view>
@@ -39,7 +49,7 @@
           </view>
         </view>
 
-        <Empty v-if="chatStore.conversations.length === 0" text="暂无聊天" />
+        <Empty v-if="chatStore?.conversations.length === 0" text="暂无聊天" />
       </view>
 
       <view v-if="activeTab === 'friend'">
@@ -47,9 +57,19 @@
           v-for="friend in friendStore.friendList"
           :key="friend.id"
           class="friend-item"
-          @click="goToChat({ userId: friend.friendId, nickname: friend.user?.nickname, avatar: friend.user?.avatar })"
+          @click="
+            goToChat({
+              userId: friend.friendId,
+              nickname: friend.user?.nickname,
+              avatar: friend.user?.avatar,
+            })
+          "
         >
-          <image class="avatar" :src="friend.user?.avatar || '/static/images/default-avatar.png'" mode="aspectFill" />
+          <image
+            class="avatar"
+            :src="friend.user?.avatar || '/static/images/default-avatar.png'"
+            mode="aspectFill"
+          />
           <view class="friend-info">
             <text class="nickname">{{ friend.user?.nickname }}</text>
           </view>
@@ -62,33 +82,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useChatStore, useFriendStore } from '@/stores'
-import { formatTime } from '@/utils'
-import Empty from '@/components/common/Empty.vue'
+import { ref, onMounted } from 'vue';
+import { useChatStore, useFriendStore } from '@/stores';
+import { formatTime } from '@/utils';
+import Empty from '@/components/common/Empty.vue';
 
-const chatStore = useChatStore()
-const friendStore = useFriendStore()
+const chatStore = useChatStore();
+const friendStore = useFriendStore();
 
-const activeTab = ref('chat')
+const activeTab = ref('chat');
 
 onMounted(async () => {
-  await loadData()
-})
+  await loadData();
+});
 
 const loadData = async () => {
   try {
-    await Promise.all([chatStore.fetchConversations(), friendStore.fetchFriendList()])
+    await Promise.all([
+      chatStore.fetchConversations(),
+      friendStore.fetchFriendList(),
+    ]);
   } catch (error) {
-    console.error('Load data error:', error)
+    console.error('Load data error:', error);
   }
-}
+};
 
 const goToChat = (conversation: any) => {
+  if (!conversation.userId || !conversation.nickname) {
+    return uni.showToast({
+      title: '昵称不能为空',
+      icon: 'none',
+    });
+  }
   uni.navigateTo({
-    url: `/pages/chat/detail?userId=${conversation.userId}&nickname=${conversation.nickname}`
-  })
-}
+    url: `/pages/chat/detail?userId=${conversation.userId}&nickname=${conversation.nickname}`,
+  });
+};
 </script>
 
 <style scoped lang="scss">
