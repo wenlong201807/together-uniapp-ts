@@ -48,7 +48,10 @@ export const useSquareStore = defineStore('square', () => {
     posts.value = posts.value.filter((p) => p.id !== id);
   };
 
-  const fetchComments = async (postId: number, params?: any) => {
+  const fetchComments = async (
+    postId: number,
+    params?: { page?: number; pageSize?: number; sort?: 'time' | 'hot' },
+  ) => {
     const res = await squareApi.getComments(postId, params);
     comments.value = res.data.list;
   };
@@ -56,6 +59,16 @@ export const useSquareStore = defineStore('square', () => {
   const createComment = async (data: CreateCommentDto) => {
     await squareApi.createComment(data);
     await fetchComments(data.postId);
+    
+    // 更新当前帖子的评论数
+    if (currentPost.value && currentPost.value.id === data.postId) {
+      currentPost.value.commentCount = (currentPost.value.commentCount || 0) + 1;
+    }
+    // 更新帖子列表中的评论数
+    const post = posts.value.find((p) => p.id === data.postId);
+    if (post) {
+      post.commentCount = (post.commentCount || 0) + 1;
+    }
   };
 
   const toggleLike = async (data: LikeDto) => {

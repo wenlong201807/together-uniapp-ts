@@ -46,7 +46,11 @@ export const squareApi = {
 
   getComments: (
     postId: number,
-    params?: { page?: number; pageSize?: number },
+    params?: {
+      page?: number;
+      pageSize?: number;
+      sort?: 'time' | 'hot';
+    },
   ) => {
     return request.get<{ list: Comment[]; total: number }>(
       `/square/posts/${postId}/comments`,

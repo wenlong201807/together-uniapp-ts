@@ -10,22 +10,10 @@
           >
         </view>
 
-        <CommentInput
+        <BilibiliComment
           :post-id="squareStore.currentPost?.id"
-          :reply-to-comment="replyToComment"
           @success="handleCommentSuccess"
         />
-
-        <view class="comments-list">
-          <CommentItem
-            v-for="comment in squareStore.comments"
-            :key="comment.id"
-            :comment="comment"
-            @reply="handleReplyComment"
-          />
-
-          <Empty v-if="squareStore?.comments?.length === 0" text="暂无评论" />
-        </view>
       </view>
     </view>
 
@@ -39,10 +27,8 @@ import { useSquareStore } from '@/stores';
 import { formatTime } from '@/utils';
 import type { Comment } from '@/types';
 import PostCard from '@/components/business/PostCard.vue';
-import CommentItem from '@/components/business/CommentItem.vue';
-import CommentInput from '@/components/business/CommentInput.vue';
+import BilibiliComment from '@/components/business/BilibiliComment.vue';
 import Loading from '@/components/common/Loading.vue';
-import Empty from '@/components/common/Empty.vue';
 
 const squareStore = useSquareStore();
 
@@ -90,7 +76,11 @@ const handleReplyComment = (comment: Comment) => {
 const handleCommentSuccess = async () => {
   replyToComment.value = undefined;
   // 只重新加载评论列表，不重新加载帖子详情，避免影响回复的展开/收起状态
-  await squareStore.fetchComments(postId.value);
+  await squareStore.fetchComments(postId.value, {
+    page: 1,
+    pageSize: 20,
+    sort: 'time',
+  });
 };
 </script>
 
