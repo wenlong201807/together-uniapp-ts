@@ -1,3 +1,5 @@
+import { FriendStatus } from './enums';
+
 export interface ApiResponse<T = any> {
   code: number;
   message: string;
@@ -55,9 +57,16 @@ export interface Comment {
   postId: number;
   userId: number;
   parentId?: number;
+  replyToId?: number;
+  replyToUserId?: number;
   content: string;
   createdAt: string;
   user?: UserInfo;
+  replyToUser?: {
+    id: number;
+    nickname: string;
+  };
+  replyCount?: number;
   replies?: Comment[];
 }
 

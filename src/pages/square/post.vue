@@ -5,36 +5,26 @@
 
       <view class="comments-section">
         <view class="section-header">
-          <text class="section-title">评论 ({{ squareStore.comments.length }})</text>
+          <text class="section-title"
+            >评论 ({{ squareStore?.currentPost?.commentCount || 0 }})</text
+          >
         </view>
 
-        <view class="comment-input">
-          <input
-            v-model="commentText"
-            class="input"
-            placeholder="写下你的评论..."
-            @confirm="submitComment"
-          />
-          <button class="submit-btn" :disabled="!commentText.trim()" @click="submitComment">发送</button>
-        </view>
+        <CommentInput
+          :post-id="squareStore.currentPost?.id"
+          :reply-to-comment="replyToComment"
+          @success="handleCommentSuccess"
+        />
 
         <view class="comments-list">
-          <view
+          <CommentItem
             v-for="comment in squareStore.comments"
             :key="comment.id"
-            class="comment-item"
-          >
-            <image class="avatar" :src="comment.user?.avatar || '/static/images/default-avatar.png'" mode="aspectFill" />
-            <view class="comment-content">
-              <view class="comment-header">
-                <text class="nickname">{{ comment.user?.nickname }}</text>
-                <text class="time">{{ formatTime(comment.createdAt) }}</text>
-              </view>
-              <text class="comment-text">{{ comment.content }}</text>
-            </view>
-          </view>
+            :comment="comment"
+            @reply="handleReplyComment"
+          />
 
-          <Empty v-if="squareStore.comments.length === 0" text="暂无评论" />
+          <Empty v-if="squareStore?.comments?.length === 0" text="暂无评论" />
         </view>
       </view>
     </view>
@@ -44,69 +34,64 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useSquareStore } from '@/stores'
-import { formatTime } from '@/utils'
-import PostCard from '@/components/business/PostCard.vue'
-import Loading from '@/components/common/Loading.vue'
-import Empty from '@/components/common/Empty.vue'
+import { ref, onMounted } from 'vue';
+import { useSquareStore } from '@/stores';
+import { formatTime } from '@/utils';
+import type { Comment } from '@/types';
+import PostCard from '@/components/business/PostCard.vue';
+import CommentItem from '@/components/business/CommentItem.vue';
+import CommentInput from '@/components/business/CommentInput.vue';
+import Loading from '@/components/common/Loading.vue';
+import Empty from '@/components/common/Empty.vue';
 
-const squareStore = useSquareStore()
+const squareStore = useSquareStore();
 
-const commentText = ref('')
-const postId = ref<number>(0)
+const replyToComment = ref<Comment | undefined>();
+const postId = ref<number>(0);
 
 onMounted(async () => {
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1] as any
-  const options = currentPage.options
+  const pages = getCurrentPages();
+  const currentPage = pages[pages.length - 1] as any;
+  const options = currentPage.options;
 
-  postId.value = parseInt(options.id)
+  postId.value = parseInt(options.id);
 
-  await loadPostDetail()
-})
+  await loadPostDetail();
+});
 
 const loadPostDetail = async () => {
   try {
     await Promise.all([
       squareStore.fetchPost(postId.value),
-      squareStore.fetchComments(postId.value)
-    ])
+      squareStore.fetchComments(postId.value),
+    ]);
   } catch (error) {
-    console.error('Load post detail error:', error)
+    console.error('Load post detail error:', error);
   }
-}
+};
 
 const handleLike = async () => {
-  if (!squareStore.currentPost) return
+  if (!squareStore.currentPost) return;
 
   try {
     await squareStore.toggleLike({
       targetId: squareStore.currentPost.id,
-      targetType: 1
-    })
+      targetType: 1,
+    });
   } catch (error) {
-    console.error('Like error:', error)
+    console.error('Like error:', error);
   }
-}
+};
 
-const submitComment = async () => {
-  if (!commentText.value.trim()) return
+const handleReplyComment = (comment: Comment) => {
+  replyToComment.value = comment;
+};
 
-  try {
-    await squareStore.createComment({
-      postId: postId.value,
-      content: commentText.value
-    })
-    commentText.value = ''
-    uni.showToast({
-      title: '评论成功',
-      icon: 'success'
-    })
-  } catch (error) {
-    console.error('Submit comment error:', error)
-  }
-}
+const handleCommentSuccess = async () => {
+  replyToComment.value = undefined;
+  // 只重新加载评论列表，不重新加载帖子详情，避免影响回复的展开/收起状态
+  await squareStore.fetchComments(postId.value);
+};
 </script>
 
 <style scoped lang="scss">
@@ -166,49 +151,7 @@ const submitComment = async () => {
       }
 
       .comments-list {
-        .comment-item {
-          display: flex;
-          padding: 24rpx;
-          background: #fff;
-          border-radius: 12rpx;
-          margin-bottom: 20rpx;
-
-          .avatar {
-            width: 60rpx;
-            height: 60rpx;
-            border-radius: 50%;
-            margin-right: 20rpx;
-            background: #f0f0f0;
-          }
-
-          .comment-content {
-            flex: 1;
-
-            .comment-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 12rpx;
-
-              .nickname {
-                font-size: 26rpx;
-                font-weight: 500;
-                color: #333;
-              }
-
-              .time {
-                font-size: 22rpx;
-                color: #999;
-              }
-            }
-
-            .comment-text {
-              font-size: 26rpx;
-              color: #666;
-              line-height: 1.5;
-            }
-          }
-        }
+        padding: 0;
       }
     }
   }

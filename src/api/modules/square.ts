@@ -48,9 +48,18 @@ export const squareApi = {
     postId: number,
     params?: { page?: number; pageSize?: number },
   ) => {
-    debugger;
     return request.get<{ list: Comment[]; total: number }>(
       `/square/posts/${postId}/comments`,
+      params,
+    );
+  },
+
+  getReplies: (
+    commentId: number,
+    params?: { page?: number; pageSize?: number },
+  ) => {
+    return request.get<{ list: Comment[]; total: number }>(
+      `/square/comments/${commentId}/replies`,
       params,
     );
   },
