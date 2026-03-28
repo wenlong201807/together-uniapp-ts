@@ -1,6 +1,15 @@
 import request from '../request'
 import type { Friend } from '@/types'
 
+export interface FriendshipStatus {
+  isFriend: boolean
+  isFollowing: boolean
+  canChat: boolean
+  chatCount: number
+  requiredPoints: number
+  currentPoints: number
+}
+
 export const friendApi = {
   getFriendList: () => request.get<{ data: Friend[] }>('/friend/list'),
 
@@ -9,6 +18,9 @@ export const friendApi = {
   follow: (userId: number) => request.post('/friend/follow', { userId }),
 
   unlockChat: (userId: number) => request.post('/friend/unlock-chat', { userId }),
+
+  getFriendshipStatus: (userId: number) => 
+    request.get<FriendshipStatus>(`/friend/status/${userId}`),
 
   deleteFriend: (userId: number) => request.delete(`/friend/${userId}`),
 

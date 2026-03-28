@@ -21,7 +21,7 @@ const props = defineProps<{
 const authStore = useAuthStore()
 
 const isSelf = computed(() => {
-  return props.message.senderId === authStore.userInfo?.id
+  return props.message.isSelf === true || props.message.senderId === authStore.userInfo?.id
 })
 </script>
 

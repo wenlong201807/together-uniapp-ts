@@ -107,16 +107,63 @@ const loadData = async () => {
   }
 };
 
-const goToChat = (conversation: any) => {
+const goToChat = async (conversation: any) => {
   if (!conversation.userId || !conversation.nickname) {
     return uni.showToast({
       title: '昵称不能为空',
       icon: 'none',
     });
   }
-  uni.navigateTo({
-    url: `/pages/chat/detail?userId=${conversation.userId}&nickname=${conversation.nickname}`,
-  });
+  
+  try {
+    const status = await friendStore.getFriendshipStatus(conversation.userId)
+    
+    if (!status.canChat) {
+      if (!status.isFollowing) {
+        uni.showModal({
+          title: '提示',
+          content: `您还没有关注 ${conversation.nickname}，是否先关注？`,
+          success: async (res) => {
+            if (res.confirm) {
+              await friendStore.follow(conversation.userId)
+              uni.showToast({
+                title: '关注成功',
+                icon: 'success'
+              })
+            }
+          }
+        })
+        return
+      }
+      
+      if (status.chatCount < 8) {
+        uni.showModal({
+          title: '提示',
+          content: `与 ${conversation.nickname} 互发8条消息后才能解锁私聊，当前已发送 ${status.chatCount} 条消息。`,
+          showCancel: false
+        })
+        return
+      }
+      
+      if (status.currentPoints < status.requiredPoints) {
+        uni.showModal({
+          title: '积分不足',
+          content: `解锁私聊需要 ${status.requiredPoints} 积分，当前您只有 ${status.currentPoints} 积分，不足以解锁私聊。`,
+          showCancel: false
+        })
+        return
+      }
+    }
+    
+    uni.navigateTo({
+      url: `/pages/chat/detail?userId=${conversation.userId}&nickname=${conversation.nickname}`,
+    });
+  } catch (error: any) {
+    uni.showToast({
+      title: error?.message || '进入聊天失败',
+      icon: 'none'
+    })
+  }
 };
 </script>
 
