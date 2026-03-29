@@ -40,6 +40,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useSquareStore } from '@/stores'
+import { fileApi } from '@/api'
 
 const squareStore = useSquareStore()
 
@@ -56,7 +57,21 @@ const chooseImage = () => {
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
     success: (res) => {
-      formData.value.images.push(...res.tempFilePaths)
+      // H5端可能返回tempFiles而不是tempFilePaths
+      if (res.tempFilePaths && res.tempFilePaths.length > 0) {
+        formData.value.images.push(...res.tempFilePaths)
+      } else if (res.tempFiles && res.tempFiles.length > 0) {
+        // H5端兼容：使用tempFiles中的路径或base64
+        res.tempFiles.forEach((tempFile: any) => {
+          if (tempFile.path) {
+            formData.value.images.push(tempFile.path)
+          } else if (tempFile.base64) {
+            // 转换为data URL格式
+            const ext = tempFile.name?.split('.').pop() || 'jpeg'
+            formData.value.images.push(`data:image/${ext};base64,${tempFile.base64}`)
+          }
+        })
+      }
     }
   })
 }
@@ -75,10 +90,24 @@ const handlePublish = async () => {
   }
 
   loading.value = true
+
+  let uploadedUrls: string[] = []
   try {
+    if (formData.value.images.length > 0) {
+      uni.showLoading({ title: '上传图片中...', mask: true })
+
+      const uploadPromises = formData.value.images.map(async (localPath) => {
+        const result = await fileApi.uploadFile(localPath, { type: 'post' })
+        return result.url
+      })
+
+      uploadedUrls = await Promise.all(uploadPromises)
+      uni.hideLoading()
+    }
+
     await squareStore.createPost({
       content: formData.value.content,
-      images: formData.value.images
+      images: uploadedUrls
     })
     uni.showToast({
       title: '发布成功',
@@ -89,6 +118,11 @@ const handlePublish = async () => {
     }, 1500)
   } catch (error) {
     console.error('Publish error:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: '发布失败',
+      icon: 'none'
+    })
   } finally {
     loading.value = false
   }

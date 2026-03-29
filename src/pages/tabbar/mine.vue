@@ -1,9 +1,17 @@
 <template>
   <view class="mine-container">
     <view class="user-header">
-      <image class="avatar" :src="authStore.userInfo?.avatar || '/static/images/default-avatar.png'" mode="aspectFill" />
+      <image
+        class="avatar"
+        :src="
+          authStore.userInfo?.avatarUrl || '/static/images/default-avatar.png'
+        "
+        mode="aspectFill"
+      />
       <view class="user-info">
-        <text class="nickname">{{ authStore.userInfo?.nickname || '未登录' }}</text>
+        <text class="nickname">{{
+          authStore.userInfo?.nickname || '未登录'
+        }}</text>
         <text class="mobile">{{ authStore.userInfo?.mobile || '' }}</text>
       </view>
       <view class="edit-btn" @click="goToProfile">
@@ -16,10 +24,19 @@
         <text class="points-label">我的积分</text>
         <text class="points-value">{{ pointsStore.balance.balance || 0 }}</text>
       </view>
-      <view class="sign-btn" :class="{ signed: pointsStore.signStatus.signedToday }" @click.stop="handleSign">
-        <text>{{ pointsStore.signStatus.signedToday ? '已签到' : '签到' }}</text>
+      <view
+        class="sign-btn"
+        :class="{ signed: pointsStore.signStatus.signedToday }"
+        @click.stop="handleSign"
+      >
+        <text>{{
+          pointsStore.signStatus.signedToday ? '已签到' : '签到'
+        }}</text>
       </view>
-      <view class="continuous-days" v-if="pointsStore.signStatus.continuousDays > 0">
+      <view
+        class="continuous-days"
+        v-if="pointsStore.signStatus.continuousDays > 0"
+      >
         <text>连续 {{ pointsStore.signStatus.continuousDays }} 天</text>
       </view>
     </view>
@@ -67,86 +84,86 @@
 </template>
 
 <script setup lang="ts">
-import { onShow } from '@dcloudio/uni-app'
-import { useAuthStore, usePointsStore } from '@/stores'
+import { onShow } from '@dcloudio/uni-app';
+import { useAuthStore, usePointsStore } from '@/stores';
 
-const authStore = useAuthStore()
-const pointsStore = usePointsStore()
+const authStore = useAuthStore();
+const pointsStore = usePointsStore();
 
 onShow(() => {
   if (authStore.isLoggedIn) {
-    pointsStore.fetchBalance()
-    pointsStore.fetchSignStatus()
+    pointsStore.fetchBalance();
+    pointsStore.fetchSignStatus();
   }
-})
+});
 
 const goToProfile = () => {
   uni.navigateTo({
-    url: '/pages/user/profile'
-  })
-}
+    url: '/pages/user/profile',
+  });
+};
 
 const goToPoints = () => {
   uni.navigateTo({
-    url: '/pages/points/index'
-  })
-}
+    url: '/pages/points/index',
+  });
+};
 
 const goToCertification = () => {
   uni.navigateTo({
-    url: '/pages/certification/index'
-  })
-}
+    url: '/pages/certification/index',
+  });
+};
 
 const goToFriendList = () => {
   uni.navigateTo({
-    url: '/pages/friend/list'
-  })
-}
+    url: '/pages/friend/list',
+  });
+};
 
 const goToFollowing = () => {
   uni.navigateTo({
-    url: '/pages/friend/following'
-  })
-}
+    url: '/pages/friend/following',
+  });
+};
 
 const goToBlocklist = () => {
   uni.showToast({
     title: '功能开发中',
-    icon: 'none'
-  })
-}
+    icon: 'none',
+  });
+};
 
 const goToSettings = () => {
   uni.navigateTo({
-    url: '/pages/user/settings'
-  })
-}
+    url: '/pages/user/settings',
+  });
+};
 
 const handleSign = async () => {
   if (!authStore.isLoggedIn) {
     uni.navigateTo({
-      url: '/pages/auth/login'
-    })
-    return
+      url: '/pages/auth/login',
+    });
+    return;
   }
-  
+
   if (pointsStore.signStatus.signedToday) {
     uni.showToast({
       title: '今日已签到',
-      icon: 'none'
-    })
-    return
+      icon: 'none',
+    });
+    return;
   }
 
-  const result = await pointsStore.sign()
+  const result = await pointsStore.sign();
   if (result) {
     uni.showToast({
       title: `签到成功，获得 ${result.pointsEarned} 积分`,
-      icon: 'success'
-    })
+      icon: 'success',
+    });
   }
-}
+};
 
 const handleLogout = () => {
   uni.showModal({
@@ -154,14 +171,14 @@ const handleLogout = () => {
     content: '确定要退出登录吗？',
     success: (res) => {
       if (res.confirm) {
-        authStore.logout()
+        authStore.logout();
         uni.reLaunch({
-          url: '/pages/auth/login'
-        })
+          url: '/pages/auth/login',
+        });
       }
-    }
-  })
-}
+    },
+  });
+};
 </script>
 
 <style scoped lang="scss">

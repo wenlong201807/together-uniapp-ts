@@ -1,7 +1,11 @@
 <template>
   <view class="post-card" @click="handleClick">
     <view class="post-header">
-      <image class="avatar" :src="post.user?.avatar || '/static/images/default-avatar.png'" mode="aspectFill" />
+      <image
+        class="avatar"
+        :src="post.user?.avatarUrl || '/static/images/default-avatar.png'"
+        mode="aspectFill"
+      />
       <view class="user-info">
         <text class="nickname">{{ post.user?.nickname }}</text>
         <text class="time">{{ formatTime(post.createdAt) }}</text>
@@ -25,7 +29,9 @@
 
     <view class="post-footer">
       <view class="action-item" @click.stop="handleLike">
-        <text :class="['icon', post.isLiked ? 'liked' : '']">{{ post.isLiked ? '❤️' : '🤍' }}</text>
+        <text :class="['icon', post.isLiked ? 'liked' : '']">{{
+          post.isLiked ? '❤️' : '🤍'
+        }}</text>
         <text>{{ post.likeCount || 0 }}</text>
       </view>
       <view class="action-item" @click.stop="handleComment">
@@ -40,41 +46,41 @@
 </template>
 
 <script setup lang="ts">
-import { formatTime } from '@/utils'
+import { formatTime } from '@/utils';
 
 const props = defineProps<{
-  post: any
-}>()
+  post: any;
+}>();
 
 const emit = defineEmits<{
-  click: []
-  like: []
-  comment: []
-  share: []
-}>()
+  click: [];
+  like: [];
+  comment: [];
+  share: [];
+}>();
 
 const handleClick = () => {
-  emit('click')
-}
+  emit('click');
+};
 
 const handleLike = () => {
-  emit('like')
-}
+  emit('like');
+};
 
 const handleComment = () => {
-  emit('comment')
-}
+  emit('comment');
+};
 
 const handleShare = () => {
-  emit('share')
-}
+  emit('share');
+};
 
 const previewImage = (index: number) => {
   uni.previewImage({
     urls: props.post.images || [],
-    current: index
-  })
-}
+    current: index,
+  });
+};
 </script>
 
 <style scoped lang="scss">

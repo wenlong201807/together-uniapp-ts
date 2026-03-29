@@ -1,11 +1,18 @@
 <template>
   <view class="profile-container">
     <view class="profile-header">
-      <image
-        class="avatar"
-        :src="authStore.userInfo?.avatar || '/static/images/default-avatar.png'"
-        mode="aspectFill"
-      />
+      <view class="avatar-wrapper" @click="handleChooseAvatar">
+        <image
+          class="avatar"
+          :src="
+            authStore.userInfo?.avatarUrl || '/static/images/default-avatar.png'
+          "
+          mode="aspectFill"
+        />
+        <view class="avatar-edit">
+          <text class="edit-icon">编辑</text>
+        </view>
+      </view>
       <view class="user-info">
         <text class="nickname">{{ authStore.userInfo?.nickname }}</text>
         <text class="mobile">{{ authStore.userInfo?.mobile }}</text>
@@ -52,7 +59,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores';
-import { authApi } from '@/api';
+import { authApi, fileApi } from '@/api';
 import { Gender } from '@/types/enums';
 
 const authStore = useAuthStore();
@@ -63,6 +70,7 @@ const formData = ref({
 });
 
 const loading = ref(false);
+const avatarLoading = ref(false);
 
 onMounted(() => {
   if (authStore.userInfo) {
@@ -70,6 +78,56 @@ onMounted(() => {
     formData.value.gender = authStore.userInfo.gender || Gender.UNKNOWN;
   }
 });
+
+const handleChooseAvatar = async () => {
+  try {
+    const result = await uni.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+    });
+
+    // H5端可能返回tempFiles而不是tempFilePaths
+    let filePath = result.tempFilePaths?.[0];
+    if (!filePath && result.tempFiles?.[0]) {
+      // H5端兼容：使用tempFiles中的路径或base64
+      const tempFile = result.tempFiles[0];
+      if (tempFile.path) {
+        filePath = tempFile.path;
+      } else if (tempFile.base64) {
+        // 转换为data URL格式
+        filePath = `data:image/${tempFile.name?.split('.').pop() || 'jpeg'};base64,${tempFile.base64}`;
+      }
+    }
+
+    if (!filePath) {
+      throw new Error('无法获取图片文件');
+    }
+
+    avatarLoading.value = true;
+    console.log('Selected file path:', filePath);
+
+    const { url } = await fileApi.uploadAvatar(filePath);
+    console.log('Upload success, url:', url);
+
+    // 更新用户头像
+    await authApi.updateUser({ avatarUrl: url });
+    authStore.updateUserInfo({ ...authStore.userInfo, avatarUrl: url });
+
+    uni.showToast({
+      title: '头像更新成功',
+      icon: 'success',
+    });
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    uni.showToast({
+      title: '头像更新失败',
+      icon: 'none',
+    });
+  } finally {
+    avatarLoading.value = false;
+  }
+};
 
 const handleSave = async () => {
   if (!formData.value.nickname) {
@@ -122,12 +180,31 @@ const handleSave = async () => {
     background: #fff;
     margin-bottom: 20rpx;
 
-    .avatar {
-      width: 160rpx;
-      height: 160rpx;
-      border-radius: 50%;
-      margin-bottom: 24rpx;
-      background: #f0f0f0;
+    .avatar-wrapper {
+      position: relative;
+
+      .avatar {
+        width: 160rpx;
+        height: 160rpx;
+        border-radius: 50%;
+        margin-bottom: 24rpx;
+        background: #f0f0f0;
+      }
+
+      .avatar-edit {
+        position: absolute;
+        bottom: 20rpx;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.5);
+        padding: 4rpx 16rpx;
+        border-radius: 20rpx;
+
+        .edit-icon {
+          font-size: 20rpx;
+          color: #fff;
+        }
+      }
     }
 
     .user-info {

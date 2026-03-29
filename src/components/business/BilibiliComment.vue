@@ -69,9 +69,9 @@
           </view>
         </view>
 
-        <!-- 回复列表（最多显示5条） -->
+        <!-- 回复列表（根据展开状态显示） -->
         <view
-          v-if="comment.replies && comment.replies.length > 0"
+          v-if="comment.replies && comment.replies.length > 0 && isCommentExpanded(comment.id)"
           class="replies-list"
         >
           <view
@@ -114,13 +114,13 @@
           </view>
         </view>
 
-        <!-- 查看全部回复 -->
+        <!-- 查看全部回复 / 收起 -->
         <view
-          v-if="comment.replyCount > (comment.replies?.length || 0)"
+          v-if="comment.replyCount > 0 && (comment.replyCount > (comment.replies?.length || 0) || isCommentExpanded(comment.id))"
           class="view-all-replies"
           @click="viewAllReplies(comment)"
         >
-          <text>共{{ comment.replyCount }}条回复 ></text>
+          <text>共{{ comment.replyCount }}条回复 {{ isCommentExpanded(comment.id) ? '收起' : '>' }}</text>
         </view>
       </view>
     </view>
@@ -154,6 +154,7 @@ const isFocused = ref(false);
 const sending = ref(false);
 const replyingComment = ref<Comment | null>(null);
 const replyingRoot = ref<Comment | null>(null);
+const expandedComments = ref<Set<number>>(new Set());
 
 // 计算属性
 const placeholder = computed(() => {
@@ -184,6 +185,13 @@ const loadComments = async (reset = false) => {
 
     if (reset) {
       comments.value = res.data.list;
+      
+      // 自动展开有回复的评论
+      res.data.list.forEach((comment: Comment) => {
+        if (comment.replyCount > 0) {
+          expandedComments.value.add(comment.id);
+        }
+      });
     } else {
       comments.value = [...comments.value, ...res.data.list];
     }
@@ -242,12 +250,33 @@ const startReply = (comment: Comment, root?: Comment) => {
   isFocused.value = true;
 };
 
-// 查看全部回复
+// 查看全部回复 - 展开/收起
 const viewAllReplies = async (comment: Comment) => {
-  // 跳转到专门的回复页面
-  uni.navigateTo({
-    url: `/pages/square/comment-replies?commentId=${comment.id}&postId=${props.postId}`,
-  });
+  const isExpanded = expandedComments.value.has(comment.id);
+  
+  if (isExpanded) {
+    // 收起
+    expandedComments.value.delete(comment.id);
+  } else {
+    // 展开
+    expandedComments.value.add(comment.id);
+    
+    // 如果还没有加载回复，则加载
+    if (!comment.replies || comment.replies.length === 0 || comment.replies.length < comment.replyCount) {
+      try {
+        const { squareApi } = await import('@/api');
+        const res = await squareApi.getReplies(comment.id, 1, comment.replyCount);
+        comment.replies = res.data.list;
+      } catch (e) {
+        console.error('Load replies error:', e);
+      }
+    }
+  }
+};
+
+// 判断评论是否已展开
+const isCommentExpanded = (commentId: number) => {
+  return expandedComments.value.has(commentId);
 };
 
 // 格式化时间
