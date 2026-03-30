@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "scripts": {
     "dev:custom": "uni -p",
-    "dev:h5": "uni",
+    "dev:h5": "uni --mode dev",
+    "dev:h5:dev": "uni --mode dev",
+    "dev:h5:staging": "uni --mode staging",
+    "dev:h5:prod": "uni --mode prod",
     "dev:h5:ssr": "uni --ssr",
     "dev:mp-alipay": "uni -p mp-alipay",
     "dev:mp-baidu": "uni -p mp-baidu",
