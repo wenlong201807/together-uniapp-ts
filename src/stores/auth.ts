@@ -16,11 +16,11 @@ export const useAuthStore = defineStore(
     const login = async (data: LoginDto) => {
       const res = await authApi.login(data);
       token.value = res.data.token;
-      refreshToken.value = res.data.token;
+      refreshToken.value = res.data.refreshToken || res.data.token;
       userInfo.value = res.data.user;
 
       uni.setStorageSync('token', res.data.token);
-      uni.setStorageSync('refreshToken', res.data.token);
+      uni.setStorageSync('refreshToken', res.data.refreshToken || res.data.token);
       uni.setStorageSync('userInfo', res.data.user);
 
       return res.data;
@@ -29,11 +29,11 @@ export const useAuthStore = defineStore(
     const register = async (data: RegisterDto) => {
       const res = await authApi.register(data);
       token.value = res.data.token;
-      refreshToken.value = res.data.token;
+      refreshToken.value = res.data.refreshToken || res.data.token;
       userInfo.value = res.data.user;
 
       uni.setStorageSync('token', res.data.token);
-      uni.setStorageSync('refreshToken', res.data.token);
+      uni.setStorageSync('refreshToken', res.data.refreshToken || res.data.token);
       uni.setStorageSync('userInfo', res.data.user);
 
       return res.data;
@@ -53,10 +53,13 @@ export const useAuthStore = defineStore(
       try {
         const res = await authApi.refreshToken(refreshToken.value);
         token.value = res.data.token;
-        refreshToken.value = res.data.token;
+
+        if (res.data.refreshToken) {
+          refreshToken.value = res.data.refreshToken;
+          uni.setStorageSync('refreshToken', res.data.refreshToken);
+        }
 
         uni.setStorageSync('token', res.data.token);
-        uni.setStorageSync('refreshToken', res.data.token);
 
         return res.data;
       } catch (error) {
