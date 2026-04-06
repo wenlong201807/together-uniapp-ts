@@ -1,0 +1,1 @@
+import{T as t}from"./index-DIXb-SgX.js";const i={getTypes:()=>t.get("/certification-types"),submit:i=>t.post("/certification",i),getMyList:i=>t.get("/certification/list",{params:{status:i}}),getDetail:i=>t.get(`/certification/${i}`)};export{i as c};
