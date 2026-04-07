@@ -1,0 +1,1 @@
+import{T as t}from"./index-9NunUN75.js";const s={sendMessage:s=>t.post("/chat/send",s),getHistory:(s,e)=>t.get(`/chat/history/${s}`,e),getConversations:()=>t.get("/chat/conversations"),markAsRead:s=>t.put(`/chat/read/${s}`)};export{s as c};

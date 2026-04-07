@@ -6,3 +6,4 @@ export * from './modules/points';
 export * from './modules/certification';
 export * from './modules/config';
 export * from './modules/file';
+export * from './modules/user';

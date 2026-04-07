@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { authApi } from '@/api';
+import { authApi, userApi } from '@/api';
 import type { LoginResponse, UserInfo } from '@/types';
 import type { LoginDto, RegisterDto } from '@/api/modules/auth';
+import type { UpdateProfileDto } from '@/api/modules/user';
 
 export const useAuthStore = defineStore(
   'auth',
@@ -79,6 +80,29 @@ export const useAuthStore = defineStore(
       uni.setStorageSync('userInfo', info);
     };
 
+    /**
+     * 更新用户资料
+     * @param data 更新数据，支持昵称、手机号、头像ID或头像URL
+     * @returns 更新后的用户信息
+     */
+    const updateProfile = async (data: UpdateProfileDto) => {
+      try {
+        const res = await userApi.updateProfile(data);
+        // 更新本地状态
+        if (userInfo.value) {
+          userInfo.value = {
+            ...userInfo.value,
+            ...res.data,
+          };
+          uni.setStorageSync('userInfo', userInfo.value);
+        }
+        return res.data;
+      } catch (error) {
+        console.error('更新用户资料失败:', error);
+        throw error;
+      }
+    };
+
     return {
       token,
       refreshToken,
@@ -90,6 +114,7 @@ export const useAuthStore = defineStore(
       refreshAccessToken,
       init,
       updateUserInfo,
+      updateProfile,
     };
   },
   {

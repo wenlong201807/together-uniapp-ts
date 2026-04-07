@@ -1,7 +1,15 @@
 <template>
   <view class="mine-container">
     <view class="user-header">
+      <!-- 预设头像显示 -->
+      <view
+        v-if="authStore.userInfo?.avatarType === 'preset' && authStore.userInfo?.avatarValue"
+        :class="`sprite-avatar avatar-${authStore.userInfo.avatarValue}`"
+        class="avatar"
+      />
+      <!-- 自定义头像显示 -->
       <image
+        v-else
         class="avatar"
         :src="
           authStore.userInfo?.avatarUrl || '/static/images/default-avatar.png'
@@ -86,6 +94,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore, usePointsStore } from '@/stores';
+import '@/assets/styles/avatar.scss';
 
 const authStore = useAuthStore();
 const pointsStore = usePointsStore();
@@ -199,6 +208,7 @@ const handleLogout = () => {
       border-radius: 50%;
       margin-right: 24rpx;
       background: #f0f0f0;
+      display: block;
     }
 
     .user-info {

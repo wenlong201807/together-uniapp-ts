@@ -1,12 +1,18 @@
 <template>
   <view class="profile-container">
     <view class="profile-header">
-      <view class="avatar-wrapper" @click="handleChooseAvatar">
-        <image
+      <view class="avatar-wrapper" @click="showAvatarSelector">
+        <!-- 预设头像显示 -->
+        <view
+          v-if="selectedAvatar.type === 'preset'"
+          :class="`sprite-avatar avatar-${selectedAvatar.value}`"
           class="avatar"
-          :src="
-            authStore.userInfo?.avatarUrl || '/static/images/default-avatar.png'
-          "
+        />
+        <!-- 自定义头像显示 -->
+        <image
+          v-else
+          class="avatar"
+          :src="selectedAvatar.displayUrl || '/static/images/default-avatar.png'"
           mode="aspectFill"
         />
         <view class="avatar-edit">
@@ -53,14 +59,79 @@
         {{ loading ? '保存中...' : '保存' }}
       </button>
     </view>
+
+    <!-- 头像选择器弹窗 -->
+    <view v-if="showSelector" class="avatar-selector-modal">
+      <!-- 标签页 -->
+      <view class="modal-overlay" @click="showSelector = false" />
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">选择头像</text>
+          <text class="modal-close" @click="showSelector = false">✕</text>
+        </view>
+
+        <view class="tabs">
+          <view
+            class="tab-item"
+            :class="{ active: activeTab === 'preset' }"
+            @click="activeTab = 'preset'"
+          >
+            预设头像
+          </view>
+          <view
+            class="tab-item"
+            :class="{ active: activeTab === 'custom' }"
+            @click="activeTab = 'custom'"
+          >
+            自定义上传
+          </view>
+        </view>
+
+        <!-- 预设头像网格 -->
+        <view v-if="activeTab === 'preset'" class="avatar-selector">
+          <view
+            v-for="i in 49"
+            :key="i"
+            class="avatar-item"
+            :class="{ selected: isSelected('preset', String(i)) }"
+            @click="selectPreset(i)"
+          >
+            <view :class="`sprite-avatar avatar-${i}`" />
+          </view>
+        </view>
+
+        <!-- 自定义上传 -->
+        <view v-else class="custom-upload">
+          <view class="upload-area" @click="chooseImage">
+            <text class="upload-icon">📤</text>
+            <text class="upload-text">点击选择图片</text>
+          </view>
+          <image
+            v-if="previewUrl"
+            :src="previewUrl"
+            mode="aspectFill"
+            class="preview-image"
+          />
+        </view>
+
+        <!-- 操作按钮 -->
+        <view class="action-buttons">
+          <button class="btn-cancel" @click="showSelector = false">取消</button>
+          <button class="btn-confirm" :disabled="!tempSelection" @click="handleAvatarConfirm">
+            确认
+          </button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, reactive } from 'vue';
 import { useAuthStore } from '@/stores';
 import { authApi, fileApi } from '@/api';
 import { Gender } from '@/types/enums';
+import '@/assets/styles/avatar.scss';
 
 const authStore = useAuthStore();
 
@@ -70,65 +141,146 @@ const formData = ref({
 });
 
 const loading = ref(false);
-const avatarLoading = ref(false);
+const showSelector = ref(false);
+const activeTab = ref<'preset' | 'custom'>('preset');
+const previewUrl = ref('');
+const tempSelection = ref<any>(null);
+
+// 当前选择的头像状态
+const selectedAvatar = reactive({
+  type: 'custom' as 'preset' | 'custom',
+  value: '1',
+  displayUrl: '',
+});
 
 onMounted(() => {
   if (authStore.userInfo) {
     formData.value.nickname = authStore.userInfo.nickname || '';
     formData.value.gender = authStore.userInfo.gender || Gender.UNKNOWN;
+
+    // 初始化头像显示
+    if (authStore.userInfo.avatarUrl) {
+      selectedAvatar.type = 'custom';
+      selectedAvatar.displayUrl = authStore.userInfo.avatarUrl;
+    }
   }
 });
 
-const handleChooseAvatar = async () => {
-  try {
-    const result = await uni.chooseImage({
-      count: 1,
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-    });
+/**
+ * 显示头像选择器
+ */
+const showAvatarSelector = () => {
+  showSelector.value = true;
+  activeTab.value = 'preset';
+  tempSelection.value = null;
+  previewUrl.value = '';
+};
 
-    // H5端可能返回tempFiles而不是tempFilePaths
-    let filePath = result.tempFilePaths?.[0];
-    if (!filePath && result.tempFiles?.[0]) {
-      // H5端兼容：使用tempFiles中的路径或base64
-      const tempFile = result.tempFiles[0];
-      if (tempFile.path) {
-        filePath = tempFile.path;
-      } else if (tempFile.base64) {
-        // 转换为data URL格式
-        filePath = `data:image/${tempFile.name?.split('.').pop() || 'jpeg'};base64,${tempFile.base64}`;
+/**
+ * 选择预设头像
+ */
+const selectPreset = (id: number) => {
+  tempSelection.value = {
+    type: 'preset',
+    value: String(id),
+    displayUrl: '',
+  };
+};
+
+/**
+ * 选择自定义图片
+ */
+const chooseImage = () => {
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: (res) => {
+      let filePath = res.tempFilePaths?.[0];
+      if (!filePath && res.tempFiles?.[0]) {
+        const tempFile = res.tempFiles[0];
+        if (tempFile.path) {
+          filePath = tempFile.path;
+        } else if (tempFile.base64) {
+          filePath = `data:image/${tempFile.name?.split('.').pop() || 'jpeg'};base64,${tempFile.base64}`;
+        }
       }
+
+      if (filePath) {
+        previewUrl.value = filePath;
+        tempSelection.value = {
+          type: 'custom',
+          value: filePath,
+          displayUrl: filePath,
+        };
+      }
+    },
+    fail: () => {
+      uni.showToast({
+        title: '选择图片失败',
+        icon: 'none',
+      });
+    },
+  });
+};
+
+/**
+ * 判断是否已选中
+ */
+const isSelected = (type: string, value: string): boolean => {
+  return tempSelection.value?.type === type && tempSelection.value?.value === value;
+};
+
+/**
+ * 处理头像确认
+ */
+const handleAvatarConfirm = async () => {
+  if (!tempSelection.value) {
+    return;
+  }
+
+  try {
+    // 如果是自定义上传，需要先上传文件
+    if (tempSelection.value.type === 'custom') {
+      await uploadCustomAvatar(tempSelection.value.value);
+    } else {
+      // 预设头像直接更新状态
+      selectedAvatar.type = 'preset';
+      selectedAvatar.value = tempSelection.value.value;
+      selectedAvatar.displayUrl = '';
     }
 
-    if (!filePath) {
-      throw new Error('无法获取图片文件');
-    }
-
-    avatarLoading.value = true;
-    console.log('Selected file path:', filePath);
-
-    const { url } = await fileApi.uploadAvatar(filePath);
-    console.log('Upload success, url:', url);
-
-    // 更新用户头像
-    await authApi.updateUser({ avatarUrl: url });
-    authStore.updateUserInfo({ ...authStore.userInfo, avatarUrl: url });
-
+    showSelector.value = false;
     uni.showToast({
-      title: '头像更新成功',
+      title: '头像已更新',
       icon: 'success',
     });
   } catch (error) {
-    console.error('Upload avatar error:', error);
+    console.error('Avatar confirm error:', error);
     uni.showToast({
       title: '头像更新失败',
       icon: 'none',
     });
-  } finally {
-    avatarLoading.value = false;
   }
 };
 
+/**
+ * 上传自定义头像
+ */
+const uploadCustomAvatar = async (filePath: string) => {
+  try {
+    const { url } = await fileApi.uploadAvatar(filePath);
+    selectedAvatar.type = 'custom';
+    selectedAvatar.displayUrl = url;
+  } catch (error) {
+    console.error('Upload custom avatar error:', error);
+    throw error;
+  }
+};
+
+/**
+ * 保存用户信息
+ */
 const handleSave = async () => {
   if (!formData.value.nickname) {
     uni.showToast({
@@ -140,13 +292,21 @@ const handleSave = async () => {
 
   loading.value = true;
   try {
-    const res = await authApi.updateUser({
+    // 构建更新数据，根据头像类型发送不同字段
+    const updateData: any = {
       nickname: formData.value.nickname,
       gender: formData.value.gender,
-    });
+    };
 
+    // 如果头像有变化，添加头像字段
+    if (selectedAvatar.type === 'preset') {
+      updateData.avatarId = selectedAvatar.value;
+    } else if (selectedAvatar.displayUrl) {
+      updateData.avatarUrl = selectedAvatar.displayUrl;
+    }
+
+    const res = await authApi.updateUser(updateData);
     authStore.updateUserInfo(res.data);
-    // uni.setStorageSync('userInfo', res.data);
 
     uni.showToast({
       title: '保存成功',
@@ -182,6 +342,7 @@ const handleSave = async () => {
 
     .avatar-wrapper {
       position: relative;
+      cursor: pointer;
 
       .avatar {
         width: 160rpx;
@@ -189,6 +350,7 @@ const handleSave = async () => {
         border-radius: 50%;
         margin-bottom: 24rpx;
         background: #f0f0f0;
+        display: block;
       }
 
       .avatar-edit {
@@ -269,6 +431,7 @@ const handleSave = async () => {
           font-size: 28rpx;
           color: #666;
           background: #f8f8f8;
+          cursor: pointer;
 
           &.active {
             border-color: #007aff;
@@ -292,6 +455,185 @@ const handleSave = async () => {
 
       &:disabled {
         opacity: 0.6;
+      }
+    }
+  }
+
+  // 头像选择器弹窗样式
+  .avatar-selector-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+      position: relative;
+      width: 100%;
+      background: #fff;
+      border-radius: 24rpx 24rpx 0 0;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 1001;
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24rpx 40rpx;
+        border-bottom: 1rpx solid #f0f0f0;
+
+        .modal-title {
+          font-size: 32rpx;
+          font-weight: bold;
+          color: #333;
+        }
+
+        .modal-close {
+          font-size: 36rpx;
+          color: #999;
+          cursor: pointer;
+        }
+      }
+
+      .tabs {
+        display: flex;
+        border-bottom: 1rpx solid #f0f0f0;
+
+        .tab-item {
+          flex: 1;
+          padding: 20rpx;
+          text-align: center;
+          font-size: 28rpx;
+          color: #999;
+          border-bottom: 4rpx solid transparent;
+          cursor: pointer;
+
+          &.active {
+            color: #007aff;
+            border-bottom-color: #007aff;
+          }
+        }
+      }
+
+      .avatar-selector {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 16rpx;
+        padding: 24rpx;
+        overflow-y: auto;
+        flex: 1;
+
+        .avatar-item {
+          position: relative;
+          cursor: pointer;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 3rpx solid transparent;
+          transition: all 0.3s;
+          aspect-ratio: 1;
+
+          &:hover {
+            transform: scale(1.1);
+          }
+
+          &.selected {
+            border-color: #007aff;
+            box-shadow: 0 0 10rpx rgba(0, 122, 255, 0.5);
+          }
+
+          .sprite-avatar {
+            width: 100%;
+            height: 100%;
+          }
+        }
+      }
+
+      .custom-upload {
+        padding: 40rpx 24rpx;
+        overflow-y: auto;
+        flex: 1;
+
+        .upload-area {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 300rpx;
+          border: 2rpx dashed #e0e0e0;
+          border-radius: 12rpx;
+          cursor: pointer;
+          transition: all 0.3s;
+
+          &:active {
+            background: #f8f8f8;
+            border-color: #007aff;
+          }
+
+          .upload-icon {
+            font-size: 80rpx;
+            margin-bottom: 16rpx;
+          }
+
+          .upload-text {
+            font-size: 28rpx;
+            color: #999;
+          }
+        }
+
+        .preview-image {
+          width: 100%;
+          height: 300rpx;
+          border-radius: 12rpx;
+          margin-top: 24rpx;
+          object-fit: cover;
+        }
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 16rpx;
+        padding: 24rpx;
+        border-top: 1rpx solid #f0f0f0;
+
+        .btn-cancel,
+        .btn-confirm {
+          flex: 1;
+          height: 88rpx;
+          line-height: 88rpx;
+          border-radius: 12rpx;
+          font-size: 28rpx;
+          border: none;
+          cursor: pointer;
+        }
+
+        .btn-cancel {
+          background: #f0f0f0;
+          color: #333;
+        }
+
+        .btn-confirm {
+          background: #007aff;
+          color: #fff;
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+        }
       }
     }
   }

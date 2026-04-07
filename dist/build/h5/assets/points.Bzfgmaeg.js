@@ -1,1 +1,0 @@
-import{T as t}from"./index-Dll7NF33.js";const s={getBalance:()=>t.get("/points/balance"),sign:()=>t.post("/points/sign"),getSignStatus:()=>t.get("/points/sign/status"),getLogs:(s=1,e=20,g)=>t.get("/points/logs",{params:{page:s,pageSize:e,type:g}})};export{s as p};
