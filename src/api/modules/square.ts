@@ -42,19 +42,19 @@ export interface GetPostsParams {
 
 export const squareApi = {
   createPost: (data: CreatePostDto) =>
-    request.post<SquarePost>('/api/v1/square/posts', data),
+    request.post<SquarePost>('/square/posts', data),
 
   getPosts: (params?: GetPostsParams) =>
-    request.get<{ list: Post[]; total: number }>('/api/v1/square/posts', params),
+    request.get<{ list: Post[]; total: number }>('/square/posts', params),
 
   getPost: (id: number) =>
-    request.get<SquarePost>(`/api/v1/square/posts/${id}`),
+    request.get<SquarePost>(`/square/posts/${id}`),
 
   deletePost: (id: number) =>
-    request.delete<{ success: boolean }>(`/api/v1/square/posts/${id}`),
+    request.delete<{ success: boolean }>(`/square/posts/${id}`),
 
   createComment: (data: CreateCommentDto) =>
-    request.post<{ id: number }>('/api/v1/square/comment', data),
+    request.post<{ id: number }>('/square/comment', data),
 
   getComments: (
     postId: number,
@@ -65,7 +65,7 @@ export const squareApi = {
     },
   ) => {
     return request.get<{ list: Comment[]; total: number }>(
-      `/api/v1/square/posts/${postId}/comments`,
+      `/square/posts/${postId}/comments`,
       params,
     );
   },
@@ -75,20 +75,20 @@ export const squareApi = {
     params?: { page?: number; pageSize?: number },
   ) => {
     return request.get<{ list: Comment[]; total: number }>(
-      `/api/v1/square/comments/${commentId}/replies`,
+      `/square/comments/${commentId}/replies`,
       params,
     );
   },
 
   toggleLike: (data: LikeDto) =>
-    request.post<{ isLiked: boolean }>('/api/v1/square/like', data),
+    request.post<{ isLiked: boolean }>('/square/like', data),
 
   likePost: (postId: number) =>
-    request.post<{ isLiked: boolean }>(`/api/v1/square/posts/${postId}/like`),
+    request.post<{ isLiked: boolean }>(`/square/posts/${postId}/like`),
 
   unlikePost: (postId: number) =>
-    request.delete<{ isLiked: boolean }>(`/api/v1/square/posts/${postId}/like`),
+    request.delete<{ isLiked: boolean }>(`/square/posts/${postId}/like`),
 
   report: (data: ReportDto) =>
-    request.post<PostReport>('/api/v1/square/report', data),
+    request.post<PostReport>('/square/report', data),
 };

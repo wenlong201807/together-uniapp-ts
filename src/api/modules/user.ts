@@ -26,7 +26,7 @@ export const userApi = {
    * @returns 当前用户信息
    */
   getCurrentUser: () =>
-    request.get<User>('/api/v1/user/me'),
+    request.get<User>('/user/me'),
 
   /**
    * 更新用户信息
@@ -34,7 +34,7 @@ export const userApi = {
    * @returns 更新后的用户信息
    */
   updateUser: (data: UpdateUserDto) =>
-    request.put<User>('/api/v1/user/me', data),
+    request.put<User>('/user/me', data),
 
   /**
    * 更新用户资料
@@ -42,14 +42,14 @@ export const userApi = {
    * @returns 更新后的用户信息
    */
   updateProfile: (data: UpdateProfileDto) =>
-    request.put<User>('/api/v1/user/profile', data),
+    request.put<User>('/user/profile', data),
 
   /**
    * 查询用户积分
    * @returns 用户积分信息
    */
   getUserPoints: () =>
-    request.get<{ points: number }>('/api/v1/user/points'),
+    request.get<{ points: number }>('/user/points'),
 
   /**
    * 查看用户详情
@@ -57,7 +57,7 @@ export const userApi = {
    * @returns 用户详情
    */
   getUserProfile: (id: number) =>
-    request.get<object>(`/api/v1/user/${id}`),
+    request.get<object>(`/user/${id}`),
 
   /**
    * 上传头像
@@ -67,6 +67,14 @@ export const userApi = {
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    return request.post<{ url: string }>('/api/v1/user/avatar', formData);
+    return request.post<{ url: string }>('/user/avatar', formData);
   },
+
+  /**
+   * 更换手机号
+   * @param data 新手机号和验证码
+   * @returns 更换结果
+   */
+  changeMobile: (data: { newMobile: string; code: string }) =>
+    request.put<{ message: string; mobile: string }>('/user/mobile', data),
 };

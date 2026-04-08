@@ -28,5 +28,5 @@ export interface PublicConfig {
 
 export const configApi = {
   getPublicConfig: () =>
-    request.get<PublicConfig>('/api/v1/public/config')
+    request.get<PublicConfig>('/public/config')
 }

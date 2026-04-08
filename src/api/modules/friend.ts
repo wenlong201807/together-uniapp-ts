@@ -14,32 +14,32 @@ export interface FriendshipStatus {
 
 export const friendApi = {
   getFriendList: () =>
-    request.get<Friendship[]>('/api/v1/friend/list'),
+    request.get<Friendship[]>('/friend/list'),
 
   getFollowingList: () =>
-    request.get<Friendship[]>('/api/v1/friend/following'),
+    request.get<Friendship[]>('/friend/following'),
 
   follow: (friendId: number) =>
-    request.post<Friendship>('/api/v1/friend/follow', { friendId }),
+    request.post<Friendship>('/friend/follow', { friendId }),
 
   friendRequest: (friendId: number, message?: string) =>
-    request.post<Friendship>('/api/v1/friend/request', { friendId, message }),
+    request.post<Friendship>('/friend/request', { friendId, message }),
 
   acceptFriend: (friendId: number) =>
-    request.post<{ success: boolean }>('/api/v1/friend/accept', { friendId }),
+    request.post<{ success: boolean }>('/friend/accept', { friendId }),
 
   unlockChat: (friendId: number) =>
-    request.post<{ success: boolean }>('/api/v1/friend/unlock-chat', { friendId }),
+    request.post<{ success: boolean }>('/friend/unlock-chat', { friendId }),
 
   getFriendshipStatus: (userId: number) =>
-    request.get<FriendshipStatus>(`/api/v1/friend/status/${userId}`),
+    request.get<FriendshipStatus>(`/friend/status/${userId}`),
 
   deleteFriend: (userId: number) =>
-    request.delete<{ success: boolean }>(`/api/v1/friend/${userId}`),
+    request.delete<{ success: boolean }>(`/friend/${userId}`),
 
   blockUser: (blockedUserId: number, reason?: string) =>
-    request.post<UserBlacklist>('/api/v1/friend/block', { blockedUserId, reason }),
+    request.post<UserBlacklist>('/friend/block', { blockedUserId, reason }),
 
   getBlocklist: () =>
-    request.get<UserBlacklist[]>('/api/v1/friend/blocklist')
+    request.get<UserBlacklist[]>('/friend/blocklist')
 }

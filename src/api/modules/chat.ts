@@ -17,25 +17,25 @@ export interface GetHistoryParams {
 
 export const chatApi = {
   sendMessage: (data: SendMessageDto) =>
-    request.post<{ id: number }>('/api/v1/chat/send', data),
+    request.post<{ id: number }>('/chat/send', data),
 
   getHistory: (userId: number, params?: GetHistoryParams) =>
     request.get<{ data: Message[]; total: number }>(
-      `/api/v1/chat/history/${userId}`,
+      `/chat/history/${userId}`,
       params,
     ),
 
   getConversations: () =>
     request.get<{ data: Conversation[]; unreadCount: number }>(
-      '/api/v1/chat/conversations',
+      '/chat/conversations',
     ),
 
   getMessages: (params?: { page?: number; pageSize?: number }) =>
     request.get<{ data: Message[]; total: number }>(
-      '/api/v1/chat/messages',
+      '/chat/messages',
       params,
     ),
 
   markAsRead: (userId: number) =>
-    request.put<{ success: boolean }>(`/api/v1/chat/read/${userId}`),
+    request.put<{ success: boolean }>(`/chat/read/${userId}`),
 };

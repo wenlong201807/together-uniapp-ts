@@ -33,19 +33,19 @@ export interface CreateCertificationDto {
 
 export const certificationApi = {
   getTypes: () =>
-    request.get<CertificationTypeConfig[]>('/api/v1/certification-types'),
+    request.get<CertificationTypeConfig[]>('/certification-types'),
 
   getType: () =>
-    request.get<CertificationTypeConfig>('/api/v1/certification-type'),
+    request.get<CertificationTypeConfig>('/certification-type'),
 
   submit: (data: CreateCertificationDto) =>
-    request.post<BackendCertification>('/api/v1/certification', data),
+    request.post<BackendCertification>('/certification', data),
 
   getMyList: (status?: number) =>
-    request.get<BackendCertification[]>('/api/v1/certification/list', {
+    request.get<BackendCertification[]>('/certification/list', {
       status
     }),
 
   getDetail: (id: number) =>
-    request.get<BackendCertification>(`/api/v1/certification/${id}`)
+    request.get<BackendCertification>(`/certification/${id}`)
 }

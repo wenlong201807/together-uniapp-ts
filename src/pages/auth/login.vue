@@ -42,6 +42,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores';
+import { CryptoUtil } from '@/utils/crypto';
 
 const authStore = useAuthStore();
 
@@ -63,30 +64,27 @@ const handleLogin = async () => {
 
   loading.value = true;
   try {
-    const aa = await authStore.login(formData.value);
+    // 加密密码后再发送
+    const encryptedPassword = CryptoUtil.encryptPassword(formData.value.password);
+    const aa = await authStore.login({
+      mobile: formData.value.mobile,
+      password: encryptedPassword,
+    });
     console.log(99, aa);
     uni.showToast({
-      title: '登录成功11',
-      // https://uniapp.dcloud.net.cn/api/ui/prompt.html#showtoast
-      // success: () => {
-      //   uni.switchTab({
-      //     url: '/pages/tabbar/home',
-      //   });
-      // },
-      // complete: () => {
-      //   console.log(123);
-      //   uni.hideToast();
-      // },
+      title: '登录成功',
     });
     setTimeout(() => {
       uni.switchTab({
         url: '/pages/tabbar/home',
       });
-      // http://192.168.100.199:3008/#/pages/auth/login
-      // http://192.168.100.1:3008/#/pages/auth/login
     }, 1500);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
+    uni.showToast({
+      title: error.message || '登录失败',
+      icon: 'none',
+    });
   } finally {
     loading.value = false;
   }

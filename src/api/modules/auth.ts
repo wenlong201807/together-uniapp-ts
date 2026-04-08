@@ -30,19 +30,19 @@ export interface LoginDto {
 
 export const authApi = {
   sendSms: (data: SmsDto) =>
-    request.post<{ message: string }>('/api/v1/auth/sms/send', data),
+    request.post<{ message: string }>('/auth/sms/send', data),
 
   register: (data: RegisterDto) =>
-    request.post<{ token: string; user: User }>('/api/v1/auth/register', data),
+    request.post<{ token: string; user: User }>('/auth/register', data),
 
   login: (data: LoginDto) =>
-    request.post<{ token: string; user: User }>('/api/v1/auth/login', data),
+    request.post<{ token: string; user: User }>('/auth/login', data),
 
   resetPassword: (data: ResetPasswordDto) =>
-    request.post<{ message: string }>('/api/v1/auth/reset-password', data),
+    request.post<{ message: string }>('/auth/reset-password', data),
 
   refreshToken: (refreshToken: string) =>
-    request.post<{ token: string; refreshToken: string }>('/api/v1/auth/refresh', {
+    request.post<{ token: string; refreshToken: string }>('/auth/refresh', {
       refreshToken: refreshToken,
     }),
 
@@ -50,5 +50,5 @@ export const authApi = {
     nickname?: string;
     gender?: Gender;
     avatarUrl?: string;
-  }) => request.put<User>('/api/v1/user/me', data),
+  }) => request.put<User>('/user/me', data),
 };

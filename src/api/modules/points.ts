@@ -31,24 +31,24 @@ export interface PointsLog {
 
 export const pointsApi = {
   getBalance: () =>
-    request.get<{ balance: number }>('/api/v1/points/balance'),
+    request.get<{ balance: number }>('/points/balance'),
 
   sign: () =>
-    request.post<SignResult>('/api/v1/points/sign'),
+    request.post<SignResult>('/points/sign'),
 
   getSignStatus: () =>
-    request.get<SignStatus>('/api/v1/points/sign/status'),
+    request.get<SignStatus>('/points/sign/status'),
 
   getLogs: (page = 1, pageSize = 20, type?: number) =>
-    request.get<{ list: PointsLog[]; total: number }>('/api/v1/points/logs', {
+    request.get<{ list: PointsLog[]; total: number }>('/points/logs', {
       page,
       pageSize,
       type
     }),
 
   getConfig: () =>
-    request.get<PointsConfig[]>('/api/v1/points/config'),
+    request.get<PointsConfig[]>('/points/config'),
 
   getConfigList: () =>
-    request.get<PointsConfig[]>('/api/v1/points-configs')
+    request.get<PointsConfig[]>('/points-configs')
 }

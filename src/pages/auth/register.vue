@@ -89,6 +89,7 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/stores'
 import { authApi } from '@/api'
 import { Gender } from '@/types/enums'
+import { CryptoUtil } from '@/utils/crypto'
 
 const authStore = useAuthStore()
 
@@ -113,7 +114,7 @@ const sendCode = async () => {
   }
 
   try {
-    await authApi.sendSms({ mobile: formData.value.mobile })
+    await authApi.sendSms({ mobile: formData.value.mobile, type: 'register' })
     uni.showToast({
       title: '验证码已发送',
       icon: 'success'
@@ -126,8 +127,12 @@ const sendCode = async () => {
         clearInterval(timer)
       }
     }, 1000)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Send code error:', error)
+    uni.showToast({
+      title: error.message || '发送失败',
+      icon: 'none'
+    })
   }
 }
 
@@ -142,7 +147,12 @@ const handleRegister = async () => {
 
   loading.value = true
   try {
-    await authStore.register(formData.value)
+    // 加密密码后再发送
+    const encryptedPassword = CryptoUtil.encryptPassword(formData.value.password)
+    await authStore.register({
+      ...formData.value,
+      password: encryptedPassword,
+    })
     uni.showToast({
       title: '注册成功',
       icon: 'success'
@@ -152,8 +162,12 @@ const handleRegister = async () => {
         url: '/pages/tabbar/home'
       })
     }, 1500)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Register error:', error)
+    uni.showToast({
+      title: error.message || '注册失败',
+      icon: 'none'
+    })
   } finally {
     loading.value = false
   }
