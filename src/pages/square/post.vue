@@ -1,7 +1,7 @@
 <template>
   <view class="post-detail-container">
     <view v-if="squareStore.currentPost" class="post-detail">
-      <PostCard :post="squareStore.currentPost" @like="handleLike" />
+      <PostCard :post="squareStore.currentPost" @like="handleLike" @report="handleReport" />
 
       <view class="comments-section">
         <view class="section-header">
@@ -59,6 +59,15 @@ const loadPostDetail = async () => {
 const handleLike = async () => {
   if (!squareStore.currentPost) return;
 
+  const originalIsLiked = squareStore.currentPost.isLiked;
+  const originalLikeCount = squareStore.currentPost.likeCount;
+
+  // 乐观更新 UI
+  squareStore.currentPost.isLiked = !originalIsLiked;
+  squareStore.currentPost.likeCount = originalIsLiked
+    ? originalLikeCount - 1
+    : originalLikeCount + 1;
+
   try {
     await squareStore.toggleLike({
       targetId: squareStore.currentPost.id,
@@ -66,6 +75,13 @@ const handleLike = async () => {
     });
   } catch (error) {
     console.error('Like error:', error);
+    // 失败时回滚
+    squareStore.currentPost.isLiked = originalIsLiked;
+    squareStore.currentPost.likeCount = originalLikeCount;
+    uni.showToast({
+      title: '操作失败',
+      icon: 'none'
+    });
   }
 };
 
@@ -81,6 +97,28 @@ const handleCommentSuccess = async () => {
     pageSize: 20,
     sort: 'time',
   });
+};
+
+const handleReport = async (data: { reason: number; description: string }) => {
+  if (!squareStore.currentPost) return;
+
+  try {
+    await squareStore.report({
+      postId: squareStore.currentPost.id,
+      reason: data.reason,
+      description: data.description,
+    });
+    uni.showToast({
+      title: '举报成功',
+      icon: 'success'
+    });
+  } catch (error) {
+    console.error('Report error:', error);
+    uni.showToast({
+      title: '举报失败',
+      icon: 'none'
+    });
+  }
 };
 </script>
 

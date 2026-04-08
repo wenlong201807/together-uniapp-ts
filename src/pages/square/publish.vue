@@ -24,13 +24,13 @@
               <text>×</text>
             </view>
           </view>
-          <view v-if="formData.images.length < 9" class="add-image-btn" @click="chooseImage">
+          <view v-if="formData.images.length < 1" class="add-image-btn" @click="chooseImage">
             <text>+</text>
           </view>
         </view>
       </view>
 
-      <button class="publish-btn" :disabled="loading || !formData.content.trim()" @click="handlePublish">
+      <button class="publish-btn" :disabled="loading" @click="handlePublish">
         {{ loading ? '发布中...' : '发布' }}
       </button>
     </view>
@@ -53,7 +53,7 @@ const loading = ref(false)
 
 const chooseImage = () => {
   uni.chooseImage({
-    count: 9 - formData.value.images.length,
+    count: 1,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
     success: (res) => {
@@ -114,7 +114,7 @@ const handlePublish = async () => {
       icon: 'success'
     })
     setTimeout(() => {
-      uni.navigateBack()
+      uni.switchTab({ url: '/pages/tabbar/square' })
     }, 1500)
   } catch (error) {
     console.error('Publish error:', error)
