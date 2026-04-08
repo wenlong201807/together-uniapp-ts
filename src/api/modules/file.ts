@@ -81,34 +81,40 @@ function getFileExtension(filePath: string): string {
   return match ? match[1].toLowerCase() : 'jpg';
 }
 
+/**
+ * 上传文件到七牛云
+ * @param filePath 本地文件路径
+ * @param options 上传选项
+ * @returns 上传结果
+ */
 export async function uploadFile(
   filePath: string,
   options?: {
-    type?: string;
+    type?: 'square' | 'avatar' | 'certificate' | 'album';
   }
 ): Promise<UploadResult> {
-  const config = await getUploadConfig();
-  
-  const ext = getFileExtension(filePath);
-  const now = new Date();
-  const relativePath = `${config.bucket}/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${generateUUID()}.${ext}`;
+  // 将 post 类型映射为 square
+  let type = options?.type || 'square';
+  if (type === 'post' as any) {
+    type = 'square';
+  }
 
-  // 1. 获取预签名上传URL
-  const presignedRes = await request.post<{ uploadUrl: string; filePath: string }>('/file/presigned-put', {
-    filePath: relativePath,
-  });
+  // 1. 获取七牛云上传凭证
+  const tokenRes = await getUploadToken({ type, fileName: filePath.split('/').pop() });
+  const { token, key, domain } = tokenRes;
 
-  // 2. 使用预签名URL上传到RustFS (PUT方式)
+  // 2. 准备文件数据
   let fileData: ArrayBuffer;
+  const ext = getFileExtension(filePath);
   const mimeType = getMimeType(ext);
-  
+
   // 检测运行环境
   const isH5 = typeof window !== 'undefined';
   const isUniApp = typeof uni !== 'undefined';
   const hasFileSystemManager = isUniApp && typeof (uni as any).getFileSystemManager === 'function';
-  
+
   console.log('UploadFile debug - isH5:', isH5, 'isUniApp:', isUniApp, 'hasFileSystemManager:', hasFileSystemManager, 'filePath:', filePath);
-  
+
   if (hasFileSystemManager && !isH5) {
     // 小程序端
     console.log('Using mini program upload');
@@ -145,45 +151,80 @@ export async function uploadFile(
         fileData = await response.arrayBuffer();
       } catch (e) {
         console.error('Fetch file error:', e);
-        throw new Error('无法读取文件: ' + e.message);
+        throw new Error('无法读取文件: ' + (e as Error).message);
       }
     }
   } else {
     throw new Error('不支持的平台或无效的文件路径');
   }
 
-  console.log('Uploading to:', presignedRes.data.uploadUrl);
-  
-  await uni.request({
-    url: presignedRes.data.uploadUrl,
-    method: 'PUT',
-    data: fileData,
-    header: {
-      'Content-Type': mimeType,
-    },
-  });
-  
-  // 3. 将相对路径传给后端
-  let originalName: string;
-  if (filePath.startsWith('data:')) {
-    originalName = `image.${ext}`;
-  } else if (filePath.startsWith('blob:')) {
-    originalName = `image.${ext}`;
-  } else if (filePath.includes('/')) {
-    originalName = filePath.split('/').pop() || `image.${ext}`;
-  } else {
-    originalName = `image.${ext}`;
-  }
-  
-  const res = await request.post<UploadResult>('/file/upload', {
-    filePath: relativePath,
-    originalName: originalName,
-    mimeType: getMimeType(ext),
-    fileSize: 0,
-    type: options?.type || 'default',
-  });
+  // 3. 上传到七牛云
+  console.log('Uploading to Qiniu, key:', key);
 
-  return res.data;
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: 'https://up-z2.qiniup.com', // 华南区域
+      filePath: filePath,
+      name: 'file',
+      formData: {
+        token: token,
+        key: key,
+      },
+      success: async (uploadRes) => {
+        if (uploadRes.statusCode === 200) {
+          console.log('Qiniu upload success:', uploadRes.data);
+
+          // 4. 保存文件记录到后端
+          try {
+            let originalName: string;
+            if (filePath.startsWith('data:')) {
+              originalName = `image.${ext}`;
+            } else if (filePath.startsWith('blob:')) {
+              originalName = `image.${ext}`;
+            } else if (filePath.includes('/')) {
+              originalName = filePath.split('/').pop() || `image.${ext}`;
+            } else {
+              originalName = `image.${ext}`;
+            }
+
+            const saveRes = await saveFileRecord({
+              fileName: key,
+              filePath: key,
+              originalName: originalName,
+              fileSize: 0,
+              mimeType: mimeType,
+              fileExt: ext,
+              bucketName: 'wetogether-staging',
+              type: type,
+            });
+
+            // 返回完整的 URL
+            const fullUrl = `${domain}/${key}`;
+            resolve({
+              id: saveRes.id,
+              fileName: key,
+              filePath: key,
+              originalName: originalName,
+              fileSize: 0,
+              mimeType: mimeType,
+              fileExt: ext,
+              url: fullUrl,
+            });
+          } catch (error) {
+            console.error('Save file record error:', error);
+            reject(error);
+          }
+        } else {
+          console.error('Qiniu upload failed:', uploadRes);
+          reject(new Error('上传失败'));
+        }
+      },
+      fail: (error) => {
+        console.error('Upload error:', error);
+        reject(error);
+      }
+    });
+  });
 }
 
 export async function getFileUrl(fileId: number): Promise<string> {
@@ -235,88 +276,47 @@ export async function saveFileRecord(data: {
 }
 
 export async function uploadAvatar(filePath: string): Promise<{ filePath: string; url: string }> {
-  const config = await getUploadConfig();
-  
-  const ext = getFileExtension(filePath);
-  const now = new Date();
-  const relativePath = `avatar/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${generateUUID()}.${ext}`;
+  // 1. 获取七牛云上传凭证
+  const tokenRes = await getUploadToken({ type: 'avatar', fileName: filePath.split('/').pop() });
+  const { token, key, domain } = tokenRes;
 
-  // 1. 获取预签名上传URL
-  const presignedRes = await request.post<{ uploadUrl: string; filePath: string }>('/file/presigned-put', {
-    filePath: relativePath,
-  });
-
-  // 2. 使用预签名URL上传到RustFS (PUT方式)
-  let fileData: ArrayBuffer;
-  const mimeType = getMimeType(ext);
-  
-  // 检测运行环境
-  const isH5 = typeof window !== 'undefined';
-  const isUniApp = typeof uni !== 'undefined';
-  const hasFileSystemManager = isUniApp && typeof (uni as any).getFileSystemManager === 'function';
-  
-  console.log('Upload debug - isH5:', isH5, 'isUniApp:', isUniApp, 'hasFileSystemManager:', hasFileSystemManager, 'filePath:', filePath);
-  
-  if (hasFileSystemManager && !isH5) {
-    // 小程序端
-    console.log('Using mini program upload');
-    const fs = (uni as any).getFileSystemManager();
-    const fileContent = await fs.readFile({
+  // 2. 上传到七牛云
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: 'https://up-z2.qiniup.com', // 华南区域
       filePath: filePath,
-      encoding: 'binary'
+      name: 'file',
+      formData: {
+        token: token,
+        key: key,
+      },
+      success: async (uploadRes) => {
+        if (uploadRes.statusCode === 200) {
+          console.log('Qiniu avatar upload success:', uploadRes.data);
+
+          // 3. 保存到后端并返回 URL
+          try {
+            const res = await request.post<{ id: number; filePath: string; url: string }>('/user/avatar', {
+              filePath: key,
+            });
+
+            const fullUrl = `${domain}/${key}`;
+            resolve({ filePath: key, url: fullUrl });
+          } catch (error) {
+            console.error('Save avatar record error:', error);
+            reject(error);
+          }
+        } else {
+          console.error('Qiniu avatar upload failed:', uploadRes);
+          reject(new Error('上传失败'));
+        }
+      },
+      fail: (error) => {
+        console.error('Upload avatar error:', error);
+        reject(error);
+      }
     });
-    const binary = atob(fileContent.data);
-    const array = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      array[i] = binary.charCodeAt(i);
-    }
-    fileData = array.buffer;
-  } else if (isH5 && filePath) {
-    // H5端 - blob URL 或 data URL 或临时文件路径
-    console.log('Using H5 upload, filePath starts with:', filePath.substring(0, 50));
-    if (filePath.startsWith('blob:')) {
-      const response = await fetch(filePath);
-      fileData = await response.arrayBuffer();
-    } else if (filePath.startsWith('data:')) {
-      // data URL
-      const base64 = filePath.split(',')[1];
-      const binary = atob(base64);
-      const array = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        array[i] = binary.charCodeAt(i);
-      }
-      fileData = array.buffer;
-    } else {
-      // H5端临时文件路径或其他路径
-      try {
-        const response = await fetch(filePath);
-        fileData = await response.arrayBuffer();
-      } catch (e) {
-        console.error('Fetch file error:', e);
-        throw new Error('无法读取文件: ' + e.message);
-      }
-    }
-  } else {
-    throw new Error('不支持的平台或无效的文件路径');
-  }
-
-  console.log('Uploading to:', presignedRes.data.uploadUrl);
-  
-  await uni.request({
-    url: presignedRes.data.uploadUrl,
-    method: 'PUT',
-    data: fileData,
-    header: {
-      'Content-Type': mimeType,
-    },
   });
-  
-  // 3. 将相对路径传给后端，返回完整访问URL
-  const res = await request.post<{ id: number; filePath: string; url: string }>('/user/avatar', {
-    filePath: relativePath,
-  });
-
-  return { filePath: relativePath, url: res.data.url };
 }
 
 export const fileApi = {

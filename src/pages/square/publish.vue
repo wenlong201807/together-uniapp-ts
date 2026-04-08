@@ -97,7 +97,7 @@ const handlePublish = async () => {
       uni.showLoading({ title: '上传图片中...', mask: true })
 
       const uploadPromises = formData.value.images.map(async (localPath) => {
-        const result = await fileApi.uploadFile(localPath, { type: 'post' })
+        const result = await fileApi.uploadFile(localPath, { type: 'square' })
         return result.url
       })
 
