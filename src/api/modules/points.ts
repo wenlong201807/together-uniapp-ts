@@ -1,9 +1,10 @@
 import request from '../request'
+import type { PointsConfig } from '@/types/api/backend-types'
 
 export interface PointsBalance {
   balance: number
-  totalEarned: number
-  totalConsumed: number
+  totalEarned?: number
+  totalConsumed?: number
 }
 
 export interface SignStatus {
@@ -12,9 +13,10 @@ export interface SignStatus {
 }
 
 export interface SignResult {
-  pointsEarned: number
+  points: number
   continuousDays: number
-  balance: number
+  pointsEarned?: number
+  balance?: number
 }
 
 export interface PointsLog {
@@ -28,14 +30,25 @@ export interface PointsLog {
 }
 
 export const pointsApi = {
-  getBalance: () => request.get<PointsBalance>('/points/balance'),
+  getBalance: () =>
+    request.get<{ balance: number }>('/api/v1/points/balance'),
 
-  sign: () => request.post<SignResult>('/points/sign'),
+  sign: () =>
+    request.post<SignResult>('/api/v1/points/sign'),
 
-  getSignStatus: () => request.get<SignStatus>('/points/sign/status'),
+  getSignStatus: () =>
+    request.get<SignStatus>('/api/v1/points/sign/status'),
 
   getLogs: (page = 1, pageSize = 20, type?: number) =>
-    request.get<{ list: PointsLog[]; total: number }>('/points/logs', {
-      params: { page, pageSize, type }
-    })
+    request.get<{ list: PointsLog[]; total: number }>('/api/v1/points/logs', {
+      page,
+      pageSize,
+      type
+    }),
+
+  getConfig: () =>
+    request.get<PointsConfig[]>('/api/v1/points/config'),
+
+  getConfigList: () =>
+    request.get<PointsConfig[]>('/api/v1/points-configs')
 }

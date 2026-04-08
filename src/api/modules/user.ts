@@ -1,5 +1,6 @@
 import request from '../request';
 import type { UserInfo } from '@/types';
+import type { User, UpdateUserDto } from '@/types/api/backend-types';
 
 /**
  * 更新用户资料请求参数
@@ -9,6 +10,11 @@ export interface UpdateProfileDto {
   mobile?: string;
   avatarId?: string;    // 预设头像 ID (1-49)
   avatarUrl?: string;   // 自定义头像 URL
+  avatarPath?: string;  // 头像相对路径
+  gender?: number;      // 性别
+  bio?: string;         // 个人简介
+  city?: string;        // 城市
+  birthDate?: string;   // 出生日期
 }
 
 /**
@@ -16,12 +22,42 @@ export interface UpdateProfileDto {
  */
 export const userApi = {
   /**
+   * 获取当前用户信息
+   * @returns 当前用户信息
+   */
+  getCurrentUser: () =>
+    request.get<User>('/api/v1/user/me'),
+
+  /**
+   * 更新用户信息
+   * @param data 更新数据
+   * @returns 更新后的用户信息
+   */
+  updateUser: (data: UpdateUserDto) =>
+    request.put<User>('/api/v1/user/me', data),
+
+  /**
    * 更新用户资料
    * @param data 更新数据，支持昵称、手机号、头像ID或头像URL
    * @returns 更新后的用户信息
    */
   updateProfile: (data: UpdateProfileDto) =>
-    request.post<UserInfo>('/user/profile', data),
+    request.put<User>('/api/v1/user/profile', data),
+
+  /**
+   * 查询用户积分
+   * @returns 用户积分信息
+   */
+  getUserPoints: () =>
+    request.get<{ points: number }>('/api/v1/user/points'),
+
+  /**
+   * 查看用户详情
+   * @param id 用户ID
+   * @returns 用户详情
+   */
+  getUserProfile: (id: number) =>
+    request.get<object>(`/api/v1/user/${id}`),
 
   /**
    * 上传头像
@@ -31,6 +67,6 @@ export const userApi = {
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    return request.post<{ avatarUrl: string }>('/user/upload-avatar', formData);
+    return request.post<{ url: string }>('/api/v1/user/avatar', formData);
   },
 };

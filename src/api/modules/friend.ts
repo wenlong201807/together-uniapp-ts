@@ -1,5 +1,6 @@
 import request from '../request'
 import type { Friend } from '@/types'
+import type { Friendship, UserBlacklist } from '@/types/api/backend-types'
 
 export interface FriendshipStatus {
   isFriend: boolean
@@ -8,24 +9,37 @@ export interface FriendshipStatus {
   chatCount: number
   requiredPoints: number
   currentPoints: number
+  status: number
 }
 
 export const friendApi = {
-  getFriendList: () => request.get<{ data: Friend[] }>('/friend/list'),
+  getFriendList: () =>
+    request.get<Friendship[]>('/api/v1/friend/list'),
 
-  getFollowingList: () => request.get<{ data: Friend[] }>('/friend/following'),
+  getFollowingList: () =>
+    request.get<Friendship[]>('/api/v1/friend/following'),
 
-  follow: (userId: number) => request.post('/friend/follow', { userId }),
+  follow: (friendId: number) =>
+    request.post<Friendship>('/api/v1/friend/follow', { friendId }),
 
-  unlockChat: (userId: number) => request.post('/friend/unlock-chat', { userId }),
+  friendRequest: (friendId: number, message?: string) =>
+    request.post<Friendship>('/api/v1/friend/request', { friendId, message }),
 
-  getFriendshipStatus: (userId: number) => 
-    request.get<FriendshipStatus>(`/friend/status/${userId}`),
+  acceptFriend: (friendId: number) =>
+    request.post<{ success: boolean }>('/api/v1/friend/accept', { friendId }),
 
-  deleteFriend: (userId: number) => request.delete(`/friend/${userId}`),
+  unlockChat: (friendId: number) =>
+    request.post<{ success: boolean }>('/api/v1/friend/unlock-chat', { friendId }),
 
-  blockUser: (userId: number, reason?: string) =>
-    request.post('/friend/block', { userId, reason }),
+  getFriendshipStatus: (userId: number) =>
+    request.get<FriendshipStatus>(`/api/v1/friend/status/${userId}`),
 
-  getBlocklist: () => request.get<{ data: Friend[] }>('/friend/blocklist')
+  deleteFriend: (userId: number) =>
+    request.delete<{ success: boolean }>(`/api/v1/friend/${userId}`),
+
+  blockUser: (blockedUserId: number, reason?: string) =>
+    request.post<UserBlacklist>('/api/v1/friend/block', { blockedUserId, reason }),
+
+  getBlocklist: () =>
+    request.get<UserBlacklist[]>('/api/v1/friend/blocklist')
 }

@@ -1,6 +1,14 @@
 import request from '../request';
 import type { Post, Comment } from '@/types';
 import type { TargetType, ReportReason } from '@/types/enums';
+import type {
+  CreatePostDto as BackendCreatePostDto,
+  CreateCommentDto as BackendCreateCommentDto,
+  LikeDto as BackendLikeDto,
+  ReportDto as BackendReportDto,
+  SquarePost,
+  PostReport
+} from '@/types/api/backend-types';
 
 export interface CreatePostDto {
   content: string;
@@ -10,6 +18,8 @@ export interface CreatePostDto {
 export interface CreateCommentDto {
   postId: number;
   parentId?: number;
+  replyToId?: number;
+  replyToUserId?: number;
   content: string;
 }
 
@@ -27,22 +37,24 @@ export interface ReportDto {
 export interface GetPostsParams {
   page?: number;
   pageSize?: number;
-  sort?: string;
+  sort?: 'hot' | 'latest';
 }
 
 export const squareApi = {
   createPost: (data: CreatePostDto) =>
-    request.post<Post>('/square/posts', data),
+    request.post<SquarePost>('/api/v1/square/posts', data),
 
   getPosts: (params?: GetPostsParams) =>
-    request.get<{ list: Post[]; total: number }>('/square/posts', params),
+    request.get<{ list: Post[]; total: number }>('/api/v1/square/posts', params),
 
-  getPost: (id: number) => request.get<Post>(`/square/posts/${id}`),
+  getPost: (id: number) =>
+    request.get<SquarePost>(`/api/v1/square/posts/${id}`),
 
-  deletePost: (id: number) => request.delete(`/square/posts/${id}`),
+  deletePost: (id: number) =>
+    request.delete<{ success: boolean }>(`/api/v1/square/posts/${id}`),
 
   createComment: (data: CreateCommentDto) =>
-    request.post<Comment>('/square/comment', data),
+    request.post<{ id: number }>('/api/v1/square/comment', data),
 
   getComments: (
     postId: number,
@@ -53,7 +65,7 @@ export const squareApi = {
     },
   ) => {
     return request.get<{ list: Comment[]; total: number }>(
-      `/square/posts/${postId}/comments`,
+      `/api/v1/square/posts/${postId}/comments`,
       params,
     );
   },
@@ -63,12 +75,20 @@ export const squareApi = {
     params?: { page?: number; pageSize?: number },
   ) => {
     return request.get<{ list: Comment[]; total: number }>(
-      `/square/comments/${commentId}/replies`,
+      `/api/v1/square/comments/${commentId}/replies`,
       params,
     );
   },
 
-  toggleLike: (data: LikeDto) => request.post('/square/like', data),
+  toggleLike: (data: LikeDto) =>
+    request.post<{ isLiked: boolean }>('/api/v1/square/like', data),
 
-  report: (data: ReportDto) => request.post('/square/report', data),
+  likePost: (postId: number) =>
+    request.post<{ isLiked: boolean }>(`/api/v1/square/posts/${postId}/like`),
+
+  unlikePost: (postId: number) =>
+    request.delete<{ isLiked: boolean }>(`/api/v1/square/posts/${postId}/like`),
+
+  report: (data: ReportDto) =>
+    request.post<PostReport>('/api/v1/square/report', data),
 };

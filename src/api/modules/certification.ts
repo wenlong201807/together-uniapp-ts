@@ -1,4 +1,9 @@
 import request from '../request'
+import type {
+  CertificationTypeConfig,
+  Certification as BackendCertification,
+  CreateCertificationDto as BackendCreateCertificationDto
+} from '@/types/api/backend-types'
 
 export interface CertificationType {
   code: string
@@ -28,16 +33,19 @@ export interface CreateCertificationDto {
 
 export const certificationApi = {
   getTypes: () =>
-    request.get<{ list: CertificationType[] }>('/certification-types'),
+    request.get<CertificationTypeConfig[]>('/api/v1/certification-types'),
+
+  getType: () =>
+    request.get<CertificationTypeConfig>('/api/v1/certification-type'),
 
   submit: (data: CreateCertificationDto) =>
-    request.post<Certification>('/certification', data),
+    request.post<BackendCertification>('/api/v1/certification', data),
 
   getMyList: (status?: number) =>
-    request.get<{ list: Certification[] }>('/certification/list', {
-      params: { status }
+    request.get<BackendCertification[]>('/api/v1/certification/list', {
+      status
     }),
 
   getDetail: (id: number) =>
-    request.get<Certification>(`/certification/${id}`)
+    request.get<BackendCertification>(`/api/v1/certification/${id}`)
 }

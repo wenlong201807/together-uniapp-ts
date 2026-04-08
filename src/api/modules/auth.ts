@@ -1,9 +1,17 @@
 import request from '../request';
 import type { LoginResponse, UserInfo } from '@/types';
 import type { Gender } from '@/types/enums';
+import type {
+  SmsDto as BackendSmsDto,
+  RegisterDto as BackendRegisterDto,
+  LoginDto as BackendLoginDto,
+  ResetPasswordDto,
+  User
+} from '@/types/api/backend-types';
 
 export interface SmsDto {
   mobile: string;
+  type: 'register' | 'login' | 'reset_password';
 }
 
 export interface RegisterDto {
@@ -22,15 +30,19 @@ export interface LoginDto {
 
 export const authApi = {
   sendSms: (data: SmsDto) =>
-    request.post<LoginResponse>('/auth/sms/send', data),
+    request.post<{ message: string }>('/api/v1/auth/sms/send', data),
 
   register: (data: RegisterDto) =>
-    request.post<LoginResponse>('/auth/register', data),
+    request.post<{ token: string; user: User }>('/api/v1/auth/register', data),
 
-  login: (data: LoginDto) => request.post<LoginResponse>('/auth/login', data),
+  login: (data: LoginDto) =>
+    request.post<{ token: string; user: User }>('/api/v1/auth/login', data),
+
+  resetPassword: (data: ResetPasswordDto) =>
+    request.post<{ message: string }>('/api/v1/auth/reset-password', data),
 
   refreshToken: (refreshToken: string) =>
-    request.post<LoginResponse>('/auth/refresh', {
+    request.post<{ token: string; refreshToken: string }>('/api/v1/auth/refresh', {
       refreshToken: refreshToken,
     }),
 
@@ -38,5 +50,5 @@ export const authApi = {
     nickname?: string;
     gender?: Gender;
     avatarUrl?: string;
-  }) => request.put<UserInfo>('/user/me', data),
+  }) => request.put<User>('/api/v1/user/me', data),
 };

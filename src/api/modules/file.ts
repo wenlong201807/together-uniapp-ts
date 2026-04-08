@@ -36,7 +36,7 @@ export interface FileInfo {
 }
 
 export async function getUploadConfig(): Promise<FileConfig> {
-  const res = await request.get<FileConfig>('/file/config');
+  const res = await request.get<FileConfig>('/api/v1/file/config');
   return res.data;
 }
 
@@ -92,9 +92,9 @@ export async function uploadFile(
   const ext = getFileExtension(filePath);
   const now = new Date();
   const relativePath = `${config.bucket}/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${generateUUID()}.${ext}`;
-  
+
   // 1. 获取预签名上传URL
-  const presignedRes = await request.post<{ uploadUrl: string; filePath: string }>('/file/presigned-put', {
+  const presignedRes = await request.post<{ uploadUrl: string; filePath: string }>('/api/v1/file/presigned-put', {
     filePath: relativePath,
   });
 
@@ -175,24 +175,24 @@ export async function uploadFile(
     originalName = `image.${ext}`;
   }
   
-  const res = await request.post<UploadResult>('/file/upload', {
+  const res = await request.post<UploadResult>('/api/v1/file/upload', {
     filePath: relativePath,
     originalName: originalName,
     mimeType: getMimeType(ext),
     fileSize: 0,
     type: options?.type || 'default',
   });
-  
+
   return res.data;
 }
 
 export async function getFileUrl(fileId: number): Promise<string> {
-  const res = await request.get<{ url: string }>(`/file/${fileId}/url`);
+  const res = await request.get<{ url: string }>(`/api/v1/file/${fileId}/url`);
   return res.data.url;
 }
 
 export async function getFileInfo(fileId: number): Promise<FileInfo> {
-  const res = await request.get<FileInfo>(`/file/${fileId}`);
+  const res = await request.get<FileInfo>(`/api/v1/file/${fileId}`);
   return res.data;
 }
 
@@ -201,7 +201,7 @@ export async function getMyFiles(
   pageSize: number = 20,
   type?: string
 ): Promise<{ list: FileInfo[]; total: number }> {
-  const res = await request.get<{ list: FileInfo[]; total: number }>('/file/my/list', {
+  const res = await request.get<{ list: FileInfo[]; total: number }>('/api/v1/file/my/list', {
     page,
     pageSize,
     type,
@@ -210,7 +210,28 @@ export async function getMyFiles(
 }
 
 export async function deleteFile(fileId: number): Promise<void> {
-  await request.delete(`/file/${fileId}`);
+  await request.delete(`/api/v1/file/${fileId}`);
+}
+
+export async function getUploadToken(data: { type: string; fileName?: string }): Promise<{ token: string; key: string; domain: string; expire: number }> {
+  const res = await request.post<{ token: string; key: string; domain: string; expire: number }>('/api/v1/file/upload-token', data);
+  return res.data;
+}
+
+export async function saveFileRecord(data: {
+  fileName: string;
+  filePath: string;
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  fileExt: string;
+  bucketName: string;
+  width?: number;
+  height?: number;
+  type: string;
+}): Promise<FileInfo> {
+  const res = await request.post<FileInfo>('/api/v1/file/save', data);
+  return res.data;
 }
 
 export async function uploadAvatar(filePath: string): Promise<{ filePath: string; url: string }> {
@@ -219,9 +240,9 @@ export async function uploadAvatar(filePath: string): Promise<{ filePath: string
   const ext = getFileExtension(filePath);
   const now = new Date();
   const relativePath = `avatar/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${generateUUID()}.${ext}`;
-  
+
   // 1. 获取预签名上传URL
-  const presignedRes = await request.post<{ uploadUrl: string; filePath: string }>('/file/presigned-put', {
+  const presignedRes = await request.post<{ uploadUrl: string; filePath: string }>('/api/v1/file/presigned-put', {
     filePath: relativePath,
   });
 
@@ -291,10 +312,10 @@ export async function uploadAvatar(filePath: string): Promise<{ filePath: string
   });
   
   // 3. 将相对路径传给后端，返回完整访问URL
-  const res = await request.post<{ id: number; filePath: string; url: string }>('/user/avatar', {
+  const res = await request.post<{ id: number; filePath: string; url: string }>('/api/v1/user/avatar', {
     filePath: relativePath,
   });
-  
+
   return { filePath: relativePath, url: res.data.url };
 }
 
@@ -306,4 +327,6 @@ export const fileApi = {
   getMyFiles,
   deleteFile,
   uploadAvatar,
+  getUploadToken,
+  saveFileRecord,
 };
