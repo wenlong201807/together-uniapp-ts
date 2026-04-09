@@ -6,7 +6,7 @@
           v-for="tab in tabs"
           :key="tab.value"
           :class="['tab-item', activeTab === tab.value ? 'active' : '']"
-          @click="activeTab = tab.value"
+          @click="switchTab(tab.value)"
         >
           <text>{{ tab.label }}</text>
         </view>
@@ -16,21 +16,53 @@
       </view>
     </view>
 
-    <scroll-view class="posts-list" scroll-y @scrolltolower="loadMore">
-      <PostCard
-        v-for="post in squareStore.posts"
-        :key="post.id"
-        :post="post"
-        @click="goToPostDetail(post.id)"
-        @like="handleLike(post)"
-        @comment="handleComment(post)"
-      />
+    <scroll-view
+      class="posts-list"
+      scroll-y
+      @scrolltolower="loadMore"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+      refresher-background="#f8f8f8"
+    >
+      <!-- 骨架屏 -->
+      <template v-if="squareStore.loading && squareStore.posts.length === 0">
+        <Skeleton
+          v-for="i in 3"
+          :key="i"
+          type="card"
+          :show-image="true"
+          style="margin-bottom: 20rpx"
+        />
+      </template>
 
-      <Loading v-if="squareStore.loading" text="加载中..." />
-      <Empty
-        v-if="!squareStore.loading && squareStore?.posts?.length === 0"
-        text="暂无动态"
-      />
+      <!-- 帖子列表 -->
+      <template v-else>
+        <PostCard
+          v-for="post in squareStore.posts"
+          :key="post.id"
+          :post="post"
+          @click="goToPostDetail(post.id)"
+          @like="handleLike(post)"
+          @comment="handleComment(post)"
+        />
+
+        <!-- 加载更多 -->
+        <view v-if="squareStore.loading && squareStore.posts.length > 0" class="loading-more">
+          <Loading text="加载中..." />
+        </view>
+
+        <!-- 没有更多 -->
+        <view v-if="!squareStore.hasMore && squareStore.posts.length > 0" class="no-more">
+          <text>没有更多了</text>
+        </view>
+
+        <!-- 空状态 -->
+        <Empty
+          v-if="!squareStore.loading && squareStore?.posts?.length === 0"
+          text="暂无动态"
+        />
+      </template>
     </scroll-view>
   </view>
 </template>
@@ -41,6 +73,7 @@ import { useSquareStore } from '@/stores';
 import PostCard from '@/components/business/PostCard.vue';
 import Loading from '@/components/common/Loading.vue';
 import Empty from '@/components/common/Empty.vue';
+import Skeleton from '@/components/common/Skeleton.vue';
 
 const squareStore = useSquareStore();
 
@@ -51,10 +84,19 @@ const tabs = [
 
 const activeTab = ref('latest');
 const page = ref(1);
+const refreshing = ref(false);
 
 onMounted(() => {
   loadPosts();
 });
+
+const switchTab = (tab: string) => {
+  if (activeTab.value === tab) return;
+  activeTab.value = tab;
+  page.value = 1;
+  squareStore.posts = [];
+  loadPosts();
+};
 
 const loadPosts = async () => {
   try {
@@ -65,6 +107,25 @@ const loadPosts = async () => {
     });
   } catch (error) {
     console.error('Load posts error:', error);
+    uni.showToast({
+      title: '加载失败',
+      icon: 'none'
+    });
+  }
+};
+
+const onRefresh = async () => {
+  refreshing.value = true;
+  page.value = 1;
+  squareStore.posts = [];
+
+  try {
+    await loadPosts();
+  } finally {
+    // 延迟关闭刷新状态，让用户看到刷新效果
+    setTimeout(() => {
+      refreshing.value = false;
+    }, 500);
   }
 };
 
@@ -105,6 +166,8 @@ const handleComment = (post: any) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/design-tokens.scss' as *;
+
 .square-container {
   height: 100vh;
   display: flex;
@@ -117,19 +180,23 @@ const handleComment = (post: any) => {
     justify-content: space-between;
     padding: 20rpx 40rpx;
     background: #fff;
+    box-shadow: $shadow-sm;
+    z-index: 10;
 
     .tab-list {
       display: flex;
       gap: 40rpx;
 
       .tab-item {
-        font-size: 28rpx;
-        color: #666;
+        font-size: $font-size-base;
+        color: $text-secondary;
         position: relative;
+        padding: 8rpx 0;
+        @include transition(color);
 
         &.active {
-          font-weight: bold;
-          color: #007aff;
+          font-weight: $font-weight-medium;
+          color: $primary-color;
 
           &::after {
             content: '';
@@ -139,8 +206,9 @@ const handleComment = (post: any) => {
             transform: translateX(-50%);
             width: 40rpx;
             height: 4rpx;
-            background: #007aff;
+            background: $primary-color;
             border-radius: 2rpx;
+            animation: tab-slide-in $duration-base $ease-out;
           }
         }
       }
@@ -152,16 +220,48 @@ const handleComment = (post: any) => {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #007aff;
+      background: $primary-color;
       color: #fff;
-      border-radius: 50%;
+      border-radius: $radius-circle;
       font-size: 36rpx;
+      box-shadow: $shadow-base;
+      @include transition(transform);
+
+      &:active {
+        transform: scale(0.9);
+      }
     }
   }
 
   .posts-list {
     flex: 1;
     padding: 20rpx;
+  }
+
+  .loading-more {
+    padding: 20rpx 0;
+    text-align: center;
+  }
+
+  .no-more {
+    padding: 40rpx 0;
+    text-align: center;
+
+    text {
+      font-size: $font-size-sm;
+      color: $text-tertiary;
+    }
+  }
+}
+
+@keyframes tab-slide-in {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 40rpx;
+    opacity: 1;
   }
 }
 </style>

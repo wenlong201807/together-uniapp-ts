@@ -7,6 +7,14 @@ const env = loadEnv('', process.cwd());
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [uni()],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler',
+        silenceDeprecations: ['legacy-js-api'], // 静默 legacy-js-api 警告
+      },
+    },
+  },
   server: {
     port: Number(env.VITE_APP_PORT) || 8106,
     proxy: {

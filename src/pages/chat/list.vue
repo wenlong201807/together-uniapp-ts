@@ -1,40 +1,57 @@
 <template>
   <view class="chat-list-container">
     <view class="chat-list">
-      <view
-        v-for="conversation in chatStore.conversations"
-        :key="conversation.userId"
-        class="conversation-item"
-        @click="goToChat(conversation)"
-      >
-        <image
-          class="avatar"
-          :src="conversation.avatar || '/static/images/default-avatar.png'"
-          mode="aspectFill"
-        />
-        <view class="conversation-info">
-          <view class="conversation-header">
-            <text class="nickname">{{ conversation.nickname }}</text>
-            <text class="time">{{
-              formatTime(conversation.lastMessageTime)
-            }}</text>
+      <!-- 骨架屏 -->
+      <template v-if="loading && chatStore.conversations.length === 0">
+        <view v-for="i in 5" :key="i" class="conversation-skeleton">
+          <view class="skeleton-avatar" />
+          <view class="skeleton-content">
+            <view class="skeleton-line" style="width: 60%; height: 28rpx" />
+            <view class="skeleton-line" style="width: 80%; height: 24rpx; margin-top: 12rpx" />
           </view>
-          <view class="conversation-content">
-            <text class="last-message">{{
-              conversation.lastMessage || '暂无消息'
-            }}</text>
-            <view v-if="conversation.unreadCount > 0" class="unread-badge">
-              {{ conversation.unreadCount }}
+        </view>
+      </template>
+
+      <!-- 会话列表 -->
+      <template v-else>
+        <view
+          v-for="(conversation, index) in chatStore.conversations"
+          :key="conversation.userId"
+          class="conversation-item"
+          :style="{ animationDelay: `${index * 0.05}s` }"
+          @click="goToChat(conversation)"
+        >
+          <view class="avatar-wrapper">
+            <image
+              class="avatar"
+              :src="conversation.avatar || '/static/images/default-avatar.png'"
+              mode="aspectFill"
+            />
+            <view v-if="conversation.unreadCount > 0" class="unread-dot" />
+          </view>
+          <view class="conversation-info">
+            <view class="conversation-header">
+              <text class="nickname">{{ conversation.nickname }}</text>
+              <text class="time">{{
+                formatTime(conversation.lastMessageTime)
+              }}</text>
+            </view>
+            <view class="conversation-content">
+              <text class="last-message">{{
+                conversation.lastMessage || '暂无消息'
+              }}</text>
+              <view v-if="conversation.unreadCount > 0" class="unread-badge">
+                {{ conversation.unreadCount > 99 ? '99+' : conversation.unreadCount }}
+              </view>
             </view>
           </view>
         </view>
-      </view>
 
-      <Loading v-if="loading" text="加载中..." />
-      <Empty
-        v-if="!loading && chatStore?.conversations.length === 0"
-        text="暂无聊天"
-      />
+        <Empty
+          v-if="!loading && chatStore?.conversations.length === 0"
+          text="暂无聊天"
+        />
+      </template>
     </view>
   </view>
 </template>
@@ -43,7 +60,6 @@
 import { ref, onMounted } from 'vue';
 import { useChatStore } from '@/stores';
 import { formatTime } from '@/utils';
-import Loading from '@/components/common/Loading.vue';
 import Empty from '@/components/common/Empty.vue';
 
 const chatStore = useChatStore();
@@ -72,27 +88,116 @@ const goToChat = (conversation: any) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/design-tokens.scss' as *;
+
 .chat-list-container {
   min-height: 100vh;
-  background: #f8f8f8;
+  background: $bg-secondary;
 
   .chat-list {
-    padding: 20rpx;
+    padding: $padding-md;
+
+    .conversation-skeleton {
+      display: flex;
+      align-items: center;
+      padding: $padding-lg;
+      background: $bg-primary;
+      border-radius: $radius-lg;
+      margin-bottom: $margin-md;
+
+      .skeleton-avatar {
+        width: 80rpx;
+        height: 80rpx;
+        border-radius: $radius-circle;
+        background: $bg-tertiary;
+        margin-right: $margin-md;
+        position: relative;
+        overflow: hidden;
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+          );
+          animation: skeleton-loading 1.5s ease-in-out infinite;
+        }
+      }
+
+      .skeleton-content {
+        flex: 1;
+
+        .skeleton-line {
+          background: $bg-tertiary;
+          border-radius: $radius-xs;
+          position: relative;
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.3),
+              transparent
+            );
+            animation: skeleton-loading 1.5s ease-in-out infinite;
+          }
+        }
+      }
+    }
 
     .conversation-item {
       display: flex;
       align-items: center;
-      padding: 24rpx;
-      background: #fff;
-      border-radius: 16rpx;
-      margin-bottom: 20rpx;
+      padding: $padding-lg;
+      background: $bg-primary;
+      border-radius: $radius-lg;
+      margin-bottom: $margin-md;
+      box-shadow: $shadow-xs;
+      animation: conversation-fade-in $duration-base $ease-out both;
+      @include transition(all);
 
-      .avatar {
-        width: 80rpx;
-        height: 80rpx;
-        border-radius: 50%;
-        margin-right: 20rpx;
-        background: #f0f0f0;
+      &:active {
+        transform: scale(0.98);
+        background: $bg-secondary;
+      }
+
+      .avatar-wrapper {
+        position: relative;
+        margin-right: $margin-md;
+
+        .avatar {
+          width: 80rpx;
+          height: 80rpx;
+          border-radius: $radius-circle;
+          background: $bg-tertiary;
+          display: block;
+        }
+
+        .unread-dot {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 16rpx;
+          height: 16rpx;
+          background: $error-color;
+          border: 2rpx solid $bg-primary;
+          border-radius: $radius-circle;
+          animation: dot-pulse 2s ease-in-out infinite;
+        }
       }
 
       .conversation-info {
@@ -103,17 +208,17 @@ const goToChat = (conversation: any) => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 8rpx;
+          margin-bottom: $margin-xs;
 
           .nickname {
-            font-size: 28rpx;
-            font-weight: 500;
-            color: #333;
+            font-size: $font-size-base;
+            font-weight: $font-weight-medium;
+            color: $text-primary;
           }
 
           .time {
-            font-size: 24rpx;
-            color: #999;
+            font-size: $font-size-xs;
+            color: $text-tertiary;
           }
         }
 
@@ -124,8 +229,8 @@ const goToChat = (conversation: any) => {
 
           .last-message {
             flex: 1;
-            font-size: 24rpx;
-            color: #999;
+            font-size: $font-size-sm;
+            color: $text-secondary;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -135,17 +240,61 @@ const goToChat = (conversation: any) => {
             min-width: 32rpx;
             height: 32rpx;
             padding: 0 8rpx;
-            background: #ff4d4f;
+            background: $error-color;
             color: #fff;
             font-size: 20rpx;
             border-radius: 16rpx;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            @include flex-center;
+            margin-left: $margin-sm;
+            box-shadow: 0 2rpx 8rpx rgba($error-color, 0.4);
+            animation: badge-bounce 0.5s ease;
           }
         }
       }
     }
+  }
+}
+
+@keyframes skeleton-loading {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes conversation-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes dot-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+@keyframes badge-bounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 </style>

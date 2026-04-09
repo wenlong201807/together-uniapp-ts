@@ -7,21 +7,17 @@
     </view>
 
     <view class="quick-actions">
-      <view class="action-item" @click="goToSquare">
-        <text class="action-icon">📝</text>
-        <text class="action-text">发布动态</text>
-      </view>
-      <view class="action-item" @click="goToChatList">
-        <text class="action-icon">💬</text>
-        <text class="action-text">聊天</text>
-      </view>
-      <view class="action-item" @click="goToFriendList">
-        <text class="action-icon">👥</text>
-        <text class="action-text">好友</text>
-      </view>
-      <view class="action-item" @click="goToProfile">
-        <text class="action-icon">👤</text>
-        <text class="action-text">个人资料</text>
+      <view
+        v-for="(action, index) in actions"
+        :key="index"
+        class="action-item"
+        :style="{ animationDelay: `${index * 0.1}s` }"
+        @click="action.handler"
+      >
+        <view class="action-icon-wrapper">
+          <text class="action-icon">{{ action.icon }}</text>
+        </view>
+        <text class="action-text">{{ action.text }}</text>
       </view>
     </view>
 
@@ -52,6 +48,37 @@ const squareStore = useSquareStore();
 
 const recentPosts = ref<any[]>([]);
 
+const actions = [
+  { icon: '📝', text: '发布动态', handler: goToSquare },
+  { icon: '💬', text: '聊天', handler: goToChatList },
+  { icon: '👥', text: '好友', handler: goToFriendList },
+  { icon: '👤', text: '个人资料', handler: goToProfile },
+];
+
+function goToSquare() {
+  uni.switchTab({
+    url: '/pages/tabbar/square',
+  });
+}
+
+function goToChatList() {
+  uni.navigateTo({
+    url: '/pages/chat/list',
+  });
+}
+
+function goToFriendList() {
+  uni.navigateTo({
+    url: '/pages/friend/list',
+  });
+}
+
+function goToProfile() {
+  uni.navigateTo({
+    url: '/pages/user/profile',
+  });
+}
+
 onMounted(async () => {
   await loadRecentPosts();
 });
@@ -64,30 +91,6 @@ const loadRecentPosts = async () => {
   } catch (error) {
     console.error('Load posts error:', error);
   }
-};
-
-const goToSquare = () => {
-  uni.switchTab({
-    url: '/pages/tabbar/square',
-  });
-};
-
-const goToChatList = () => {
-  uni.navigateTo({
-    url: '/pages/chat/list',
-  });
-};
-
-const goToFriendList = () => {
-  uni.navigateTo({
-    url: '/pages/friend/list',
-  });
-};
-
-const goToProfile = () => {
-  uni.navigateTo({
-    url: '/pages/user/profile',
-  });
 };
 
 const goToPostDetail = (id: number) => {
@@ -127,42 +130,67 @@ const handleComment = (post: any) => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/design-tokens.scss' as *;
+
 .home-container {
   min-height: 100vh;
-  padding: 40rpx;
+  padding: $padding-xl;
+  background: $bg-secondary;
 
   .welcome-section {
-    margin-bottom: 40rpx;
+    margin-bottom: $margin-xl;
 
     .welcome-text {
-      font-size: 36rpx;
-      font-weight: bold;
-      color: #333;
+      font-size: $font-size-xl;
+      font-weight: $font-weight-bold;
+      color: $text-primary;
     }
   }
 
   .quick-actions {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 20rpx;
-    margin-bottom: 40rpx;
+    gap: $spacing-md;
+    margin-bottom: $margin-xl;
 
     .action-item {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 30rpx 20rpx;
-      background: #fff;
-      border-radius: 16rpx;
+      padding: $padding-lg $padding-md;
+      background: $bg-primary;
+      border-radius: $radius-lg;
+      box-shadow: $shadow-sm;
+      animation: action-fade-in $duration-base $ease-out both;
+      @include transition(all);
 
-      .action-icon {
-        font-size: 48rpx;
-        margin-bottom: 12rpx;
+      &:active {
+        transform: scale(0.95);
+        box-shadow: $shadow-xs;
+      }
+
+      .action-icon-wrapper {
+        width: 80rpx;
+        height: 80rpx;
+        @include flex-center;
+        background: linear-gradient(135deg, $primary-color, $primary-hover);
+        border-radius: $radius-circle;
+        margin-bottom: $margin-sm;
+        box-shadow: 0 4rpx 12rpx rgba($primary-color, 0.3);
+        @include transition(transform);
+
+        .action-icon {
+          font-size: 40rpx;
+        }
+      }
+
+      &:active .action-icon-wrapper {
+        transform: scale(0.9);
       }
 
       .action-text {
-        font-size: 24rpx;
-        color: #666;
+        font-size: $font-size-sm;
+        color: $text-secondary;
       }
     }
   }
@@ -172,19 +200,44 @@ const handleComment = (post: any) => {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20rpx;
+      margin-bottom: $margin-md;
 
       .section-title {
-        font-size: 32rpx;
-        font-weight: bold;
-        color: #333;
+        font-size: $font-size-lg;
+        font-weight: $font-weight-bold;
+        color: $text-primary;
       }
 
       .section-more {
-        font-size: 24rpx;
-        color: #007aff;
+        font-size: $font-size-sm;
+        color: $primary-color;
+        @include transition(opacity);
+
+        &:active {
+          opacity: 0.6;
+        }
       }
     }
+  }
+}
+
+@keyframes action-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
   }
 }
 </style>

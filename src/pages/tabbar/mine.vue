@@ -28,24 +28,31 @@
     </view>
 
     <view class="points-card" @click="goToPoints">
-      <view class="points-info">
-        <text class="points-label">我的积分</text>
-        <text class="points-value">{{ pointsStore.balance.balance || 0 }}</text>
+      <view class="points-content">
+        <view class="points-info">
+          <text class="points-label">我的积分</text>
+          <text class="points-value">{{ pointsStore.balance.balance || 0 }}</text>
+          <view
+            class="continuous-days"
+            v-if="pointsStore.signStatus.continuousDays > 0"
+          >
+            <text>连续签到 {{ pointsStore.signStatus.continuousDays }} 天</text>
+          </view>
+        </view>
+        <view
+          class="sign-btn"
+          :class="{ signed: pointsStore.signStatus.signedToday, signing: isSigning }"
+          @click.stop="handleSign"
+        >
+          <text>{{
+            pointsStore.signStatus.signedToday ? '✓ 已签到' : '签到'
+          }}</text>
+        </view>
       </view>
-      <view
-        class="sign-btn"
-        :class="{ signed: pointsStore.signStatus.signedToday }"
-        @click.stop="handleSign"
-      >
-        <text>{{
-          pointsStore.signStatus.signedToday ? '已签到' : '签到'
-        }}</text>
-      </view>
-      <view
-        class="continuous-days"
-        v-if="pointsStore.signStatus.continuousDays > 0"
-      >
-        <text>连续 {{ pointsStore.signStatus.continuousDays }} 天</text>
+      <view class="points-decoration">
+        <view class="decoration-circle circle-1" />
+        <view class="decoration-circle circle-2" />
+        <view class="decoration-circle circle-3" />
       </view>
     </view>
 
@@ -92,12 +99,14 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore, usePointsStore } from '@/stores';
 import '@/assets/styles/avatar.scss';
 
 const authStore = useAuthStore();
 const pointsStore = usePointsStore();
+const isSigning = ref(false);
 
 onShow(() => {
   if (authStore.isLoggedIn) {
@@ -165,13 +174,18 @@ const handleSign = async () => {
     return;
   }
 
+  isSigning.value = true;
   const result = await pointsStore.sign();
-  if (result) {
-    uni.showToast({
-      title: `签到成功，获得 ${result.pointsEarned} 积分`,
-      icon: 'success',
-    });
-  }
+
+  setTimeout(() => {
+    isSigning.value = false;
+    if (result) {
+      uni.showToast({
+        title: `签到成功，获得 ${result.pointsEarned} 积分`,
+        icon: 'success',
+      });
+    }
+  }, 600);
 };
 
 const handleLogout = () => {
@@ -191,24 +205,28 @@ const handleLogout = () => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/design-tokens.scss' as *;
+
 .mine-container {
   min-height: 100vh;
-  background: #f8f8f8;
+  background: $bg-secondary;
 
   .user-header {
     display: flex;
     align-items: center;
-    padding: 60rpx 40rpx;
-    background: #fff;
-    margin-bottom: 20rpx;
+    padding: 60rpx $padding-xl;
+    background: $bg-primary;
+    margin-bottom: $margin-md;
+    box-shadow: $shadow-sm;
 
     .avatar {
       width: 120rpx;
       height: 120rpx;
-      border-radius: 50%;
-      margin-right: 24rpx;
-      background: #f0f0f0;
+      border-radius: $radius-circle;
+      margin-right: $margin-lg;
+      background: $bg-tertiary;
       display: block;
+      box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
     }
 
     .user-info {
@@ -216,50 +234,82 @@ const handleLogout = () => {
 
       .nickname {
         display: block;
-        font-size: 32rpx;
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 8rpx;
+        font-size: $font-size-lg;
+        font-weight: $font-weight-bold;
+        color: $text-primary;
+        margin-bottom: $margin-xs;
       }
 
       .mobile {
         display: block;
-        font-size: 24rpx;
-        color: #999;
+        font-size: $font-size-sm;
+        color: $text-tertiary;
       }
     }
 
     .edit-btn {
       padding: 12rpx 24rpx;
-      background: #007aff;
+      background: $primary-color;
       color: #fff;
       border-radius: 24rpx;
-      font-size: 24rpx;
+      font-size: $font-size-sm;
+      @include transition(all);
+
+      &:active {
+        transform: scale(0.95);
+        background: $primary-hover;
+      }
     }
   }
 
   .points-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 30rpx 40rpx;
+    position: relative;
+    padding: $padding-xl;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    margin: 0 20rpx 20rpx;
-    border-radius: 16rpx;
+    margin: 0 $margin-md $margin-md;
+    border-radius: $radius-lg;
+    box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
+    overflow: hidden;
+    @include transition(transform);
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    .points-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
     .points-info {
       .points-label {
         display: block;
-        font-size: 24rpx;
+        font-size: $font-size-sm;
         color: rgba(255, 255, 255, 0.8);
-        margin-bottom: 8rpx;
+        margin-bottom: $margin-xs;
       }
 
       .points-value {
         display: block;
         font-size: 48rpx;
-        font-weight: bold;
+        font-weight: $font-weight-bold;
         color: #fff;
+        animation: points-pulse 2s ease-in-out infinite;
+      }
+ontinuous-days {
+        margin-top: $margin-sm;
+        padding: 4rpx 12rpx;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12rpx;
+        display: inline-block;
+
+        text {
+          font-size: 20rpx;
+          color: rgba(255, 255, 255, 0.9);
+        }
       }
     }
 
@@ -268,69 +318,165 @@ const handleLogout = () => {
       background: #fff;
       color: #667eea;
       border-radius: 30rpx;
-      font-size: 26rpx;
-      font-weight: bold;
+      font-size: $font-size-base;
+      font-weight: $font-weight-medium;
+      box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+      @include transition(all);
+
+      &:active {
+        transform: scale(0.95);
+      }
+
+      &.signing {
+        animation: sign-bounce 0.6s ease;
+      }
 
       &.signed {
         background: rgba(255, 255, 255, 0.3);
         color: #fff;
+        box-shadow: none;
       }
     }
 
-    .continuous-days {
+    .points-decoration {
       position: absolute;
-      right: 40rpx;
-      bottom: 16rpx;
-      font-size: 20rpx;
-      color: rgba(255, 255, 255, 0.7);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+
+      .decoration-circle {
+        position: absolute;
+        border-radius: $radius-circle;
+        background: rgba(255, 255, 255, 0.1);
+        animation: float 6s ease-in-out infinite;
+
+        &.circle-1 {
+          width: 100rpx;
+          height: 100rpx;
+          top: -20rpx;
+          right: 40rpx;
+          animation-delay: 0s;
+        }
+
+        &.circle-2 {
+          width: 60rpx;
+          height: 60rpx;
+          bottom: 20rpx;
+          left: 60rpx;
+          animation-delay: 2s;
+        }
+
+        &.circle-3 {
+          width: 80rpx;
+          height: 80rpx;
+          top: 50%;
+          right: -20rpx;
+          animation-delay: 4s;
+        }
+      }
     }
   }
 
   .menu-list {
-    background: #fff;
-    margin-bottom: 20rpx;
+    background: $bg-primary;
+    margin-bottom: $margin-md;
+    border-radius: $radius-base;
+  margin-left: $margin-md;
+    margin-right: $margin-md;
+    overflow: hidden;
+    box-shadow: $shadow-xs;
 
     .menu-item {
       display: flex;
       align-items: center;
-      padding: 30rpx 40rpx;
-      border-bottom: 1rpx solid #f0f0f0;
+      padding: $padding-lg $padding-xl;
+      border-bottom: 1rpx solid $divider-color;
+      @include transition(background);
 
       &:last-child {
         border-bottom: none;
       }
 
+      &:active {
+        background: $bg-secondary;
+      }
+
       .menu-icon {
         font-size: 36rpx;
-        margin-right: 20rpx;
+        margin-right: $margin-md;
       }
 
       .menu-text {
         flex: 1;
-        font-size: 28rpx;
-        color: #333;
+    font-size: $font-size-base;
+        color: $text-primary;
       }
 
       .menu-arrow {
         font-size: 36rpx;
-        color: #999;
+        color: $text-tertiary;
       }
     }
   }
 
   .logout-section {
-    padding: 40rpx;
+    padding: $padding-xl;
 
     .logout-btn {
       width: 100%;
       height: 88rpx;
       line-height: 88rpx;
-      background: #fff;
-      color: #ff4d4f;
-      font-size: 32rpx;
-      border-radius: 12rpx;
+      background: $bg-primary;
+      color: $error-color;
+      font-size: $font-size-lg;
+      border-radius: $radius-base;
       border: none;
+      box-shadow: $shadow-xs;
+      @include transition(all);
+
+      &:active {
+        transform: scale(0.98);
+        background: $bg-secondary;
+      }
     }
+  }
+}
+
+@keyframes points-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes sign-bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.2) rotate(-5deg);
+  }
+  50% {
+    transform: scale(0.9) rotate(5deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(-3deg);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-20rpx) scale(1.1);
+    opacity: 0.6;
   }
 }
 </style>
