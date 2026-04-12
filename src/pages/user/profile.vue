@@ -329,7 +329,7 @@ const handleSave = async () => {
 
 <style scoped lang="scss">
 .profile-container {
-  min-height: 100vh;
+  
   background: #f8f8f8;
 
   .profile-header {

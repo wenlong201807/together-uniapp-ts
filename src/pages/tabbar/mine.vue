@@ -208,7 +208,7 @@ const handleLogout = () => {
 @use '@/assets/styles/design-tokens.scss' as *;
 
 .mine-container {
-  min-height: 100vh;
+  
   background: $bg-secondary;
 
   .user-header {

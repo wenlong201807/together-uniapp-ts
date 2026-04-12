@@ -249,7 +249,6 @@ const goToLogin = () => {
 
 <style scoped lang="scss">
 .forgot-password-container {
-  min-height: 100vh;
   padding: 80rpx 40rpx;
   background: #fff;
 
@@ -289,11 +288,10 @@ const goToLogin = () => {
         border: 2rpx solid #e0e0e0;
         border-radius: 12rpx;
         font-size: 28rpx;
-        background: #f8f8f8;
+        background: #fff;
 
         &:focus {
           border-color: #007aff;
-          background: #fff;
         }
       }
 

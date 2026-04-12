@@ -122,7 +122,7 @@ const handleUnfollow = (friend: any) => {
 
 <style scoped lang="scss">
 .following-list-container {
-  min-height: 100vh;
+  
   background: #f8f8f8;
 
   .following-list {

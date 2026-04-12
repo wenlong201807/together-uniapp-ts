@@ -103,7 +103,7 @@ const handleSubmit = async () => {
 
 <style scoped lang="scss">
 .apply-container {
-  min-height: 100vh;
+  
   background: #f8f8f8;
   padding: 20rpx;
 

@@ -123,7 +123,7 @@ const handleDelete = (friend: any) => {
 
 <style scoped lang="scss">
 .friend-list-container {
-  min-height: 100vh;
+  
   background: #f8f8f8;
 
   .friend-list {

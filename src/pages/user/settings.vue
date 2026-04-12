@@ -68,7 +68,7 @@ const handleLogout = () => {
 
 <style scoped lang="scss">
 .settings-container {
-  min-height: 100vh;
+  
   background: #f8f8f8;
 
   .settings-list {

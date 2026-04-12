@@ -103,7 +103,7 @@ const formatTime = (time: string) => {
 
 <style scoped lang="scss">
 .points-container {
-  min-height: 100vh;
+  
   background: #f8f8f8;
 
   .points-header {

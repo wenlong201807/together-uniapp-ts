@@ -131,7 +131,7 @@ const handlePublish = async () => {
 
 <style scoped lang="scss">
 .publish-container {
-  min-height: 100vh;
+  
   padding: 40rpx;
   background: #fff;
 

@@ -91,7 +91,7 @@ const goToChat = (conversation: any) => {
 @use '@/assets/styles/design-tokens.scss' as *;
 
 .chat-list-container {
-  min-height: 100vh;
+  
   background: $bg-secondary;
 
   .chat-list {

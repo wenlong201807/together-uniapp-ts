@@ -133,7 +133,7 @@ const handleComment = (post: any) => {
 @use '@/assets/styles/design-tokens.scss' as *;
 
 .home-container {
-  min-height: 100vh;
+  
   padding: $padding-xl;
   background: $bg-secondary;
 

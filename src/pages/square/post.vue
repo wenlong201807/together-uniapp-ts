@@ -124,7 +124,7 @@ const handleReport = async (data: { reason: number; description: string }) => {
 
 <style scoped lang="scss">
 .post-detail-container {
-  min-height: 100vh;
+  
   background: #f8f8f8;
 
   .post-detail {

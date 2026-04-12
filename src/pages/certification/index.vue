@@ -91,7 +91,7 @@ const goToApply = (code: string) => {
 
 <style scoped lang="scss">
 .certification-container {
-  min-height: 100vh;
+  
   background: #f8f8f8;
   padding: 20rpx;
 
