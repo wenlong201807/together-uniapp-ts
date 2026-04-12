@@ -305,8 +305,6 @@ const goToLogin = () => {
         }
       }
 
-      .password-input {
-
       .gender-options {
         display: flex;
         gap: 20rpx;

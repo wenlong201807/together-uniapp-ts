@@ -58,8 +58,8 @@ import { CryptoUtil } from '@/utils/crypto';
 const authStore = useAuthStore();
 
 const formData = ref({
-  mobile: '13800138001',
-  password: '123456',
+  mobile: '',
+  password: '',
 });
 
 const loading = ref(false);
