@@ -1,11 +1,11 @@
 <template>
-  <view class="register-container">
-    <view class="register-header">
-      <text class="title">注册账号</text>
-      <text class="subtitle">创建您的账号</text>
+  <view class="forgot-password-container">
+    <view class="forgot-password-header">
+      <text class="title">忘记密码</text>
+      <text class="subtitle">通过手机号重置密码</text>
     </view>
 
-    <view class="register-form">
+    <view class="forgot-password-form">
       <view class="form-item">
         <text class="label">手机号</text>
         <view class="input-wrapper">
@@ -16,7 +16,11 @@
             placeholder="请输入手机号"
             maxlength="11"
           />
-          <text v-if="formData.mobile" class="clear-icon" @click="formData.mobile = ''">
+          <text
+            v-if="formData.mobile"
+            class="clear-icon"
+            @click="formData.mobile = ''"
+          >
             ✕
           </text>
         </view>
@@ -33,7 +37,11 @@
               placeholder="请输入验证码"
               maxlength="6"
             />
-            <text v-if="formData.code" class="clear-icon" @click="formData.code = ''">
+            <text
+              v-if="formData.code"
+              class="clear-icon"
+              @click="formData.code = ''"
+            >
               ✕
             </text>
           </view>
@@ -44,13 +52,13 @@
       </view>
 
       <view class="form-item">
-        <text class="label">密码</text>
+        <text class="label">新密码</text>
         <view class="password-input">
           <input
             v-model="formData.password"
             class="input"
             :type="showPassword ? 'text' : 'password'"
-            placeholder="请输入密码"
+            placeholder="请输入新密码（6-20位）"
             maxlength="20"
           />
           <text class="eye-icon" @click="showPassword = !showPassword">
@@ -60,152 +68,188 @@
       </view>
 
       <view class="form-item">
-        <text class="label">昵称</text>
-        <view class="input-wrapper">
+        <text class="label">确认密码</text>
+        <view class="password-input">
           <input
-            v-model="formData.nickname"
+            v-model="formData.confirmPassword"
             class="input"
-            type="text"
-            placeholder="请输入昵称"
+            :type="showConfirmPassword ? 'text' : 'password'"
+            placeholder="请再次输入新密码"
             maxlength="20"
           />
-          <text v-if="formData.nickname" class="clear-icon" @click="formData.nickname = ''">
-            ✕
+          <text
+            class="eye-icon"
+            @click="showConfirmPassword = !showConfirmPassword"
+          >
+            {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
           </text>
         </view>
       </view>
 
-      <view class="form-item">
-        <text class="label">性别</text>
-        <view class="gender-options">
-          <view
-            :class="['gender-option', formData.gender === 1 ? 'active' : '']"
-            @click="formData.gender = 1"
-          >
-            <text>男</text>
-          </view>
-          <view
-            :class="['gender-option', formData.gender === 2 ? 'active' : '']"
-            @click="formData.gender = 2"
-          >
-            <text>女</text>
-          </view>
-        </view>
-      </view>
-
-      <button class="register-btn" :disabled="loading" @click="handleRegister">
-        {{ loading ? '注册中...' : '注册' }}
+      <button
+        class="submit-btn"
+        :disabled="loading"
+        @click="handleResetPassword"
+      >
+        {{ loading ? '提交中...' : '重置密码' }}
       </button>
 
       <view class="form-footer">
-        <text class="link" @click="goToLogin">已有账号？去登录</text>
+        <text class="link" @click="goToLogin">返回登录</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useAuthStore } from '@/stores'
-import { authApi } from '@/api'
-import { Gender } from '@/types/enums'
-import { CryptoUtil } from '@/utils/crypto'
-
-const authStore = useAuthStore()
+import { ref } from 'vue';
+import { authApi } from '@/api';
+import { CryptoUtil } from '@/utils/crypto';
 
 const formData = ref({
   mobile: '',
   code: '',
   password: '',
-  nickname: '',
-  gender: Gender.UNKNOWN
-})
+  confirmPassword: '',
+});
 
-const loading = ref(false)
-const countdown = ref(0)
-const showPassword = ref(false)
+const loading = ref(false);
+const countdown = ref(0);
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 const sendCode = async () => {
   if (!formData.value.mobile) {
     uni.showToast({
       title: '请输入手机号',
-      icon: 'none'
-    })
-    return
+      icon: 'none',
+    });
+    return;
+  }
+
+  if (!/^1[3-9]\d{9}$/.test(formData.value.mobile)) {
+    uni.showToast({
+      title: '请输入正确的手机号',
+      icon: 'none',
+    });
+    return;
   }
 
   try {
-    await authApi.sendSms({ mobile: formData.value.mobile, type: 'register' })
+    await authApi.sendSms({
+      mobile: formData.value.mobile,
+      type: 'reset_password',
+    });
     uni.showToast({
       title: '验证码已发送',
-      icon: 'success'
-    })
+      icon: 'success',
+    });
 
-    countdown.value = 60
+    countdown.value = 60;
     const timer = setInterval(() => {
-      countdown.value--
+      countdown.value--;
       if (countdown.value <= 0) {
-        clearInterval(timer)
+        clearInterval(timer);
       }
-    }, 1000)
+    }, 1000);
   } catch (error: any) {
-    console.error('Send code error:', error)
+    console.error('Send code error:', error);
     uni.showToast({
       title: error.message || '发送失败',
-      icon: 'none'
-    })
+      icon: 'none',
+    });
   }
-}
+};
 
-const handleRegister = async () => {
-  if (!formData.value.mobile || !formData.value.code || !formData.value.password || !formData.value.nickname) {
+const handleResetPassword = async () => {
+  if (!formData.value.mobile) {
     uni.showToast({
-      title: '请填写完整信息',
-      icon: 'none'
-    })
-    return
+      title: '请输入手机号',
+      icon: 'none',
+    });
+    return;
   }
 
-  loading.value = true
+  if (!/^1[3-9]\d{9}$/.test(formData.value.mobile)) {
+    uni.showToast({
+      title: '请输入正确的手机号',
+      icon: 'none',
+    });
+    return;
+  }
+
+  if (!formData.value.code) {
+    uni.showToast({
+      title: '请输入验证码',
+      icon: 'none',
+    });
+    return;
+  }
+
+  if (!formData.value.password) {
+    uni.showToast({
+      title: '请输入新密码',
+      icon: 'none',
+    });
+    return;
+  }
+
+  if (formData.value.password.length < 6) {
+    uni.showToast({
+      title: '密码长度不能少于6位',
+      icon: 'none',
+    });
+    return;
+  }
+
+  if (formData.value.password !== formData.value.confirmPassword) {
+    uni.showToast({
+      title: '两次密码输入不一致',
+      icon: 'none',
+    });
+    return;
+  }
+
+  loading.value = true;
   try {
-    // 加密密码后再发送
-    const encryptedPassword = CryptoUtil.encryptPassword(formData.value.password)
-    await authStore.register({
-      ...formData.value,
-      password: encryptedPassword,
-    })
+    const encryptedPassword = CryptoUtil.encryptPassword(
+      formData.value.password,
+    );
+    await authApi.resetPassword({
+      mobile: formData.value.mobile,
+      code: formData.value.code,
+      newPassword: encryptedPassword,
+    });
     uni.showToast({
-      title: '注册成功',
-      icon: 'success'
-    })
+      title: '密码重置成功',
+      icon: 'success',
+    });
     setTimeout(() => {
-      uni.switchTab({
-        url: '/pages/tabbar/home'
-      })
-    }, 1500)
+      uni.navigateBack();
+    }, 1500);
   } catch (error: any) {
-    console.error('Register error:', error)
+    console.error('Reset password error:', error);
     uni.showToast({
-      title: error.message || '注册失败',
-      icon: 'none'
-    })
+      title: error.message || '重置失败',
+      icon: 'none',
+    });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const goToLogin = () => {
-  uni.navigateBack()
-}
+  uni.navigateBack();
+};
 </script>
 
 <style scoped lang="scss">
-.register-container {
+.forgot-password-container {
   min-height: 100vh;
   padding: 80rpx 40rpx;
   background: #fff;
 
-  .register-header {
+  .forgot-password-header {
     margin-bottom: 80rpx;
 
     .title {
@@ -223,7 +267,7 @@ const goToLogin = () => {
     }
   }
 
-  .register-form {
+  .forgot-password-form {
     .form-item {
       margin-bottom: 40rpx;
 
@@ -304,35 +348,9 @@ const goToLogin = () => {
           }
         }
       }
-
-      .password-input {
-
-      .gender-options {
-        display: flex;
-        gap: 20rpx;
-
-        .gender-option {
-          flex: 1;
-          height: 88rpx;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 2rpx solid #e0e0e0;
-          border-radius: 12rpx;
-          font-size: 28rpx;
-          color: #666;
-          background: #f8f8f8;
-
-          &.active {
-            border-color: #007aff;
-            background: #007aff;
-            color: #fff;
-          }
-        }
-      }
     }
 
-    .register-btn {
+    .submit-btn {
       width: 100%;
       height: 88rpx;
       line-height: 88rpx;

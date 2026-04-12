@@ -2,7 +2,7 @@
   <view class="chat-list-container">
     <view class="chat-list">
       <!-- 骨架屏 -->
-      <template v-if="loading && chatStore.conversations.length === 0">
+      <template v-if="loading && (chatStore.conversations?.length ?? 0) === 0">
         <view v-for="i in 5" :key="i" class="conversation-skeleton">
           <view class="skeleton-avatar" />
           <view class="skeleton-content">
@@ -48,7 +48,7 @@
         </view>
 
         <Empty
-          v-if="!loading && chatStore?.conversations.length === 0"
+          v-if="!loading && (chatStore.conversations?.length ?? 0) === 0"
           text="暂无聊天"
         />
       </template>

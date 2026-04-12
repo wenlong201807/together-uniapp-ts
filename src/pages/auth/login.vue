@@ -8,24 +8,34 @@
     <view class="login-form">
       <view class="form-item">
         <text class="label">手机号</text>
-        <input
-          v-model="formData.mobile"
-          class="input"
-          type="number"
-          placeholder="请输入手机号"
-          maxlength="11"
-        />
+        <view class="input-wrapper">
+          <input
+            v-model="formData.mobile"
+            class="input"
+            type="number"
+            placeholder="请输入手机号"
+            maxlength="11"
+          />
+          <text v-if="formData.mobile" class="clear-icon" @click="formData.mobile = ''">
+            ✕
+          </text>
+        </view>
       </view>
 
       <view class="form-item">
         <text class="label">密码</text>
-        <input
-          v-model="formData.password"
-          class="input"
-          type="password"
-          placeholder="请输入密码"
-          maxlength="20"
-        />
+        <view class="password-input">
+          <input
+            v-model="formData.password"
+            class="input"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="请输入密码"
+            maxlength="20"
+          />
+          <text class="eye-icon" @click="showPassword = !showPassword">
+            {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+          </text>
+        </view>
       </view>
 
       <button class="login-btn" :disabled="loading" @click="handleLogin">
@@ -33,6 +43,7 @@
       </button>
 
       <view class="form-footer">
+        <text class="link" @click="goToForgotPassword">忘记密码？</text>
         <text class="link" @click="goToRegister">注册账号</text>
       </view>
     </view>
@@ -52,6 +63,7 @@ const formData = ref({
 });
 
 const loading = ref(false);
+const showPassword = ref(false);
 
 const handleLogin = async () => {
   if (!formData.value.mobile || !formData.value.password) {
@@ -93,6 +105,12 @@ const handleLogin = async () => {
 const goToRegister = () => {
   uni.navigateTo({
     url: '/pages/auth/register',
+  });
+};
+
+const goToForgotPassword = () => {
+  uni.navigateTo({
+    url: '/pages/auth/forgot-password',
   });
 };
 </script>
@@ -146,6 +164,37 @@ const goToRegister = () => {
           background: #fff;
         }
       }
+
+      .input-wrapper,
+      .password-input {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        .input {
+          flex: 1;
+          padding-right: 80rpx;
+        }
+
+        .clear-icon,
+        .eye-icon {
+          position: absolute;
+          right: 24rpx;
+          width: 40rpx;
+          height: 40rpx;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 32rpx;
+          color: #999;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .eye-icon {
+          font-size: 36rpx;
+        }
+      }
     }
 
     .login-btn {
@@ -166,7 +215,7 @@ const goToRegister = () => {
 
     .form-footer {
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
       margin-top: 40rpx;
 
       .link {

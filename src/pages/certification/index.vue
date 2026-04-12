@@ -14,7 +14,7 @@
       <text>暂无可用认证类型</text>
     </view>
 
-    <view class="my-cert" v-if="myCerts.length > 0">
+    <view class="my-cert" v-if="myCerts?.length > 0">
       <view class="section-title">我的认证</view>
       <view class="cert-item" v-for="cert in myCerts" :key="cert.id">
         <view class="cert-info">

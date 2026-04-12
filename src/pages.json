@@ -19,6 +19,12 @@
       }
     },
     {
+      "path": "pages/auth/forgot-password",
+      "style": {
+        "navigationBarTitleText": "忘记密码"
+      }
+    },
+    {
       "path": "pages/tabbar/home",
       "style": {
         "navigationBarTitleText": "首页"
@@ -106,6 +112,12 @@
       "path": "pages/certification/index",
       "style": {
         "navigationBarTitleText": "认证中心"
+      }
+    },
+    {
+      "path": "pages/certification/apply",
+      "style": {
+        "navigationBarTitleText": "认证申请"
       }
     }
   ],
