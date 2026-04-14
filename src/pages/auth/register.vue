@@ -41,6 +41,9 @@
             {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
           </button>
         </view>
+        <view class="form-tip">
+          <text class="tip-text">💡 测试环境默认验证码：123456</text>
+        </view>
       </view>
 
       <view class="form-item">
@@ -93,6 +96,27 @@
         </view>
       </view>
 
+      <view class="form-item">
+        <text class="label">邀请码（选填）</text>
+        <view class="input-wrapper">
+          <input
+            v-model="formData.inviteCode"
+            class="input"
+            type="text"
+            placeholder="请输入邀请码"
+            maxlength="20"
+          />
+          <text v-if="formData.inviteCode" class="clear-icon" @click="formData.inviteCode = ''">
+            ✕
+          </text>
+        </view>
+      </view>
+
+      <view v-if="formData.inviteCode" class="invite-tip">
+        <text class="tip-icon">🎁</text>
+        <text class="tip-text">使用邀请码注册，您和邀请人都将获得积分奖励</text>
+      </view>
+
       <button class="register-btn" :disabled="loading" @click="handleRegister">
         {{ loading ? '注册中...' : '注册' }}
       </button>
@@ -105,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores'
 import { authApi } from '@/api'
 import { Gender } from '@/types/enums'
@@ -118,12 +142,25 @@ const formData = ref({
   code: '',
   password: '',
   nickname: '',
-  gender: Gender.UNKNOWN
+  gender: Gender.UNKNOWN,
+  inviteCode: '' // 邀请码
 })
 
 const loading = ref(false)
 const countdown = ref(0)
 const showPassword = ref(false)
+
+// 页面加载时获取 URL 参数中的邀请码
+onMounted(() => {
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1] as any
+  const options = currentPage.options || {}
+
+  if (options.inviteCode) {
+    formData.value.inviteCode = options.inviteCode
+    console.log('获取到邀请码:', options.inviteCode)
+  }
+})
 
 const sendCode = async () => {
   if (!formData.value.mobile) {
@@ -170,14 +207,35 @@ const handleRegister = async () => {
   try {
     // 加密密码后再发送
     const encryptedPassword = CryptoUtil.encryptPassword(formData.value.password)
-    await authStore.register({
-      ...formData.value,
+
+    // 构建注册数据，确保 inviteCode 被传递
+    const registerData = {
+      mobile: formData.value.mobile,
+      code: formData.value.code,
       password: encryptedPassword,
-    })
-    uni.showToast({
-      title: '注册成功',
-      icon: 'success'
-    })
+      nickname: formData.value.nickname,
+      gender: formData.value.gender,
+      inviteCode: formData.value.inviteCode || undefined, // 如果有邀请码则传递
+    }
+
+    console.log('注册数据:', registerData)
+
+    await authStore.register(registerData)
+
+    // 显示注册成功提示
+    if (formData.value.inviteCode) {
+      uni.showToast({
+        title: '注册成功！已获得邀请奖励',
+        icon: 'success',
+        duration: 2000
+      })
+    } else {
+      uni.showToast({
+        title: '注册成功',
+        icon: 'success'
+      })
+    }
+
     setTimeout(() => {
       uni.switchTab({
         url: '/pages/tabbar/home'
@@ -195,7 +253,9 @@ const handleRegister = async () => {
 }
 
 const goToLogin = () => {
-  uni.navigateBack()
+  uni.navigateTo({
+    url: '/pages/auth/login'
+  })
 }
 </script>
 
@@ -325,6 +385,39 @@ const goToLogin = () => {
             color: #fff;
           }
         }
+      }
+    }
+
+    .form-tip {
+      margin-top: 12rpx;
+      padding-left: 4rpx;
+
+      .tip-text {
+        font-size: 24rpx;
+        color: #ff9800;
+        line-height: 1.5;
+      }
+    }
+
+    .invite-tip {
+      display: flex;
+      align-items: center;
+      padding: 24rpx;
+      background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+      border-radius: 12rpx;
+      margin-bottom: 40rpx;
+      border: 2rpx solid #ffcccc;
+
+      .tip-icon {
+        font-size: 32rpx;
+        margin-right: 16rpx;
+      }
+
+      .tip-text {
+        flex: 1;
+        font-size: 24rpx;
+        color: #ff6b6b;
+        line-height: 1.5;
       }
     }
 
