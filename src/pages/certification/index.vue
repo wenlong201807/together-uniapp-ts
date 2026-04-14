@@ -1,8 +1,25 @@
 <template>
   <view class="certification-container">
     <view class="cert-types" v-if="certTypes.length > 0">
-      <view class="cert-type-item" v-for="type in certTypes" :key="type.code" @click="goToApply(type.code)">
-        <view class="cert-icon">{{ type.icon || '📋' }}</view>
+      <view
+        class="cert-type-item"
+        v-for="type in certTypes"
+        :key="type.code"
+        @click="goToApply(type.code)"
+      >
+        <view
+          class="cert-icon"
+          :class="{ 'has-image': getCertImage(type.code) }"
+        >
+          <image
+            v-if="getCertImage(type.code)"
+            :src="getCertImage(type.code)"
+            mode="aspectFill"
+            class="cert-thumbnail"
+          />
+          <text v-else>{{ '📋' }}</text>
+          <!-- <text v-else>{{ type.icon || '📋' }}</text> -->
+        </view>
         <view class="cert-info">
           <text class="cert-name">{{ type.name }}</text>
           <text class="cert-desc">{{ type.description }}</text>
@@ -19,7 +36,9 @@
       <view class="cert-item" v-for="cert in myCerts" :key="cert.id">
         <view class="cert-info">
           <text class="cert-name">{{ getCertTypeName(cert.type) }}</text>
-          <text class="cert-time">申请时间: {{ formatTime(cert.createdAt) }}</text>
+          <text class="cert-time"
+            >申请时间: {{ formatTime(cert.createdAt) }}</text
+          >
         </view>
         <text class="cert-status" :class="['status-' + cert.status]">
           {{ getStatusText(cert.status) }}
@@ -30,68 +49,79 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useAuthStore } from '@/stores'
-import { certificationApi, type CertificationType, type Certification } from '@/api/modules/certification'
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '@/stores';
+import {
+  certificationApi,
+  type CertificationType,
+  type Certification,
+} from '@/api/modules/certification';
 
-const authStore = useAuthStore()
+const authStore = useAuthStore();
 
-const certTypes = ref<CertificationType[]>([])
-const myCerts = ref<Certification[]>([])
+const certTypes = ref<CertificationType[]>([]);
+const myCerts = ref<Certification[]>([]);
 
 onMounted(() => {
   if (!authStore.isLoggedIn) {
-    uni.showToast({ title: '请先登录', icon: 'none' })
-    uni.navigateBack()
-    return
+    uni.showToast({ title: '请先登录', icon: 'none' });
+    uni.navigateBack();
+    return;
   }
-  loadCertTypes()
-  loadMyCerts()
-})
+  loadCertTypes();
+  loadMyCerts();
+});
 
 const loadCertTypes = async () => {
   try {
-    const res = await certificationApi.getTypes()
-    certTypes.value = res.data.list
+    const res = await certificationApi.getTypes();
+    certTypes.value = res.data.list;
   } catch (error) {
-    console.error('Failed to load cert types:', error)
+    console.error('Failed to load cert types:', error);
   }
-}
+};
 
 const loadMyCerts = async () => {
   try {
-    const res = await certificationApi.getMyList()
-    myCerts.value = res.data.list
+    const res = await certificationApi.getMyList();
+    myCerts.value = res.data.list;
   } catch (error) {
-    console.error('Failed to load my certs:', error)
+    console.error('Failed to load my certs:', error);
   }
-}
+};
 
 const getCertTypeName = (code: string) => {
-  const type = certTypes.value.find(t => t.code === code)
-  return type?.name || code
-}
+  const type = certTypes.value.find((t) => t.code === code);
+  return type?.name || code;
+};
 
 const getStatusText = (status: number) => {
-  const map = { 0: '待审核', 1: '已通过', 2: '已拒绝' }
-  return map[status as keyof typeof map] || '未知'
-}
+  const map = { 0: '待审核', 1: '已通过', 2: '已拒绝' };
+  return map[status as keyof typeof map] || '未知';
+};
 
 const formatTime = (time: string) => {
-  const date = new Date(time)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
+  const date = new Date(time);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const getCertImage = (code: string) => {
+  if (!myCerts.value || myCerts.value.length === 0) {
+    return '';
+  }
+  const cert = myCerts.value.find((c) => c.type === code && c.status === 1);
+  return cert?.imageUrl || '';
+};
 
 const goToApply = (code: string) => {
   uni.navigateTo({
-    url: `/pages/certification/apply?type=${code}`
-  })
-}
+    url: `/pages/certification/apply?type=${code}`,
+  });
+};
 </script>
 
 <style scoped lang="scss">
 .certification-container {
-  
   background: #f8f8f8;
   padding: 20rpx;
 
@@ -120,6 +150,18 @@ const goToApply = (code: string) => {
         justify-content: center;
         font-size: 40rpx;
         margin-right: 20rpx;
+        overflow: hidden;
+
+        &.has-image {
+          background: transparent;
+          padding: 0;
+        }
+
+        .cert-thumbnail {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
       }
 
       .cert-info {
