@@ -56,6 +56,21 @@
       </view>
     </view>
 
+    <view class="invite-card" @click="copyInviteLink">
+      <view class="invite-content">
+        <view class="invite-info">
+          <text class="invite-label">我的邀请码</text>
+          <text class="invite-code">{{ authStore.userInfo?.inviteCode || '-' }}</text>
+        </view>
+        <view class="copy-btn">
+          <text>复制链接</text>
+        </view>
+      </view>
+      <view class="invite-decoration">
+        <text class="decoration-icon">🎁</text>
+      </view>
+    </view>
+
     <view class="menu-list">
       <view class="menu-item" @click="goToPoints">
         <text class="menu-icon">💰</text>
@@ -202,6 +217,36 @@ const handleLogout = () => {
     },
   });
 };
+
+const copyInviteLink = () => {
+  if (!authStore.userInfo?.inviteCode) {
+    uni.showToast({
+      title: '邀请码不存在',
+      icon: 'none',
+    });
+    return;
+  }
+
+  // 构建邀请链接
+  const inviteLink = `http://23.94.103.190:8107/#/pages/auth/register?inviteCode=${authStore.userInfo.inviteCode}`;
+
+  // 复制到剪贴板
+  uni.setClipboardData({
+    data: inviteLink,
+    success: () => {
+      uni.showToast({
+        title: '邀请链接已复制',
+        icon: 'success',
+      });
+    },
+    fail: () => {
+      uni.showToast({
+        title: '复制失败',
+        icon: 'none',
+      });
+    },
+  });
+};
 </script>
 
 <style scoped lang="scss">
@@ -299,7 +344,8 @@ const handleLogout = () => {
         color: #fff;
         animation: points-pulse 2s ease-in-out infinite;
       }
-ontinuous-days {
+
+      .continuous-days {
         margin-top: $margin-sm;
         padding: 4rpx 12rpx;
         background: rgba(255, 255, 255, 0.2);
@@ -376,6 +422,75 @@ ontinuous-days {
           right: -20rpx;
           animation-delay: 4s;
         }
+      }
+    }
+  }
+
+  .invite-card {
+    position: relative;
+    padding: $padding-xl;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    margin: 0 $margin-md $margin-md;
+    border-radius: $radius-lg;
+    box-shadow: 0 8rpx 24rpx rgba(240, 147, 251, 0.4);
+    overflow: hidden;
+    @include transition(transform);
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    .invite-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .invite-info {
+      .invite-label {
+        display: block;
+        font-size: $font-size-sm;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: $margin-xs;
+      }
+
+      .invite-code {
+        display: block;
+        font-size: 40rpx;
+        font-weight: $font-weight-bold;
+        color: #fff;
+        letter-spacing: 4rpx;
+      }
+    }
+
+    .copy-btn {
+      padding: 16rpx 32rpx;
+      background: #fff;
+      color: #f5576c;
+      border-radius: 30rpx;
+      font-size: $font-size-base;
+      font-weight: $font-weight-medium;
+      box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+      @include transition(all);
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
+    .invite-decoration {
+      position: absolute;
+      top: 50%;
+      right: 20rpx;
+      transform: translateY(-50%);
+      z-index: 1;
+      opacity: 0.2;
+
+      .decoration-icon {
+        font-size: 120rpx;
+        animation: float 3s ease-in-out infinite;
       }
     }
   }
