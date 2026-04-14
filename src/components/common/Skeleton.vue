@@ -1,21 +1,42 @@
 <template>
   <view class="skeleton" :class="{ animated }">
-    <view v-if="type === 'avatar'" class="skeleton-avatar" :style="avatarStyle" />
-    <view v-else-if="type === 'image'" class="skeleton-image" :style="imageStyle" />
-    <view v-else-if="type === 'text'" class="skeleton-text" :style="textStyle" />
+    <view
+      v-if="type === 'avatar'"
+      class="skeleton-avatar"
+      :style="avatarStyle"
+    />
+    <view
+      v-else-if="type === 'image'"
+      class="skeleton-image"
+      :style="imageStyle"
+    />
+    <view
+      v-else-if="type === 'text'"
+      class="skeleton-text"
+      :style="textStyle"
+    />
     <view v-else-if="type === 'card'">
       <view class="skeleton-card">
         <view class="skeleton-card-header">
           <view class="skeleton-avatar" />
           <view class="skeleton-card-info">
             <view class="skeleton-text" style="width: 120rpx; height: 28rpx" />
-            <view class="skeleton-text" style="width: 80rpx; height: 24rpx; margin-top: 8rpx" />
+            <view
+              class="skeleton-text"
+              style="width: 80rpx; height: 24rpx; margin-top: 8rpx"
+            />
           </view>
         </view>
         <view class="skeleton-card-content">
           <view class="skeleton-text" style="width: 100%; height: 28rpx" />
-          <view class="skeleton-text" style="width: 90%; height: 28rpx; margin-top: 12rpx" />
-          <view class="skeleton-text" style="width: 70%; height: 28rpx; margin-top: 12rpx" />
+          <view
+            class="skeleton-text"
+            style="width: 90%; height: 28rpx; margin-top: 12rpx"
+          />
+          <view
+            class="skeleton-text"
+            style="width: 70%; height: 28rpx; margin-top: 12rpx"
+          />
         </view>
         <view v-if="showImage" class="skeleton-card-image">
           <view class="skeleton-image" style="width: 100%; height: 200rpx" />
@@ -127,7 +148,7 @@ const textStyle = computed(() => ({
 
     .skeleton-avatar {
       width: 80rpx;
-eight: 80rpx;
+      height: 80rpx;
       margin-right: $margin-md;
     }
 
