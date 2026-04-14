@@ -72,6 +72,11 @@
     </view>
 
     <view class="menu-list">
+      <view class="menu-item" @click="goToMbti">
+        <text class="menu-icon">🧠</text>
+        <text class="menu-text">MBTI测试</text>
+        <text class="menu-arrow">›</text>
+      </view>
       <view class="menu-item" @click="goToPoints">
         <text class="menu-icon">💰</text>
         <text class="menu-text">积分明细</text>
@@ -133,6 +138,12 @@ onShow(() => {
 const goToProfile = () => {
   uni.navigateTo({
     url: '/pages/user/profile',
+  });
+};
+
+const goToMbti = () => {
+  uni.navigateTo({
+    url: '/pages/mbti/intro',
   });
 };
 

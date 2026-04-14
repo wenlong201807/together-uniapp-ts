@@ -119,6 +119,24 @@
       "style": {
         "navigationBarTitleText": "认证申请"
       }
+    },
+    {
+      "path": "pages/mbti/intro",
+      "style": {
+        "navigationBarTitleText": "MBTI测试"
+      }
+    },
+    {
+      "path": "pages/mbti/test",
+      "style": {
+        "navigationBarTitleText": "答题中"
+      }
+    },
+    {
+      "path": "pages/mbti/result",
+      "style": {
+        "navigationBarTitleText": "测试结果"
+      }
     }
   ],
   "tabBar": {

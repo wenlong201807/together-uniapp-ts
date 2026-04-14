@@ -50,9 +50,9 @@ const recentPosts = ref<any[]>([]);
 
 const actions = [
   { icon: '📝', text: '发布动态', handler: goToSquare },
+  { icon: '🧠', text: 'MBTI测试', handler: goToMbti },
   { icon: '💬', text: '聊天', handler: goToChatList },
   { icon: '👥', text: '好友', handler: goToFriendList },
-  { icon: '👤', text: '个人资料', handler: goToProfile },
 ];
 
 function goToSquare() {
@@ -70,6 +70,12 @@ function goToChatList() {
 function goToFriendList() {
   uni.navigateTo({
     url: '/pages/friend/list',
+  });
+}
+
+function goToMbti() {
+  uni.navigateTo({
+    url: '/pages/mbti/intro',
   });
 }
 
