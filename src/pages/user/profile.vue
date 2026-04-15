@@ -2,12 +2,13 @@
   <view class="profile-container">
     <view class="profile-header">
       <view class="avatar-wrapper" @click="showAvatarSelector">
-        <!-- 预设头像显示 -->
+        <!-- 预设 MBTI 头像显示 -->
         <view
-          v-if="selectedAvatar.type === 'preset'"
-          :class="`sprite-avatar avatar-${selectedAvatar.value}`"
-          class="avatar"
-        />
+          v-if="selectedAvatar.type === 'preset' && selectedAvatar.icon"
+          class="avatar mbti-avatar"
+        >
+          <text class="mbti-icon">{{ selectedAvatar.icon }}</text>
+        </view>
         <!-- 自定义头像显示 -->
         <image
           v-else
@@ -90,13 +91,16 @@
         <!-- 预设头像网格 -->
         <view v-if="activeTab === 'preset'" class="avatar-selector">
           <view
-            v-for="i in 49"
-            :key="i"
+            v-for="avatar in mbtiAvatars"
+            :key="avatar.id"
             class="avatar-item"
-            :class="{ selected: isSelected('preset', String(i)) }"
-            @click="selectPreset(i)"
+            :class="{ selected: isSelected('preset', String(avatar.id)) }"
+            @click="selectPreset(avatar.id)"
           >
-            <view :class="`sprite-avatar avatar-${i}`" />
+            <view class="mbti-avatar-item">
+              <text class="mbti-icon">{{ avatar.icon }}</text>
+              <text class="mbti-type">{{ avatar.type }}</text>
+            </view>
           </view>
         </view>
 
@@ -131,6 +135,7 @@ import { ref, onMounted, reactive } from 'vue';
 import { useAuthStore } from '@/stores';
 import { authApi, fileApi } from '@/api';
 import { Gender } from '@/types/enums';
+import { MBTI_AVATARS, getAvatarDisplay } from '@/utils/avatar';
 import '@/assets/styles/avatar.scss';
 
 const authStore = useAuthStore();
@@ -145,12 +150,15 @@ const showSelector = ref(false);
 const activeTab = ref<'preset' | 'custom'>('preset');
 const previewUrl = ref('');
 const tempSelection = ref<any>(null);
+const mbtiAvatars = MBTI_AVATARS;
 
 // 当前选择的头像状态
 const selectedAvatar = reactive({
   type: 'custom' as 'preset' | 'custom',
   value: '1',
   displayUrl: '',
+  icon: '',
+  mbtiType: '',
 });
 
 onMounted(() => {
@@ -158,11 +166,12 @@ onMounted(() => {
     formData.value.nickname = authStore.userInfo.nickname || '';
     formData.value.gender = authStore.userInfo.gender || Gender.UNKNOWN;
 
-    // 初始化头像显示
-    if (authStore.userInfo.avatarUrl) {
-      selectedAvatar.type = 'custom';
-      selectedAvatar.displayUrl = authStore.userInfo.avatarUrl;
-    }
+    // 使用工具函数初始化头像显示
+    const avatarDisplay = getAvatarDisplay(
+      authStore.userInfo.avatarId,
+      authStore.userInfo.avatarUrl
+    );
+    Object.assign(selectedAvatar, avatarDisplay);
   }
 });
 
@@ -180,11 +189,16 @@ const showAvatarSelector = () => {
  * 选择预设头像
  */
 const selectPreset = (id: number) => {
-  tempSelection.value = {
-    type: 'preset',
-    value: String(id),
-    displayUrl: '',
-  };
+  const mbtiAvatar = MBTI_AVATARS.find(a => a.id === id);
+  if (mbtiAvatar) {
+    tempSelection.value = {
+      type: 'preset',
+      value: String(id),
+      displayUrl: '',
+      icon: mbtiAvatar.icon,
+      mbtiType: mbtiAvatar.type,
+    };
+  }
 };
 
 /**
@@ -245,9 +259,7 @@ const handleAvatarConfirm = async () => {
       await uploadCustomAvatar(tempSelection.value.value);
     } else {
       // 预设头像直接更新状态
-      selectedAvatar.type = 'preset';
-      selectedAvatar.value = tempSelection.value.value;
-      selectedAvatar.displayUrl = '';
+      Object.assign(selectedAvatar, tempSelection.value);
     }
 
     showSelector.value = false;
@@ -272,6 +284,8 @@ const uploadCustomAvatar = async (filePath: string) => {
     const { url } = await fileApi.uploadAvatar(filePath);
     selectedAvatar.type = 'custom';
     selectedAvatar.displayUrl = url;
+    selectedAvatar.icon = '';
+    selectedAvatar.mbtiType = '';
   } catch (error) {
     console.error('Upload custom avatar error:', error);
     throw error;
@@ -300,7 +314,7 @@ const handleSave = async () => {
 
     // 如果头像有变化，添加头像字段
     if (selectedAvatar.type === 'preset') {
-      updateData.avatarId = selectedAvatar.value;
+      updateData.avatarId = parseInt(selectedAvatar.value);
     } else if (selectedAvatar.displayUrl) {
       updateData.avatarUrl = selectedAvatar.displayUrl;
     }
@@ -351,6 +365,17 @@ const handleSave = async () => {
         margin-bottom: 24rpx;
         background: #f0f0f0;
         display: block;
+
+        &.mbti-avatar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+          .mbti-icon {
+            font-size: 80rpx;
+          }
+        }
       }
 
       .avatar-edit {
@@ -531,8 +556,8 @@ const handleSave = async () => {
 
       .avatar-selector {
         display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 16rpx;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20rpx;
         padding: 24rpx;
         overflow-y: auto;
         flex: 1;
@@ -540,24 +565,40 @@ const handleSave = async () => {
         .avatar-item {
           position: relative;
           cursor: pointer;
-          border-radius: 50%;
+          border-radius: 16rpx;
           overflow: hidden;
           border: 3rpx solid transparent;
           transition: all 0.3s;
           aspect-ratio: 1;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 
           &:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
           }
 
           &.selected {
             border-color: #007aff;
-            box-shadow: 0 0 10rpx rgba(0, 122, 255, 0.5);
+            box-shadow: 0 0 20rpx rgba(0, 122, 255, 0.5);
           }
 
-          .sprite-avatar {
+          .mbti-avatar-item {
             width: 100%;
             height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8rpx;
+
+            .mbti-icon {
+              font-size: 60rpx;
+            }
+
+            .mbti-type {
+              font-size: 20rpx;
+              font-weight: bold;
+              color: #333;
+            }
           }
         }
       }

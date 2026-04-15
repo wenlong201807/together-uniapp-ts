@@ -12,6 +12,7 @@ export interface UserInfo {
   mobile: string;
   nickname: string;
   avatarUrl?: string;
+  avatarId?: number;
   gender?: Gender;
   status?: UserStatus;
   createdAt?: string;

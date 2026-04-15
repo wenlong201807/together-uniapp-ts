@@ -68,9 +68,17 @@ onMounted(() => {
     uni.navigateBack();
     return;
   }
-  loadCertTypes();
-  loadMyCerts();
+  loadData();
 });
+
+// 监听页面显示，刷新数据
+onShow(() => {
+  loadData();
+});
+
+const loadData = async () => {
+  await Promise.all([loadCertTypes(), loadMyCerts()]);
+};
 
 const loadCertTypes = async () => {
   try {
@@ -105,12 +113,22 @@ const formatTime = (time: string) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
+/**
+ * 获取认证类型对应的图片
+ * 优先显示最新提交的认证图片（无论状态）
+ */
 const getCertImage = (code: string) => {
   if (!myCerts.value || myCerts.value.length === 0) {
     return '';
   }
-  const cert = myCerts.value.find((c) => c.type === code && c.status === 1);
-  return cert?.imageUrl || '';
+
+  // 查找该类型的所有认证记录，按创建时间倒序
+  const typeCerts = myCerts.value
+    .filter((c) => c.type === code)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // 返回最新的认证图片
+  return typeCerts[0]?.imageUrl || '';
 };
 
 const goToApply = (code: string) => {
@@ -151,6 +169,7 @@ const goToApply = (code: string) => {
         font-size: 40rpx;
         margin-right: 20rpx;
         overflow: hidden;
+        flex-shrink: 0;
 
         &.has-image {
           background: transparent;
@@ -161,6 +180,7 @@ const goToApply = (code: string) => {
           width: 100%;
           height: 100%;
           display: block;
+          object-fit: cover;
         }
       }
 
