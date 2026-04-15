@@ -97,6 +97,12 @@
       }
     },
     {
+      "path": "pages/user/detail",
+      "style": {
+        "navigationBarTitleText": "用户详情"
+      }
+    },
+    {
       "path": "pages/user/settings",
       "style": {
         "navigationBarTitleText": "设置"

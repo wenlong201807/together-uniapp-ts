@@ -5,8 +5,9 @@ import type { Friendship, UserBlacklist } from '@/types/api/backend-types'
 export interface FriendshipStatus {
   isFriend: boolean
   isFollowing: boolean
-  canChat: boolean
+  canAddFriend: boolean
   chatCount: number
+  requiredChatCount: number
   requiredPoints: number
   currentPoints: number
   status: number
@@ -28,8 +29,8 @@ export const friendApi = {
   acceptFriend: (friendId: number) =>
     request.post<{ success: boolean }>('/friend/accept', { friendId }),
 
-  unlockChat: (friendId: number) =>
-    request.post<{ success: boolean }>('/friend/unlock-chat', { friendId }),
+  addFriend: (friendId: number) =>
+    request.post<{ success: boolean; pointsConsumed: number }>('/friend/add-friend', { friendId }),
 
   getFriendshipStatus: (userId: number) =>
     request.get<FriendshipStatus>(`/friend/status/${userId}`),

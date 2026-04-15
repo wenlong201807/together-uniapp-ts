@@ -5,8 +5,9 @@
         class="avatar"
         :src="post.user?.avatarUrl || '/static/images/default-avatar.png'"
         mode="aspectFill"
+        @click.stop="goToUserDetail"
       />
-      <view class="user-info">
+      <view class="user-info" @click.stop="goToUserDetail">
         <text class="nickname">{{ post.user?.nickname }}</text>
         <text class="time">{{ formatTime(post.createdAt) }}</text>
       </view>
@@ -115,6 +116,14 @@ const imageLoaded = reactive<Record<number, boolean>>({});
 
 const handleClick = () => {
   emit('click');
+};
+
+const goToUserDetail = () => {
+  if (props.post.user?.id) {
+    uni.navigateTo({
+      url: `/pages/user/detail?id=${props.post.user.id}`
+    });
+  }
 };
 
 const getParticleStyle = (index: number) => {
@@ -270,12 +279,22 @@ const submitReport = () => {
       border-radius: 50%;
       margin-right: 20rpx;
       background: #f0f0f0;
+      transition: transform 0.3s ease;
+
+      &:active {
+        transform: scale(0.95);
+      }
     }
 
     .user-info {
       flex: 1;
       display: flex;
       flex-direction: column;
+      transition: opacity 0.3s ease;
+
+      &:active {
+        opacity: 0.7;
+      }
 
       .nickname {
         font-size: 28rpx;
