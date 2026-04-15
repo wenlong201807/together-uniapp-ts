@@ -33,6 +33,7 @@
         @click="goToPostDetail(post.id)"
         @like="handleLike(post)"
         @comment="handleComment(post)"
+        @share="handleShare(post)"
       />
     </view>
   </view>
@@ -123,7 +124,7 @@ const handleLike = async (post: any) => {
 };
 
 const handleComment = (post: any) => {
-  if (!id) {
+  if (!post?.id) {
     return uni.showToast({
       title: '先选择评论',
       icon: 'none',
@@ -131,6 +132,77 @@ const handleComment = (post: any) => {
   }
   uni.navigateTo({
     url: `/pages/square/post?id=${post?.id}`,
+  });
+};
+
+const handleShare = (post: any) => {
+  uni.showActionSheet({
+    itemList: ['分享到微信', '分享到朋友圈', '复制链接'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        shareToWeChat(post);
+      } else if (res.tapIndex === 1) {
+        shareToMoments(post);
+      } else if (res.tapIndex === 2) {
+        copyLink(post);
+      }
+    }
+  });
+};
+
+const shareToWeChat = (post: any) => {
+  // #ifdef MP-WEIXIN
+  uni.shareAppMessage({
+    title: post.content.substring(0, 30) + (post.content.length > 30 ? '...' : ''),
+    path: `/pages/square/post?id=${post.id}`,
+    imageUrl: post.images?.[0] || '',
+  });
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  uni.showToast({
+    title: '仅支持微信小程序',
+    icon: 'none'
+  });
+  // #endif
+};
+
+const shareToMoments = (post: any) => {
+  // #ifdef MP-WEIXIN
+  uni.showShareMenu({
+    withShareTicket: true,
+    menus: ['shareAppMessage', 'shareTimeline']
+  });
+  uni.showToast({
+    title: '请点击右上角分享',
+    icon: 'none'
+  });
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  uni.showToast({
+    title: '仅支持微信小程序',
+    icon: 'none'
+  });
+  // #endif
+};
+
+const copyLink = (post: any) => {
+  const link = `${window.location.origin}/pages/square/post?id=${post.id}`;
+  uni.setClipboardData({
+    data: link,
+    success: () => {
+      uni.showToast({
+        title: '链接已复制',
+        icon: 'success'
+      });
+    },
+    fail: () => {
+      uni.showToast({
+        title: '复制失败',
+        icon: 'none'
+      });
+    }
   });
 };
 </script>

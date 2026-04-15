@@ -614,10 +614,19 @@ const handleSave = async () => {
           flex: 1;
           height: 88rpx;
           line-height: 88rpx;
+          padding: 0;
           border-radius: 12rpx;
           font-size: 28rpx;
           border: none;
           cursor: pointer;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &::after {
+            border: none;
+          }
         }
 
         .btn-cancel {

@@ -1,7 +1,7 @@
 <template>
   <view class="post-detail-container">
     <view v-if="squareStore.currentPost" class="post-detail">
-      <PostCard :post="squareStore.currentPost" @like="handleLike" @report="handleReport" />
+      <PostCard :post="squareStore.currentPost" @like="handleLike" @report="handleReport" @share="handleShare" />
 
       <view class="comments-section">
         <view class="section-header">
@@ -119,6 +119,83 @@ const handleReport = async (data: { reason: number; description: string }) => {
       icon: 'none'
     });
   }
+};
+
+const handleShare = () => {
+  if (!squareStore.currentPost) return;
+
+  uni.showActionSheet({
+    itemList: ['分享到微信', '分享到朋友圈', '复制链接'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        shareToWeChat();
+      } else if (res.tapIndex === 1) {
+        shareToMoments();
+      } else if (res.tapIndex === 2) {
+        copyLink();
+      }
+    }
+  });
+};
+
+const shareToWeChat = () => {
+  if (!squareStore.currentPost) return;
+
+  // #ifdef MP-WEIXIN
+  uni.shareAppMessage({
+    title: squareStore.currentPost.content.substring(0, 30) + (squareStore.currentPost.content.length > 30 ? '...' : ''),
+    path: `/pages/square/post?id=${squareStore.currentPost.id}`,
+    imageUrl: squareStore.currentPost.images?.[0] || '',
+  });
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  uni.showToast({
+    title: '仅支持微信小程序',
+    icon: 'none'
+  });
+  // #endif
+};
+
+const shareToMoments = () => {
+  // #ifdef MP-WEIXIN
+  uni.showShareMenu({
+    withShareTicket: true,
+    menus: ['shareAppMessage', 'shareTimeline']
+  });
+  uni.showToast({
+    title: '请点击右上角分享',
+    icon: 'none'
+  });
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  uni.showToast({
+    title: '仅支持微信小程序',
+    icon: 'none'
+  });
+  // #endif
+};
+
+const copyLink = () => {
+  if (!squareStore.currentPost) return;
+
+  const link = `${window.location.origin}/pages/square/post?id=${squareStore.currentPost.id}`;
+  uni.setClipboardData({
+    data: link,
+    success: () => {
+      uni.showToast({
+        title: '链接已复制',
+        icon: 'success'
+      });
+    },
+    fail: () => {
+      uni.showToast({
+        title: '复制失败',
+        icon: 'none'
+      });
+    }
+  });
 };
 </script>
 

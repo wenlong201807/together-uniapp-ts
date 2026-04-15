@@ -97,7 +97,7 @@ const sendMessage = async () => {
 
   try {
     await chatStore.sendMessage({
-      receiverId: targetUserId.value + '',
+      receiverId: targetUserId.value,
       content,
       msgType: 1,
     });

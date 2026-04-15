@@ -247,13 +247,20 @@ const handleCancel = () => {
 
     button {
       flex: 1;
-      padding: 20rpx;
+      height: 80rpx;
+      line-height: 80rpx;
+      padding: 0;
       border-radius: 8rpx;
       font-size: 28rpx;
       font-weight: 500;
       transition: all 0.3s;
       border: none;
       cursor: pointer;
+      text-align: center;
+
+      &::after {
+        border: none;
+      }
 
       &.btn-cancel {
         background: #f0f0f0;
