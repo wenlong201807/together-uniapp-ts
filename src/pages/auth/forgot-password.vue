@@ -215,13 +215,11 @@ const handleResetPassword = async () => {
     const encryptedPassword = CryptoUtil.encryptPassword(
       formData.value.password,
     );
-    const result = await authApi.resetPassword({
+    await authApi.resetPassword({
       mobile: formData.value.mobile,
       code: formData.value.code,
       newPassword: encryptedPassword,
     });
-    console.log(99, result);
-    // if ()
     uni.showToast({
       title: '密码重置成功',
       icon: 'success',

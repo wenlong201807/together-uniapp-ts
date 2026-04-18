@@ -3,17 +3,16 @@
     <view class="user-header">
       <!-- 预设头像显示 -->
       <view
-        v-if="authStore.userInfo?.avatarType === 'preset' && authStore.userInfo?.avatarValue"
-        :class="`sprite-avatar avatar-${authStore.userInfo.avatarValue}`"
-        class="avatar"
-      />
+        v-if="avatarDisplay.type === 'preset' && avatarDisplay.icon"
+        class="avatar mbti-avatar"
+      >
+        <text class="mbti-icon">{{ avatarDisplay.icon }}</text>
+      </view>
       <!-- 自定义头像显示 -->
       <image
         v-else
         class="avatar"
-        :src="
-          authStore.userInfo?.avatarUrl || '/static/images/default-avatar.png'
-        "
+        :src="avatarDisplay.displayUrl || '/static/images/default-avatar.png'"
         mode="aspectFill"
       />
       <view class="user-info">
@@ -119,14 +118,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore, usePointsStore } from '@/stores';
+import { getAvatarDisplay } from '@/utils/avatar';
 import '@/assets/styles/avatar.scss';
 
 const authStore = useAuthStore();
 const pointsStore = usePointsStore();
 const isSigning = ref(false);
+
+// 计算头像显示信息
+const avatarDisplay = computed(() => {
+  return getAvatarDisplay(
+    authStore.userInfo?.avatarId,
+    authStore.userInfo?.avatarUrl
+  );
+});
 
 onShow(() => {
   if (authStore.isLoggedIn) {
@@ -283,6 +291,17 @@ const copyInviteLink = () => {
       background: $bg-tertiary;
       display: block;
       box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+
+      &.mbti-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        .mbti-icon {
+          font-size: 60rpx;
+        }
+      }
     }
 
     .user-info {
