@@ -28,10 +28,9 @@ class Request {
     config?: UniApp.RequestOptions,
   ): Promise<ApiResponse<T>> {
     return new Promise((resolve, reject) => {
-      uni.request({
+      const requestConfig: UniApp.RequestOptions = {
         url: this.baseURL + url,
         method,
-        data,
         header: this.getHeaders(),
         timeout: this.timeout,
         success: (res: UniApp.RequestSuccessCallbackResult) => {
@@ -73,7 +72,22 @@ class Request {
           reject(err);
         },
         ...config,
-      });
+      };
+
+      // GET 请求使用 params，其他请求使用 data
+      if (method === 'GET') {
+        if (data) {
+          // 将参数拼接到 URL
+          const params = new URLSearchParams(data).toString();
+          if (params) {
+            requestConfig.url += (requestConfig.url.includes('?') ? '&' : '?') + params;
+          }
+        }
+      } else {
+        requestConfig.data = data;
+      }
+
+      uni.request(requestConfig);
     });
   }
 

@@ -75,4 +75,9 @@ export const mbtiApi = {
   getHistory() {
     return request.get<MbtiResult[]>('/mbti/history');
   },
+
+  // 分享到广场
+  shareToSquare() {
+    return request.post<{ postId: number; message: string }>('/mbti/share');
+  },
 };

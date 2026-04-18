@@ -56,6 +56,9 @@ export const squareApi = {
   createComment: (data: CreateCommentDto) =>
     request.post<{ id: number }>('/square/comment', data),
 
+  deleteComment: (commentId: number) =>
+    request.delete<{ success: boolean; message: string }>(`/square/comments/${commentId}`),
+
   getComments: (
     postId: number,
     params?: {

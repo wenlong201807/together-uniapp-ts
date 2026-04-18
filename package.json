@@ -6,6 +6,7 @@
     "dev:h5": "uni --mode dev",
     "dev:h5:dev": "uni --mode dev",
     "dev:h5:staging": "uni --mode staging",
+    "dev:h5:staging:local": "uni --mode staging.local",
     "dev:h5:prod": "uni --mode prod",
     "build:h5:dev": "uni build --mode dev",
     "build:h5:staging": "uni build --mode staging",

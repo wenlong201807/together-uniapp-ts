@@ -65,6 +65,14 @@
                 <text class="action-icon">💬</text>
                 <text class="action-text">回复</text>
               </view>
+              <view
+                v-if="isMyComment(comment)"
+                class="action-item delete-action"
+                @click="deleteComment(comment)"
+              >
+                <text class="action-icon">🗑️</text>
+                <text class="action-text">删除</text>
+              </view>
             </view>
           </view>
         </view>
@@ -109,6 +117,14 @@
                   <text class="action-icon">💬</text>
                   <text class="action-text">回复</text>
                 </view>
+                <view
+                  v-if="isMyComment(reply)"
+                  class="action-item delete-action"
+                  @click="deleteComment(reply)"
+                >
+                  <text class="action-icon">🗑️</text>
+                  <text class="action-text">删除</text>
+                </view>
               </view>
             </view>
           </view>
@@ -116,11 +132,16 @@
 
         <!-- 查看全部回复 / 收起 -->
         <view
-          v-if="comment.replyCount > 0 && (comment.replyCount > (comment.replies?.length || 0) || isCommentExpanded(comment.id))"
+          v-if="comment.replyCount > 0"
           class="view-all-replies"
           @click="viewAllReplies(comment)"
         >
-          <text>共{{ comment.replyCount }}条回复 {{ isCommentExpanded(comment.id) ? '收起' : '>' }}</text>
+          <text v-if="isCommentExpanded(comment.id)">
+            收起回复 ▲
+          </text>
+          <text v-else>
+            共 {{ comment.replyCount }} 条回复 ▼
+          </text>
         </view>
       </view>
     </view>
@@ -134,6 +155,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useAuthStore } from '@/stores/auth';
 import type { Comment } from '@/types';
 
 interface Props {
@@ -144,6 +166,8 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   success: [];
 }>();
+
+const authStore = useAuthStore();
 
 // 响应式数据
 const content = ref('');
@@ -168,6 +192,11 @@ const canSend = computed(() => {
   return content.value.trim().length > 0 && content.value.length <= 500;
 });
 
+// 判断是否是自己的评论
+const isMyComment = (comment: Comment) => {
+  return authStore.userInfo?.id === comment.userId;
+};
+
 // 获取评论列表
 const loadComments = async (reset = false) => {
   if (reset) {
@@ -185,13 +214,9 @@ const loadComments = async (reset = false) => {
 
     if (reset) {
       comments.value = res.data.list;
-      
-      // 自动展开有回复的评论
-      res.data.list.forEach((comment: Comment) => {
-        if (comment.replyCount > 0) {
-          expandedComments.value.add(comment.id);
-        }
-      });
+
+      // 不自动展开，让用户手动点击展开
+      expandedComments.value.clear();
     } else {
       comments.value = [...comments.value, ...res.data.list];
     }
@@ -210,13 +235,28 @@ const submitComment = async () => {
 
   try {
     const { squareApi } = await import('@/api');
-    await squareApi.createComment({
+
+    // 构建评论数据
+    const commentData: any = {
       postId: props.postId,
       content: content.value,
-      replyToId: replyingComment.value?.id,
-      replyToUserId: replyingComment.value?.userId,
-      parentId: replyingRoot.value?.id || replyingComment.value?.id,
-    });
+    };
+
+    // 如果是回复评论
+    if (replyingComment.value) {
+      commentData.replyToId = replyingComment.value.id;
+      commentData.replyToUserId = replyingComment.value.userId;
+
+      // 如果有根评论（回复的是子回复），使用根评论的 parentId
+      // 否则使用当前回复对象的 id 作为 parentId
+      if (replyingRoot.value) {
+        commentData.parentId = replyingRoot.value.id;
+      } else {
+        commentData.parentId = replyingComment.value.id;
+      }
+    }
+
+    await squareApi.createComment(commentData);
 
     // 清空输入
     content.value = '';
@@ -246,29 +286,54 @@ const submitComment = async () => {
 // 开始回复
 const startReply = (comment: Comment, root?: Comment) => {
   replyingComment.value = comment;
-  replyingRoot.value = root || comment;
-  isFocused.value = true;
+  replyingRoot.value = root || null;
+
+  // 滚动到输入框并聚焦
+  setTimeout(() => {
+    isFocused.value = true;
+    // 滚动到页面顶部（输入框位置）
+    uni.pageScrollTo({
+      scrollTop: 0,
+      duration: 300,
+    });
+  }, 100);
 };
 
 // 查看全部回复 - 展开/收起
 const viewAllReplies = async (comment: Comment) => {
   const isExpanded = expandedComments.value.has(comment.id);
-  
+
   if (isExpanded) {
     // 收起
     expandedComments.value.delete(comment.id);
   } else {
     // 展开
     expandedComments.value.add(comment.id);
-    
-    // 如果还没有加载回复，则加载
+
+    // 如果还没有加载回复或回复数量不完整，则加载
     if (!comment.replies || comment.replies.length === 0 || comment.replies.length < comment.replyCount) {
       try {
+        uni.showLoading({
+          title: '加载中...',
+          mask: true,
+        });
+
         const { squareApi } = await import('@/api');
-        const res = await squareApi.getReplies(comment.id, 1, comment.replyCount);
+        const res = await squareApi.getReplies(comment.id, {
+          page: 1,
+          pageSize: comment.replyCount || 20,
+        });
+
         comment.replies = res.data.list;
+
+        uni.hideLoading();
       } catch (e) {
         console.error('Load replies error:', e);
+        uni.hideLoading();
+        uni.showToast({
+          title: '加载失败',
+          icon: 'none',
+        });
       }
     }
   }
@@ -295,8 +360,66 @@ const formatTime = (dateStr: string) => {
 
 // 点赞/取消点赞
 const toggleLike = async (comment: Comment) => {
-  // 实现点赞逻辑
-  // 这里可以调用点赞API并更新本地状态
+  const originalIsLiked = comment.isLiked;
+  const originalLikeCount = comment.likeCount || 0;
+
+  // 乐观更新 UI
+  comment.isLiked = !originalIsLiked;
+  comment.likeCount = originalIsLiked ? originalLikeCount - 1 : originalLikeCount + 1;
+
+  try {
+    const { squareApi } = await import('@/api');
+    await squareApi.toggleLike({
+      targetId: comment.id,
+      targetType: 2, // 2 表示评论
+    });
+  } catch (error) {
+    console.error('Toggle like error:', error);
+    // 失败时回滚
+    comment.isLiked = originalIsLiked;
+    comment.likeCount = originalLikeCount;
+    uni.showToast({
+      title: '操作失败',
+      icon: 'none',
+    });
+  }
+};
+
+// 删除评论
+const deleteComment = async (comment: Comment) => {
+  uni.showModal({
+    title: '删除评论',
+    content: '确定要删除这条评论吗？',
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          uni.showLoading({
+            title: '删除中...',
+            mask: true,
+          });
+
+          const { squareApi } = await import('@/api');
+          await squareApi.deleteComment(comment.id);
+
+          uni.hideLoading();
+          uni.showToast({
+            title: '删除成功',
+            icon: 'success',
+          });
+
+          // 刷新评论列表
+          await loadComments(true);
+          emit('success');
+        } catch (error: any) {
+          uni.hideLoading();
+          uni.showToast({
+            title: error.message || '删除失败',
+            icon: 'none',
+          });
+        }
+      }
+    },
+  });
 };
 
 // 输入框事件
@@ -449,9 +572,27 @@ onMounted(async () => {
               gap: 8rpx;
               font-size: 24rpx;
               color: #999;
+              cursor: pointer;
+              transition: all 0.2s;
+
+              &:active {
+                transform: scale(0.95);
+              }
 
               .action-icon {
                 font-size: 28rpx;
+              }
+
+              .action-text {
+                user-select: none;
+              }
+
+              &.delete-action {
+                color: #ff4d4f;
+
+                .action-text {
+                  color: #ff4d4f;
+                }
               }
             }
           }
@@ -522,9 +663,27 @@ onMounted(async () => {
                 gap: 6rpx;
                 font-size: 22rpx;
                 color: #999;
+                cursor: pointer;
+                transition: all 0.2s;
+
+                &:active {
+                  transform: scale(0.95);
+                }
 
                 .action-icon {
                   font-size: 24rpx;
+                }
+
+                .action-text {
+                  user-select: none;
+                }
+
+                &.delete-action {
+                  color: #ff4d4f;
+
+                  .action-text {
+                    color: #ff4d4f;
+                  }
                 }
               }
             }
@@ -537,6 +696,13 @@ onMounted(async () => {
         padding: 16rpx 0;
         font-size: 26rpx;
         color: #00a1d6;
+        cursor: pointer;
+        user-select: none;
+        transition: opacity 0.2s;
+
+        &:active {
+          opacity: 0.7;
+        }
       }
     }
   }

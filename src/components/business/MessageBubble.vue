@@ -1,9 +1,9 @@
 <template>
-  <view :class="['message-bubble', isSelf ? 'self' : 'other', { 'bubble-enter': isEntering }]">
+  <view :id="`msg-${message.id}`" :class="['message-bubble', isSelf ? 'self' : 'other', { 'bubble-enter': isEntering }]">
     <image
       v-if="!isSelf"
       class="avatar"
-      :src="message.sender?.avatar || '/static/images/default-avatar.png'"
+      :src="message.sender?.avatarUrl || '/static/images/default-avatar.png'"
       mode="aspectFill"
     />
     <view class="bubble-wrapper">
@@ -25,7 +25,7 @@
     <image
       v-if="isSelf"
       class="avatar"
-      :src="message.sender?.avatar || '/static/images/default-avatar.png'"
+      :src="authStore.userInfo?.avatarUrl || '/static/images/default-avatar.png'"
       mode="aspectFill"
     />
   </view>
@@ -69,9 +69,10 @@ const handleRetry = () => {
   display: flex;
   align-items: flex-end;
   margin-bottom: $margin-lg;
-  padding: 0 $padding-lg;
+  padding: 0 $padding-md;
   opacity: 1;
   transform: translateY(0);
+  width: 100%;
 
   &.bubble-enter {
     animation: bubble-slide-in $duration-base $ease-out;
@@ -79,17 +80,22 @@ const handleRetry = () => {
 
   &.self {
     flex-direction: row-reverse;
+    justify-content: flex-start;
 
     .bubble-wrapper {
       align-items: flex-end;
     }
 
     .bubble-content {
-      background: linear-gradient(135deg, $primary-color, $primary-hover);
+      background: linear-gradient(135deg, #667eea, #764ba2);
       color: #fff;
       border-radius: 20rpx 20rpx 0 20rpx;
-      box-shadow: 0 4rpx 12rpx rgba($primary-color, 0.3);
+      box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
       animation: bubble-pop-right $duration-base $ease-bounce;
+    }
+
+    .message-time {
+      text-align: right;
     }
 
     .message-status {
@@ -98,6 +104,9 @@ const handleRetry = () => {
   }
 
   &.other {
+    flex-direction: row;
+    justify-content: flex-start;
+
     .bubble-wrapper {
       align-items: flex-start;
     }
@@ -108,6 +117,10 @@ const handleRetry = () => {
       border-radius: 20rpx 20rpx 20rpx 0;
       box-shadow: $shadow-sm;
       animation: bubble-pop-left $duration-base $ease-bounce;
+    }
+
+    .message-time {
+      text-align: left;
     }
 
     .message-status {
@@ -122,12 +135,14 @@ const handleRetry = () => {
     margin: 0 $margin-md;
     background: $bg-tertiary;
     box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
   }
 
   .bubble-wrapper {
     display: flex;
     flex-direction: column;
     max-width: 70%;
+    min-width: 120rpx;
   }
 
   .bubble-content {
@@ -142,7 +157,8 @@ const handleRetry = () => {
     .message-text {
       font-size: $font-size-base;
       line-height: $line-height-relaxed;
-      word-break: break-all;
+      word-break: break-word;
+      white-space: pre-wrap;
     }
 
     .message-time {

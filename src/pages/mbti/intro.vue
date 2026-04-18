@@ -3,6 +3,10 @@
     <view class="header">
       <text class="title">MBTI 性格测试</text>
       <text class="subtitle">探索你的性格类型</text>
+      <view v-if="authStore.isLoggedIn" class="points-badge">
+        <text class="points-icon">💎</text>
+        <text class="points-text">{{ userPoints }} 积分</text>
+      </view>
     </view>
 
     <view class="content">
@@ -75,21 +79,50 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '@/stores';
 import { mbtiApi } from '@/api/mbti';
+import { pointsApi } from '@/api';
 
 const authStore = useAuthStore();
 const pointsReward = ref(50);
+const retestCost = ref(30);
+const userPoints = ref(0);
 const hasResult = ref(false);
 
+const canRetest = computed(() => userPoints.value >= retestCost.value);
+
 onMounted(async () => {
+  // 加载积分配置
+  try {
+    const configRes = await pointsApi.getConfigList();
+    const config = configRes.data as Record<string, number>;
+    if (config.mbti_complete) {
+      pointsReward.value = config.mbti_complete;
+    }
+    if (config.mbti_retest) {
+      retestCost.value = Math.abs(config.mbti_retest);
+    }
+  } catch (error) {
+    console.error('Load config error:', error);
+  }
+
   // 检查是否已有测试结果
   try {
     const result = await mbtiApi.getCurrentResult();
     hasResult.value = !!result.data;
   } catch (error) {
     console.error('Check result error:', error);
+  }
+
+  // 加载用户积分
+  if (authStore.isLoggedIn) {
+    try {
+      const balanceRes = await pointsApi.getBalance();
+      userPoints.value = balanceRes.data.balance;
+    } catch (error) {
+      console.error('Load balance error:', error);
+    }
   }
 });
 
@@ -102,6 +135,31 @@ const startTest = () => {
         if (res.confirm) {
           uni.navigateTo({
             url: '/pages/auth/login',
+          });
+        }
+      },
+    });
+    return;
+  }
+
+  // 如果已有测试结果，提示重测需要消耗积分
+  if (hasResult.value) {
+    if (!canRetest.value) {
+      uni.showModal({
+        title: '积分不足',
+        content: `重新测试需要${retestCost.value}积分，您当前积分为${userPoints.value}，积分不足无法重测`,
+        showCancel: false,
+      });
+      return;
+    }
+
+    uni.showModal({
+      title: '重新测试',
+      content: `您已有测试结果，重新测试将消耗${retestCost.value}积分（当前积分：${userPoints.value}），确定要继续吗？`,
+      success: (res) => {
+        if (res.confirm) {
+          uni.navigateTo({
+            url: '/pages/mbti/test',
           });
         }
       },
@@ -134,6 +192,7 @@ const viewCurrentResult = () => {
   .header {
     text-align: center;
     padding: 60rpx 0 40rpx;
+    position: relative;
 
     .title {
       display: block;
@@ -148,6 +207,30 @@ const viewCurrentResult = () => {
       display: block;
       font-size: $font-size-lg;
       color: rgba(255, 255, 255, 0.9);
+    }
+
+    .points-badge {
+      position: absolute;
+      top: 20rpx;
+      right: 0;
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10rpx);
+      padding: 12rpx 24rpx;
+      border-radius: 40rpx;
+      box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+
+      .points-icon {
+        font-size: 28rpx;
+      }
+
+      .points-text {
+        font-size: $font-size-base;
+        font-weight: $font-weight-bold;
+        color: #fff;
+      }
     }
   }
 

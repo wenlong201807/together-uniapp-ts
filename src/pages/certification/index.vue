@@ -18,10 +18,18 @@
             class="cert-thumbnail"
           />
           <text v-else>{{ '📋' }}</text>
-          <!-- <text v-else>{{ type.icon || '📋' }}</text> -->
         </view>
         <view class="cert-info">
-          <text class="cert-name">{{ type.name }}</text>
+          <view class="cert-name-row">
+            <text class="cert-name">{{ type.name }}</text>
+            <text
+              v-if="getCertStatus(type.code)"
+              class="cert-badge"
+              :style="{ color: getCertStatus(type.code)?.color }"
+            >
+              {{ getCertStatus(type.code)?.text }}
+            </text>
+          </view>
           <text class="cert-desc">{{ type.description }}</text>
         </view>
         <text class="cert-arrow">›</text>
@@ -50,6 +58,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/stores';
 import {
   certificationApi,
@@ -73,7 +82,9 @@ onMounted(() => {
 
 // 监听页面显示，刷新数据
 onShow(() => {
-  loadData();
+  if (authStore.isLoggedIn) {
+    loadData();
+  }
 });
 
 const loadData = async () => {
@@ -83,18 +94,28 @@ const loadData = async () => {
 const loadCertTypes = async () => {
   try {
     const res = await certificationApi.getTypes();
-    certTypes.value = res.data.list;
+    console.log('Cert types response:', res);
+    certTypes.value = res.data.list || [];
   } catch (error) {
     console.error('Failed to load cert types:', error);
+    uni.showToast({
+      title: '加载认证类型失败',
+      icon: 'none',
+    });
   }
 };
 
 const loadMyCerts = async () => {
   try {
     const res = await certificationApi.getMyList();
-    myCerts.value = res.data.list;
+    console.log('My certs response:', res);
+    myCerts.value = res.data.list || [];
   } catch (error) {
     console.error('Failed to load my certs:', error);
+    uni.showToast({
+      title: '加载我的认证失败',
+      icon: 'none',
+    });
   }
 };
 
@@ -115,20 +136,71 @@ const formatTime = (time: string) => {
 
 /**
  * 获取认证类型对应的图片
- * 优先显示最新提交的认证图片（无论状态）
+ * 优先显示已通过的认证图片，其次是待审核的，最后是最新提交的
  */
 const getCertImage = (code: string) => {
   if (!myCerts.value || myCerts.value.length === 0) {
     return '';
   }
 
-  // 查找该类型的所有认证记录，按创建时间倒序
-  const typeCerts = myCerts.value
-    .filter((c) => c.type === code)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // 查找该类型的所有认证记录
+  const typeCerts = myCerts.value.filter((c) => c.type === code);
 
-  // 返回最新的认证图片
-  return typeCerts[0]?.imageUrl || '';
+  if (typeCerts.length === 0) {
+    return '';
+  }
+
+  // 优先级：已通过 > 待审核 > 已拒绝，同优先级按时间倒序
+  const sortedCerts = typeCerts.sort((a, b) => {
+    // 状态优先级：1(已通过) > 0(待审核) > 2(已拒绝)
+    const statusPriority = { 1: 3, 0: 2, 2: 1 };
+    const priorityA = statusPriority[a.status as keyof typeof statusPriority] || 0;
+    const priorityB = statusPriority[b.status as keyof typeof statusPriority] || 0;
+
+    if (priorityA !== priorityB) {
+      return priorityB - priorityA;
+    }
+
+    // 同优先级按时间倒序
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  // 返回优先级最高的认证图片
+  return sortedCerts[0]?.imageUrl || '';
+};
+
+/**
+ * 判断认证类型是否有认证记录
+ */
+const hasCertification = (code: string) => {
+  return myCerts.value?.some((c) => c.type === code) || false;
+};
+
+/**
+ * 获取认证类型的状态标识
+ */
+const getCertStatus = (code: string) => {
+  if (!myCerts.value || myCerts.value.length === 0) {
+    return null;
+  }
+
+  const typeCerts = myCerts.value.filter((c) => c.type === code);
+  if (typeCerts.length === 0) {
+    return null;
+  }
+
+  // 如果有已通过的，显示已通过
+  if (typeCerts.some((c) => c.status === 1)) {
+    return { status: 1, text: '已认证', color: '#52c41a' };
+  }
+
+  // 如果有待审核的，显示待审核
+  if (typeCerts.some((c) => c.status === 0)) {
+    return { status: 0, text: '审核中', color: '#faad14' };
+  }
+
+  // 如果只有已拒绝的，显示已拒绝
+  return { status: 2, text: '已拒绝', color: '#ff4d4f' };
 };
 
 const goToApply = (code: string) => {
@@ -170,10 +242,12 @@ const goToApply = (code: string) => {
         margin-right: 20rpx;
         overflow: hidden;
         flex-shrink: 0;
+        position: relative;
 
         &.has-image {
           background: transparent;
           padding: 0;
+          border: 2rpx solid #e8e8e8;
         }
 
         .cert-thumbnail {
@@ -187,15 +261,29 @@ const goToApply = (code: string) => {
       .cert-info {
         flex: 1;
 
-        .cert-name {
-          display: block;
-          font-size: 30rpx;
-          font-weight: bold;
-          color: #333;
+        .cert-name-row {
+          display: flex;
+          align-items: center;
+          gap: 12rpx;
           margin-bottom: 8rpx;
         }
 
+        .cert-name {
+          font-size: 30rpx;
+          font-weight: bold;
+          color: #333;
+        }
+
+        .cert-badge {
+          font-size: 22rpx;
+          padding: 4rpx 12rpx;
+          background: rgba(0, 0, 0, 0.05);
+          border-radius: 12rpx;
+          font-weight: 500;
+        }
+
         .cert-desc {
+          display: block;
           font-size: 24rpx;
           color: #999;
         }

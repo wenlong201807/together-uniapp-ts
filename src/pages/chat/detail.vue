@@ -1,6 +1,11 @@
 <template>
   <view class="chat-detail-container">
-    <scroll-view class="messages-list" scroll-y :scroll-into-view="scrollToView">
+    <scroll-view
+      class="messages-list"
+      scroll-y
+      :scroll-into-view="scrollToView"
+      :style="{ paddingBottom: keyboardHeight + 'px' }"
+    >
       <MessageBubble
         v-for="message in chatStore.messages"
         :key="message.id"
@@ -16,11 +21,14 @@
       </view>
     </scroll-view>
 
-    <view class="input-bar">
+    <view class="input-bar" :style="{ bottom: keyboardHeight + 'px' }">
       <input
         v-model="inputText"
         class="message-input"
         placeholder="输入消息..."
+        :adjust-position="false"
+        @focus="handleFocus"
+        @blur="handleBlur"
         @confirm="sendMessage"
       />
       <button
@@ -48,6 +56,7 @@ const loading = ref(false);
 const targetUserId = ref<number>(0);
 const targetNickname = ref('');
 const scrollToView = ref('');
+const keyboardHeight = ref(0);
 
 onMounted(async () => {
   const pages = getCurrentPages();
@@ -132,6 +141,24 @@ const scrollToBottom = () => {
     scrollToView.value = `msg-${lastMessage.id}`;
   }
 };
+
+const handleFocus = (e: any) => {
+  // 监听键盘弹起
+  uni.onKeyboardHeightChange((res) => {
+    keyboardHeight.value = res.height;
+    // 键盘弹起后滚动到底部
+    nextTick(() => {
+      scrollToBottom();
+    });
+  });
+};
+
+const handleBlur = () => {
+  // 键盘收起，延迟恢复以避免闪烁
+  setTimeout(() => {
+    keyboardHeight.value = 0;
+  }, 100);
+};
 </script>
 
 <style scoped lang="scss">
@@ -180,12 +207,18 @@ const scrollToBottom = () => {
   }
 
   .input-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     align-items: center;
     padding: $padding-md;
     background: $bg-primary;
     border-top: 1rpx solid $divider-color;
     box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.05);
+    z-index: 100;
+    transition: bottom 0.3s ease;
 
     .message-input {
       flex: 1;

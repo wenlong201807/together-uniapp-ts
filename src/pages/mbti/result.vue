@@ -11,7 +11,11 @@
           class="mbti-avatar"
           :src="report.avatarUrl"
           mode="aspectFit"
+          @error="handleImageError"
         />
+        <view v-else class="mbti-avatar-placeholder">
+          <text class="avatar-text">{{ report.mbtiType }}</text>
+        </view>
         <view class="mbti-info">
           <text class="mbti-type">{{ report.mbtiType }}</text>
           <text class="mbti-name">{{ report.typeName }}</text>
@@ -232,16 +236,43 @@ const loadResult = async () => {
   try {
     loading.value = true;
 
-    // 获取当前测试结果
-    const resultRes = await mbtiApi.getCurrentResult();
-    result.value = resultRes.data;
+    let typeToLoad = mbtiType.value;
 
-    // 如果URL传了mbtiType，使用URL的，否则使用当前结果的
-    const typeToLoad = mbtiType.value || result.value.mbtiType;
+    // 如果URL没有传mbtiType，尝试获取当前测试结果
+    if (!typeToLoad) {
+      try {
+        const resultRes = await mbtiApi.getCurrentResult();
+        result.value = resultRes.data;
+        typeToLoad = result.value.mbtiType;
+      } catch (error) {
+        console.error('获取当前结果失败:', error);
+        throw new Error('未找到测试结果');
+      }
+    }
 
     // 获取报告
     const reportRes = await mbtiApi.getReport(typeToLoad);
     report.value = reportRes.data;
+
+    console.log('报告数据:', report.value);
+    console.log('avatarUrl:', report.value?.avatarUrl);
+
+    // 如果有当前结果，尝试获取分数数据
+    if (!result.value && typeToLoad) {
+      try {
+        const resultRes = await mbtiApi.getCurrentResult();
+        result.value = resultRes.data;
+      } catch (error) {
+        // 没有当前结果时，创建默认的分数对象
+        result.value = {
+          mbtiType: typeToLoad,
+          eiScore: 0,
+          snScore: 0,
+          tfScore: 0,
+          jpScore: 0,
+        } as any;
+      }
+    }
 
     // 解析JSON字段
     if (typeof report.value.characteristics === 'string') {
@@ -274,11 +305,38 @@ const loadResult = async () => {
   }
 };
 
-const shareResult = () => {
-  uni.showToast({
-    title: '分享功能开发中',
-    icon: 'none',
-  });
+const shareResult = async () => {
+  try {
+    uni.showLoading({
+      title: '分享中...',
+      mask: true,
+    });
+
+    const res = await mbtiApi.shareToSquare();
+
+    uni.hideLoading();
+
+    uni.showModal({
+      title: '分享成功',
+      content: '已成功分享到广场，快去看看吧！',
+      confirmText: '去广场看看',
+      cancelText: '留在这里',
+      success: (modalRes) => {
+        if (modalRes.confirm) {
+          uni.switchTab({
+            url: '/pages/tabbar/square',
+          });
+        }
+      },
+    });
+  } catch (error: any) {
+    uni.hideLoading();
+    uni.showModal({
+      title: '分享失败',
+      content: error.message || '分享失败，请稍后重试',
+      showCancel: false,
+    });
+  }
 };
 
 const retestConfirm = () => {
@@ -292,6 +350,15 @@ const retestConfirm = () => {
         });
       }
     },
+  });
+};
+
+const handleImageError = (e: any) => {
+  console.error('图片加载失败:', e);
+  console.log('图片URL:', report.value?.avatarUrl);
+  uni.showToast({
+    title: '图片加载失败',
+    icon: 'none',
   });
 };
 </script>
@@ -329,6 +396,22 @@ const retestConfirm = () => {
         width: 200rpx;
         height: 200rpx;
         margin-bottom: $margin-lg;
+      }
+
+      .mbti-avatar-placeholder {
+        width: 200rpx;
+        height: 200rpx;
+        margin-bottom: $margin-lg;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: $radius-circle;
+        @include flex-center;
+
+        .avatar-text {
+          font-size: 48rpx;
+          font-weight: $font-weight-bold;
+          color: #fff;
+          letter-spacing: 4rpx;
+        }
       }
 
       .mbti-info {

@@ -58,6 +58,7 @@ const questions = ref<MbtiQuestion[]>([]);
 const answers = ref<Map<number, number>>(new Map());
 const currentIndex = ref(0);
 const currentAnswer = ref<number | null>(null);
+const isSubmitting = ref(false);
 
 const answerOptions = [
   { value: 1, label: '非常符合 A' },
@@ -160,7 +161,12 @@ const nextQuestion = async () => {
 };
 
 const submitTest = async () => {
+  if (isSubmitting.value) {
+    return;
+  }
+
   try {
+    isSubmitting.value = true;
     uni.showLoading({ title: '计算结果中...' });
 
     const res = await mbtiApi.submitTest({
@@ -174,6 +180,7 @@ const submitTest = async () => {
       url: `/pages/mbti/result?mbtiType=${res.data.mbtiType}`,
     });
   } catch (error: any) {
+    isSubmitting.value = false;
     uni.hideLoading();
     uni.showModal({
       title: '错误',

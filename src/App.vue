@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
-import { createPinia } from 'pinia';
 import { useAuthStore } from '@/stores';
 
 onLaunch(() => {
   console.log('App Launch');
 
-  const pinia = createPinia();
+  // 初始化 authStore，从本地存储恢复数据
   const authStore = useAuthStore();
   authStore.init();
+
+  console.log('Auth initialized, userInfo:', authStore.userInfo);
 });
 
 onShow(() => {
