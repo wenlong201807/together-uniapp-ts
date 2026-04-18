@@ -314,12 +314,18 @@ const handleSave = async () => {
 
     // 如果头像有变化，添加头像字段
     if (selectedAvatar.type === 'preset') {
+      // 选择预设头像时，设置 avatarId 并清空 avatarUrl
       updateData.avatarId = parseInt(selectedAvatar.value);
+      updateData.avatarUrl = null;
     } else if (selectedAvatar.displayUrl) {
+      // 选择自定义头像时，设置 avatarUrl 并清空 avatarId
       updateData.avatarUrl = selectedAvatar.displayUrl;
+      updateData.avatarId = null;
     }
 
     const res = await authApi.updateUser(updateData);
+
+    // 更新本地用户信息
     authStore.updateUserInfo(res.data);
 
     uni.showToast({

@@ -77,4 +77,20 @@ export const userApi = {
    */
   changeMobile: (data: { newMobile: string; code: string }) =>
     request.put<{ message: string; mobile: string }>('/user/mobile', data),
+
+  /**
+   * 举报用户
+   * @param data 举报信息
+   * @returns 举报结果
+   */
+  reportUser: (data: { userId: number; reason: number; description: string }) =>
+    request.post<{ message: string }>('/user/report', data),
+
+  /**
+   * 拉黑用户
+   * @param userId 用户ID
+   * @returns 拉黑结果
+   */
+  blockUser: (userId: number) =>
+    request.post<{ message: string }>(`/user/block/${userId}`),
 };

@@ -4,7 +4,7 @@
       class="messages-list"
       scroll-y
       :scroll-into-view="scrollToView"
-      :style="{ paddingBottom: keyboardHeight + 'px' }"
+      :scroll-with-animation="true"
     >
       <MessageBubble
         v-for="message in chatStore.messages"
@@ -19,6 +19,8 @@
           <view class="dot" />
         </view>
       </view>
+      <!-- 底部占位，为输入框留出空间 -->
+      <view class="bottom-spacer" :style="{ height: inputBarHeight + keyboardHeight + 'px' }" />
     </scroll-view>
 
     <view class="input-bar" :style="{ bottom: keyboardHeight + 'px' }">
@@ -57,6 +59,7 @@ const targetUserId = ref<number>(0);
 const targetNickname = ref('');
 const scrollToView = ref('');
 const keyboardHeight = ref(0);
+const inputBarHeight = ref(100); // 输入框高度（rpx转px后约100px）
 
 onMounted(async () => {
   const pages = getCurrentPages();
@@ -174,6 +177,11 @@ const handleBlur = () => {
     flex: 1;
     padding: $padding-md;
     overflow-y: auto;
+
+    .bottom-spacer {
+      width: 100%;
+      flex-shrink: 0;
+    }
 
     .loading-wrapper {
       @include flex-center;

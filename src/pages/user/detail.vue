@@ -24,6 +24,10 @@
           </view>
           <text v-if="userInfo.mbtiType" class="mbti-tag">{{ userInfo.mbtiType }}</text>
         </view>
+        <!-- 更多操作按钮 -->
+        <view v-if="!isSelf" class="more-btn" @click="showMoreActions">
+          <text class="icon">⋯</text>
+        </view>
       </view>
 
       <!-- 用户统计 -->
@@ -308,6 +312,79 @@ const handleLike = async (post: any) => {
     });
   }
 };
+
+const showMoreActions = () => {
+  uni.showActionSheet({
+    itemList: ['举报用户', '拉黑用户'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        handleReport();
+      } else if (res.tapIndex === 1) {
+        handleBlock();
+      }
+    }
+  });
+};
+
+const handleReport = () => {
+  uni.showActionSheet({
+    itemList: ['垃圾广告', '违法违规', '色情低俗', '侮辱谩骂', '其他'],
+    success: async (res) => {
+      const reasons = [1, 2, 3, 4, 5];
+      const reasonTexts = ['垃圾广告', '违法违规', '色情低俗', '侮辱谩骂', '其他'];
+      const selectedReason = reasons[res.tapIndex];
+      const selectedReasonText = reasonTexts[res.tapIndex];
+
+      try {
+        // 调用举报接口
+        await userApi.reportUser({
+          userId: userId.value,
+          reason: selectedReason,
+          description: selectedReasonText
+        });
+
+        uni.showToast({
+          title: '举报成功',
+          icon: 'success'
+        });
+      } catch (error: any) {
+        console.error('Report user error:', error);
+        uni.showToast({
+          title: error.message || '举报失败',
+          icon: 'none'
+        });
+      }
+    }
+  });
+};
+
+const handleBlock = () => {
+  uni.showModal({
+    title: '拉黑确认',
+    content: `确定要拉黑 ${userInfo.value?.nickname} 吗？拉黑后将无法看到对方的动态和消息。`,
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await userApi.blockUser(userId.value);
+          uni.showToast({
+            title: '已拉黑',
+            icon: 'success'
+          });
+          // 返回上一页
+          setTimeout(() => {
+            uni.navigateBack();
+          }, 1500);
+        } catch (error: any) {
+          console.error('Block user error:', error);
+          uni.showToast({
+            title: error.message || '操作失败',
+            icon: 'none'
+          });
+        }
+      }
+    }
+  });
+};
 </script>
 
 <style scoped lang="scss">
@@ -367,6 +444,17 @@ const handleLike = async (post: any) => {
           font-size: 24rpx;
           border-radius: 8rpx;
           font-weight: 500;
+        }
+      }
+
+      .more-btn {
+        padding: 0 10rpx;
+        cursor: pointer;
+
+        .icon {
+          font-size: 40rpx;
+          color: #999;
+          font-weight: bold;
         }
       }
     }

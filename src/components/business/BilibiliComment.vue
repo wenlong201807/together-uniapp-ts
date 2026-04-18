@@ -31,10 +31,11 @@
       <view v-for="comment in comments" :key="comment.id" class="comment-item">
         <!-- 评论主体 -->
         <view class="comment-main">
-          <image
-            :src="comment.user.avatarUrl || '/static/images/default-avatar.png'"
+          <Avatar
+            :avatar-id="comment.user?.avatarId"
+            :avatar-url="comment.user?.avatarUrl"
+            size="medium"
             class="avatar"
-            mode="aspectFill"
           />
 
           <view class="comment-content">
@@ -87,10 +88,11 @@
             :key="reply.id"
             class="reply-item"
           >
-            <image
-              :src="reply.user.avatarUrl || '/static/images/default-avatar.png'"
+            <Avatar
+              :avatar-id="reply.user?.avatarId"
+              :avatar-url="reply.user?.avatarUrl"
+              size="small"
               class="avatar"
-              mode="aspectFill"
             />
 
             <view class="reply-content">
@@ -157,6 +159,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import type { Comment } from '@/types';
+import Avatar from '@/components/common/Avatar.vue';
 
 interface Props {
   postId: number;

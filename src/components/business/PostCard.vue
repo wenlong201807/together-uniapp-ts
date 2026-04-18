@@ -1,12 +1,14 @@
 <template>
   <view class="post-card" @click="handleClick">
     <view class="post-header">
-      <image
-        class="avatar"
-        :src="post.user?.avatarUrl || '/static/images/default-avatar.png'"
-        mode="aspectFill"
-        @click.stop="goToUserDetail"
-      />
+      <!-- 使用 Avatar 组件统一处理头像显示 -->
+      <view class="avatar-wrapper" @click.stop="goToUserDetail">
+        <Avatar
+          :avatar-id="post.user?.avatarId"
+          :avatar-url="post.user?.avatarUrl"
+          size="medium"
+        />
+      </view>
       <view class="user-info" @click.stop="goToUserDetail">
         <text class="nickname">{{ post.user?.nickname }}</text>
         <text class="time">{{ formatTime(post.createdAt) }}</text>
@@ -95,6 +97,7 @@
 import { ref, reactive, computed } from 'vue';
 import { formatTime } from '@/utils';
 import { useAuthStore } from '@/stores';
+import Avatar from '@/components/common/Avatar.vue';
 
 const props = defineProps<{
   post: any;
@@ -298,12 +301,8 @@ const submitReport = () => {
     align-items: center;
     margin-bottom: 20rpx;
 
-    .avatar {
-      width: 80rpx;
-      height: 80rpx;
-      border-radius: 50%;
+    .avatar-wrapper {
       margin-right: 20rpx;
-      background: #f0f0f0;
       transition: transform 0.3s ease;
 
       &:active {
