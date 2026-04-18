@@ -160,6 +160,7 @@ import type { Comment } from '@/types';
 
 interface Props {
   postId: number;
+  postAuthorId?: number; // 帖子作者ID
 }
 
 const props = defineProps<Props>();
@@ -192,9 +193,11 @@ const canSend = computed(() => {
   return content.value.trim().length > 0 && content.value.length <= 500;
 });
 
-// 判断是否是自己的评论
+// 判断是否可以删除评论（自己的评论 或 自己是帖子作者）
 const isMyComment = (comment: Comment) => {
-  return authStore.userInfo?.id === comment.userId;
+  const currentUserId = authStore.userInfo?.id;
+  // 是自己的评论，或者是自己帖子下的评论
+  return currentUserId === comment.userId || currentUserId === props.postAuthorId;
 };
 
 // 获取评论列表

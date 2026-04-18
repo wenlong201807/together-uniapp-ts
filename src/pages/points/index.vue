@@ -45,7 +45,7 @@
           <text class="log-time">{{ formatTime(log.createdAt) }}</text>
         </view>
         <text class="log-amount" :class="{ income: log.type === 1, expense: log.type === 2 }">
-          {{ log.type === 1 ? '+' : '-' }}{{ log.amount }}
+          {{ log.type === 1 ? '+' : '-' }}{{ Math.abs(log.amount) }}
         </text>
       </view>
       <view class="empty" v-if="pointsStore.logs.length === 0">

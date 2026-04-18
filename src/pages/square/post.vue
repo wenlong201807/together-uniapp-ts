@@ -1,7 +1,13 @@
 <template>
   <view class="post-detail-container">
     <view v-if="squareStore.currentPost" class="post-detail">
-      <PostCard :post="squareStore.currentPost" @like="handleLike" @report="handleReport" @share="handleShare" />
+      <PostCard
+        :post="squareStore.currentPost"
+        @like="handleLike"
+        @report="handleReport"
+        @share="handleShare"
+        @delete="handleDeletePost"
+      />
 
       <view class="comments-section">
         <view class="section-header">
@@ -12,6 +18,7 @@
 
         <BilibiliComment
           :post-id="squareStore.currentPost?.id"
+          :post-author-id="squareStore.currentPost?.userId"
           @success="handleCommentSuccess"
         />
       </view>
@@ -116,6 +123,27 @@ const handleReport = async (data: { reason: number; description: string }) => {
     console.error('Report error:', error);
     uni.showToast({
       title: '举报失败',
+      icon: 'none'
+    });
+  }
+};
+
+const handleDeletePost = async () => {
+  if (!squareStore.currentPost) return;
+
+  try {
+    await squareStore.deletePost(squareStore.currentPost.id);
+    uni.showToast({
+      title: '删除成功',
+      icon: 'success'
+    });
+    // 返回上一页
+    setTimeout(() => {
+      uni.navigateBack();
+    }, 500);
+  } catch (error: any) {
+    uni.showToast({
+      title: error.message || '删除失败',
       icon: 'none'
     });
   }

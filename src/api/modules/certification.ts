@@ -41,10 +41,13 @@ export const certificationApi = {
   submit: (data: CreateCertificationDto) =>
     request.post<BackendCertification>('/certification', data),
 
-  getMyList: (status?: number) =>
-    request.get<{ list: Certification[] }>('/certification/list', {
-      status
-    }),
+  getMyList: (status?: number) => {
+    const params: any = {}
+    if (status !== undefined) {
+      params.status = status
+    }
+    return request.get<{ list: Certification[] }>('/certification/list', params)
+  },
 
   getDetail: (id: number) =>
     request.get<BackendCertification>(`/certification/${id}`)

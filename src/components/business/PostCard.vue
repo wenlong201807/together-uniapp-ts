@@ -92,8 +92,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { formatTime } from '@/utils';
+import { useAuthStore } from '@/stores';
 
 const props = defineProps<{
   post: any;
@@ -105,14 +106,21 @@ const emit = defineEmits<{
   comment: [];
   share: [];
   report: [];
+  delete: [];
 }>();
 
+const authStore = useAuthStore();
 const showReportModal = ref(false);
 const reportReason = ref(0);
 const reportDescription = ref('');
 const isLikeAnimating = ref(false);
 const showLikeParticles = ref(false);
 const imageLoaded = reactive<Record<number, boolean>>({});
+
+// 判断是否是自己的帖子
+const isMyPost = computed(() => {
+  return props.post.userId === authStore.userInfo?.id;
+});
 
 const handleClick = () => {
   emit('click');
@@ -182,14 +190,31 @@ const previewImage = (index: number) => {
 };
 
 const showActionSheet = () => {
+  const itemList = isMyPost.value ? ['删除'] : ['举报'];
+
   uni.showActionSheet({
-    itemList: ['举报'],
+    itemList,
     success: (res) => {
-      if (res.tapIndex === 0) {
-        // 延迟执行，避免与上一个 ActionSheet 冲突
+      if (isMyPost.value && res.tapIndex === 0) {
+        // 删除自己的帖子
+        handleDelete();
+      } else if (!isMyPost.value && res.tapIndex === 0) {
+        // 举报别人的帖子
         setTimeout(() => {
           handleReport();
         }, 300);
+      }
+    }
+  });
+};
+
+const handleDelete = () => {
+  uni.showModal({
+    title: '删除确认',
+    content: '确定要删除这条帖子吗？',
+    success: (res) => {
+      if (res.confirm) {
+        emit('delete');
       }
     }
   });

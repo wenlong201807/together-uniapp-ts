@@ -1,1 +1,0 @@
-import{U as t}from"./index-Du3_lsW0.js";const i={getTypes:()=>t.get("/certification-types"),getType:()=>t.get("/certification-type"),submit:i=>t.post("/certification",i),getMyList:i=>t.get("/certification/list",{status:i}),getDetail:i=>t.get(`/certification/${i}`)};export{i as c};

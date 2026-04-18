@@ -46,6 +46,7 @@
           @like="handleLike(post)"
           @comment="handleComment(post)"
           @share="handleShare(post)"
+          @delete="handleDelete(post)"
         />
 
         <!-- 加载更多 -->
@@ -181,6 +182,25 @@ const handleShare = (post: any) => {
       }
     }
   });
+};
+
+const handleDelete = async (post: any) => {
+  try {
+    await squareStore.deletePost(post.id);
+    uni.showToast({
+      title: '删除成功',
+      icon: 'success'
+    });
+    // 刷新列表
+    page.value = 1;
+    squareStore.posts = [];
+    await loadPosts();
+  } catch (error: any) {
+    uni.showToast({
+      title: error.message || '删除失败',
+      icon: 'none'
+    });
+  }
 };
 
 const shareToWeChat = (post: any) => {
