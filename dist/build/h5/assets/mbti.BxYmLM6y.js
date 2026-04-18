@@ -1,0 +1,1 @@
+import{a0 as t}from"./index-CzkR0KY4.js";const s={startTest:()=>t.post("/mbti/start"),submitAnswer:s=>t.post("/mbti/answer",s),submitTest:s=>t.post("/mbti/submit",s),getReport:s=>t.get("/mbti/report",{mbtiType:s}),getCurrentResult:()=>t.get("/mbti/current"),getHistory:()=>t.get("/mbti/history"),shareToSquare:()=>t.post("/mbti/share")};export{s as m};
