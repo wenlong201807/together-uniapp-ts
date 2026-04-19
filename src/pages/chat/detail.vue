@@ -5,22 +5,24 @@
       scroll-y
       :scroll-into-view="scrollToView"
       :scroll-with-animation="true"
+      :style="{ height: scrollViewHeight + 'px' }"
     >
-      <MessageBubble
-        v-for="message in chatStore.messages"
-        :key="message.id"
-        :message="message"
-        @retry="handleRetry"
-      />
-      <view v-if="loading" class="loading-wrapper">
-        <view class="loading-dots">
-          <view class="dot" />
-          <view class="dot" />
-          <view class="dot" />
+      <view class="messages-wrapper">
+        <MessageBubble
+          v-for="message in chatStore.messages"
+          :key="message.id"
+          :id="`msg-${message.id}`"
+          :message="message"
+          @retry="handleRetry"
+        />
+        <view v-if="loading" class="loading-wrapper">
+          <view class="loading-dots">
+            <view class="dot" />
+            <view class="dot" />
+            <view class="dot" />
+          </view>
         </view>
       </view>
-      <!-- 底部占位，为输入框留出空间 -->
-      <view class="bottom-spacer" :style="{ height: inputBarHeight + keyboardHeight + 'px' }" />
     </scroll-view>
 
     <view class="input-bar" :style="{ bottom: keyboardHeight + 'px' }">
@@ -45,13 +47,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useChatStore, useAuthStore } from '@/stores';
+import { useNetworkStatus } from '@/composables/useNetworkStatus';
 import { wsManager } from '@/utils';
 import MessageBubble from '@/components/business/MessageBubble.vue';
 
 const chatStore = useChatStore();
 const authStore = useAuthStore();
+const { checkBeforeAction } = useNetworkStatus();
 
 const inputText = ref('');
 const loading = ref(false);
@@ -59,7 +63,19 @@ const targetUserId = ref<number>(0);
 const targetNickname = ref('');
 const scrollToView = ref('');
 const keyboardHeight = ref(0);
-const inputBarHeight = ref(100); // 输入框高度（rpx转px后约100px）
+const scrollViewHeight = ref(0);
+const inputBarHeight = 100; // 输入框固定高度（px）
+
+// 计算滚动区域高度
+const calculateScrollHeight = () => {
+  const systemInfo = uni.getSystemInfoSync();
+  const windowHeight = systemInfo.windowHeight;
+  const statusBarHeight = systemInfo.statusBarHeight || 0;
+  const navBarHeight = 44; // 导航栏高度
+
+  // 可用高度 = 窗口高度 - 状态栏 - 导航栏 - 输入框 - 键盘
+  scrollViewHeight.value = windowHeight - statusBarHeight - navBarHeight - inputBarHeight - keyboardHeight.value;
+};
 
 onMounted(async () => {
   const pages = getCurrentPages();
@@ -79,6 +95,9 @@ onMounted(async () => {
     unreadCount: 0,
   });
 
+  // 计算初始高度
+  calculateScrollHeight();
+
   await loadMessages();
 
   wsManager.connect();
@@ -89,11 +108,21 @@ onUnmounted(() => {
   chatStore.setCurrentChat(null);
 });
 
+// 监听消息变化，自动滚动到底部
+watch(() => chatStore.messages.length, async () => {
+  await nextTick();
+  scrollToBottom();
+}, { flush: 'post' });
+
 const loadMessages = async () => {
   loading.value = true;
   try {
     await chatStore.fetchHistory(targetUserId.value, { page: 1, pageSize: 50 });
     await chatStore.markAsRead(targetUserId.value);
+
+    // 加载完成后滚动到底部
+    await nextTick();
+    scrollToBottom();
   } catch (error) {
     console.error('Load messages error:', error);
   } finally {
@@ -103,6 +132,7 @@ const loadMessages = async () => {
 
 const sendMessage = async () => {
   if (!inputText.value.trim()) return;
+  if (!checkBeforeAction('发送消息')) return;
 
   const content = inputText.value;
   inputText.value = '';
@@ -114,7 +144,7 @@ const sendMessage = async () => {
       msgType: 1,
     });
 
-    // 滚动到底部
+    // 发送后滚动到底部
     await nextTick();
     scrollToBottom();
   } catch (error) {
@@ -123,12 +153,11 @@ const sendMessage = async () => {
 };
 
 const handleRetry = async (messageId: number) => {
-  // 重试发送失败的消息
   const message = chatStore.messages.find(m => m.id === messageId);
   if (message) {
     try {
       await chatStore.sendMessage({
-        receiverId: targetUserId.value + '',
+        receiverId: targetUserId.value,
         content: message.content,
         msgType: 1,
       });
@@ -142,13 +171,19 @@ const scrollToBottom = () => {
   const lastMessage = chatStore.messages[chatStore.messages.length - 1];
   if (lastMessage) {
     scrollToView.value = `msg-${lastMessage.id}`;
+    // 重置 scrollToView，允许下次滚动
+    setTimeout(() => {
+      scrollToView.value = '';
+    }, 300);
   }
 };
 
-const handleFocus = (e: any) => {
-  // 监听键盘弹起
+const handleFocus = () => {
+  // 监听键盘高度变化
   uni.onKeyboardHeightChange((res) => {
     keyboardHeight.value = res.height;
+    calculateScrollHeight();
+
     // 键盘弹起后滚动到底部
     nextTick(() => {
       scrollToBottom();
@@ -160,6 +195,7 @@ const handleBlur = () => {
   // 键盘收起，延迟恢复以避免闪烁
   setTimeout(() => {
     keyboardHeight.value = 0;
+    calculateScrollHeight();
   }, 100);
 };
 </script>
@@ -172,15 +208,19 @@ const handleBlur = () => {
   display: flex;
   flex-direction: column;
   background: $bg-secondary;
+  position: relative;
 
   .messages-list {
     flex: 1;
-    padding: $padding-md;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 
-    .bottom-spacer {
-      width: 100%;
-      flex-shrink: 0;
+    .messages-wrapper {
+      padding: $padding-md;
+      padding-bottom: $padding-xl;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
     .loading-wrapper {

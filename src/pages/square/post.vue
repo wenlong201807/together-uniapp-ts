@@ -20,6 +20,7 @@
           :post-id="squareStore.currentPost?.id"
           :post-author-id="squareStore.currentPost?.userId"
           @success="handleCommentSuccess"
+          @delete="handleCommentDelete"
         />
       </view>
     </view>
@@ -29,15 +30,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useSquareStore } from '@/stores';
 import { formatTime } from '@/utils';
 import type { Comment } from '@/types';
 import PostCard from '@/components/business/PostCard.vue';
 import BilibiliComment from '@/components/business/BilibiliComment.vue';
 import Loading from '@/components/common/Loading.vue';
+import { useLikeSync } from '@/composables/useLikeSync';
 
 const squareStore = useSquareStore();
+
+// 评论点赞同步
+const comments = computed(() => ({ list: squareStore.comments }));
+useLikeSync(comments, { targetType: 2 });
 
 const replyToComment = ref<Comment | undefined>();
 const postId = ref<number>(0);
@@ -98,12 +104,38 @@ const handleReplyComment = (comment: Comment) => {
 
 const handleCommentSuccess = async () => {
   replyToComment.value = undefined;
-  // 只重新加载评论列表，不重新加载帖子详情，避免影响回复的展开/收起状态
-  await squareStore.fetchComments(postId.value, {
-    page: 1,
-    pageSize: 20,
-    sort: 'time',
-  });
+
+  // 乐观更新评论计数
+  const originalCount = squareStore.currentPost?.commentCount || 0;
+  if (squareStore.currentPost) {
+    squareStore.currentPost.commentCount = originalCount + 1;
+  }
+
+  try {
+    // 重新加载评论列表
+    await squareStore.fetchComments(postId.value, {
+      page: 1,
+      pageSize: 20,
+      sort: 'time',
+    });
+  } catch (error) {
+    console.error('Fetch comments error:', error);
+    // 失败时回滚计数
+    if (squareStore.currentPost) {
+      squareStore.currentPost.commentCount = originalCount;
+    }
+    uni.showToast({
+      title: '刷新评论失败',
+      icon: 'none',
+    });
+  }
+};
+
+const handleCommentDelete = () => {
+  // 更新评论计数（减1）
+  if (squareStore.currentPost) {
+    squareStore.currentPost.commentCount = Math.max(0, (squareStore.currentPost.commentCount || 0) - 1);
+  }
 };
 
 const handleReport = async (data: { reason: number; description: string }) => {

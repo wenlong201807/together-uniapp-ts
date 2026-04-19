@@ -57,13 +57,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useChatStore } from '@/stores';
 import { formatTime } from '@/utils';
 import Empty from '@/components/common/Empty.vue';
+import { useAvatarSync } from '@/composables/useAvatarSync';
 
 const chatStore = useChatStore();
 const loading = ref(false);
+
+// 头像同步 - 会话列表直接在 item 上有 userId
+const conversations = computed(() => ({ list: chatStore.conversations }));
+useAvatarSync(conversations, {
+  userIdField: 'userId',
+  avatarIdField: 'avatarId',
+  avatarUrlField: 'avatar',
+  nestedUserField: undefined
+});
 
 onMounted(async () => {
   await loadConversations();

@@ -136,6 +136,7 @@ import { useAuthStore } from '@/stores';
 import { authApi, fileApi } from '@/api';
 import { Gender } from '@/types/enums';
 import { MBTI_AVATARS, getAvatarDisplay } from '@/utils/avatar';
+import { eventBus, EVENTS } from '@/utils/event-bus';
 import '@/assets/styles/avatar.scss';
 
 const authStore = useAuthStore();

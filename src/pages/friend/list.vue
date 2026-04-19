@@ -24,14 +24,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useFriendStore, usePointsStore } from '@/stores'
 import Loading from '@/components/common/Loading.vue'
 import Empty from '@/components/common/Empty.vue'
+import { useAvatarSync } from '@/composables/useAvatarSync'
 
 const friendStore = useFriendStore()
 const pointsStore = usePointsStore()
 const loading = ref(false)
+
+// 头像同步 - 好友列表在 friend.user 上有用户信息
+const friendList = computed(() => ({ list: friendStore.friendList }))
+useAvatarSync(friendList, {
+  userIdField: 'friendId',
+  nestedUserField: 'user'
+})
 
 onMounted(async () => {
   await loadFriendList()

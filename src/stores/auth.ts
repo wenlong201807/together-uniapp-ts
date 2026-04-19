@@ -4,6 +4,7 @@ import { authApi, userApi } from '@/api';
 import type { LoginResponse, UserInfo } from '@/types';
 import type { LoginDto, RegisterDto } from '@/api/modules/auth';
 import type { UpdateProfileDto } from '@/api/modules/user';
+import { eventBus, EVENTS } from '@/utils/event-bus';
 
 export const useAuthStore = defineStore(
   'auth',
@@ -78,6 +79,12 @@ export const useAuthStore = defineStore(
     const updateUserInfo = (info: UserInfo) => {
       userInfo.value = info;
       uni.setStorageSync('userInfo', info);
+      // 触发全局头像更新事件
+      eventBus.emit(EVENTS.AVATAR_UPDATED, {
+        userId: info.id,
+        avatarId: info.avatarId,
+        avatarUrl: info.avatarUrl,
+      });
     };
 
     /**
@@ -95,6 +102,12 @@ export const useAuthStore = defineStore(
             ...res.data,
           };
           uni.setStorageSync('userInfo', userInfo.value);
+          // 触发全局头像更新事件
+          eventBus.emit(EVENTS.AVATAR_UPDATED, {
+            userId: res.data.id,
+            avatarId: res.data.avatarId,
+            avatarUrl: res.data.avatarUrl,
+          });
         }
         return res.data;
       } catch (error) {

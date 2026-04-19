@@ -95,23 +95,55 @@ export const useChatStore = defineStore('chat', () => {
 
     // 后端 senderId 可能是字符串类型（bigint），需要转换为数字比较
     const msgSenderId = typeof message.senderId === 'string' ? parseInt(message.senderId) : message.senderId
+    const msgReceiverId = typeof message.receiverId === 'string' ? parseInt(message.receiverId) : message.receiverId
     const currentUserId = authStore.userInfo?.id
+
+    console.log('[WebSocket] 收到消息:', {
+      messageId: message.id,
+      senderId: msgSenderId,
+      receiverId: msgReceiverId,
+      currentUserId,
+      currentChatUserId: currentChat.value?.userId,
+      content: message.content
+    })
+
+    // 判断消息是否属于当前聊天
+    const isCurrentChat = currentChat.value && (
+      (msgSenderId === currentChat.value.userId && msgReceiverId === currentUserId) ||
+      (msgSenderId === currentUserId && msgReceiverId === currentChat.value.userId)
+    )
+
+    // 消息去重：检查是否已存在
+    const exists = messages.value.some(m => m.id === message.id)
+    if (exists) {
+      console.log('[WebSocket] 消息已存在，跳过:', message.id)
+      return
+    }
 
     // 为接收到的消息添加 isSelf 标识
     const messageWithFlag = {
       ...message,
-      senderId: msgSenderId, // 统一转换为数字
-      receiverId: typeof message.receiverId === 'string' ? parseInt(message.receiverId) : message.receiverId,
+      senderId: msgSenderId,
+      receiverId: msgReceiverId,
       isSelf: msgSenderId === currentUserId
     }
 
-    messages.value.push(messageWithFlag)
+    // 只有当前聊天的消息才添加到消息列表
+    if (isCurrentChat) {
+      console.log('[WebSocket] 添加消息到当前聊天')
+      messages.value.push(messageWithFlag)
+    } else {
+      console.log('[WebSocket] 消息不属于当前聊天，更新会话列表')
+    }
 
-    const conversation = conversations.value.find((c) => c.userId === msgSenderId)
+    // 更新会话列表
+    const otherUserId = msgSenderId === currentUserId ? msgReceiverId : msgSenderId
+    const conversation = conversations.value.find((c) => c.userId === otherUserId)
     if (conversation) {
       conversation.lastMessage = message.content
       conversation.lastMessageTime = message.createdAt
-      if (msgSenderId !== currentChat.value?.userId) {
+      // 如果不是当前聊天，增加未读数
+      if (!isCurrentChat) {
         conversation.unreadCount++
         unreadCount.value++
       }

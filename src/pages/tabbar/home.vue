@@ -43,11 +43,15 @@
 import { ref, onMounted } from 'vue';
 import { useAuthStore, useSquareStore } from '@/stores';
 import PostCard from '@/components/business/PostCard.vue';
+import { useAvatarSync } from '@/composables/useAvatarSync';
 
 const authStore = useAuthStore();
 const squareStore = useSquareStore();
 
 const recentPosts = ref<any[]>([]);
+
+// 头像同步
+useAvatarSync(recentPosts, { nestedUserField: 'user' });
 
 const actions = [
   { icon: '📝', text: '发布动态', handler: goToSquare },

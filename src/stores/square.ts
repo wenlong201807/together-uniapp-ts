@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { squareApi } from '@/api';
+import { eventBus, EVENTS } from '@/utils/event-bus';
 import type { Post, Comment } from '@/types';
 import type {
   CreatePostDto,
@@ -54,12 +55,13 @@ export const useSquareStore = defineStore('square', () => {
   ) => {
     const res = await squareApi.getComments(postId, params);
     comments.value = res.data.list;
+    return res.data;
   };
 
   const createComment = async (data: CreateCommentDto) => {
     await squareApi.createComment(data);
     await fetchComments(data.postId);
-    
+
     // 更新当前帖子的评论数
     if (currentPost.value && currentPost.value.id === data.postId) {
       currentPost.value.commentCount = (currentPost.value.commentCount || 0) + 1;
@@ -71,14 +73,56 @@ export const useSquareStore = defineStore('square', () => {
     }
   };
 
+  const deleteComment = async (commentId: number, postId: number) => {
+    await squareApi.deleteComment(commentId);
+
+    // 更新当前帖子的评论数
+    if (currentPost.value && currentPost.value.id === postId) {
+      currentPost.value.commentCount = Math.max(0, (currentPost.value.commentCount || 0) - 1);
+    }
+    // 更新帖子列表中的评论数
+    const post = posts.value.find((p) => p.id === postId);
+    if (post) {
+      post.commentCount = Math.max(0, (post.commentCount || 0) - 1);
+    }
+  };
+
+  const getReplies = async (commentId: number, params?: any) => {
+    const res = await squareApi.getReplies(commentId, params);
+    return res.data.list;
+  };
+
   const toggleLike = async (data: LikeDto) => {
     await squareApi.toggleLike(data);
 
+    // 更新本地状态
     if (data.targetType === 1) {
       const post = posts.value.find((p) => p.id === data.targetId);
       if (post) {
         post.isLiked = !post.isLiked;
         post.likeCount += post.isLiked ? 1 : -1;
+
+        // 触发帖子点赞事件
+        eventBus.emit(EVENTS.POST_LIKED, {
+          targetId: data.targetId,
+          targetType: 1,
+          isLiked: post.isLiked,
+          likeCount: post.likeCount,
+        });
+      }
+    } else if (data.targetType === 2) {
+      // 触发评论点赞事件
+      const comment = comments.value.find((c) => c.id === data.targetId);
+      if (comment) {
+        comment.isLiked = !comment.isLiked;
+        comment.likeCount = (comment.likeCount || 0) + (comment.isLiked ? 1 : -1);
+
+        eventBus.emit(EVENTS.COMMENT_LIKED, {
+          targetId: data.targetId,
+          targetType: 2,
+          isLiked: comment.isLiked,
+          likeCount: comment.likeCount,
+        });
       }
     }
   };
@@ -99,6 +143,8 @@ export const useSquareStore = defineStore('square', () => {
     deletePost,
     fetchComments,
     createComment,
+    deleteComment,
+    getReplies,
     toggleLike,
     report,
   };

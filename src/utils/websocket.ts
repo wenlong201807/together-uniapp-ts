@@ -90,18 +90,22 @@ class WebSocketManager {
   }
 
   private handleMessage(data: any) {
-    console.log('WebSocket: Handling message', data)
+    console.log('[WebSocket] 收到原始消息:', JSON.stringify(data))
     const chatStore = useChatStore()
 
     if (data.type === 'message' && data.data) {
+      console.log('[WebSocket] 处理消息类型: message, 数据:', data.data)
       chatStore.addMessage(data.data)
     } else if (data.type === 'connected') {
-      console.log('WebSocket: Server confirmed connection', data)
+      console.log('[WebSocket] 服务器确认连接:', data)
     } else if (data.type === 'pong') {
-      // pong response
+      console.log('[WebSocket] 收到心跳响应')
     } else if (data.id && data.senderId) {
       // 直接是消息对象
+      console.log('[WebSocket] 处理直接消息对象:', data)
       chatStore.addMessage(data)
+    } else {
+      console.log('[WebSocket] 未知消息类型:', data)
     }
   }
 

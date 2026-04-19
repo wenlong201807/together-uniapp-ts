@@ -70,14 +70,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useSquareStore } from '@/stores';
 import PostCard from '@/components/business/PostCard.vue';
 import Loading from '@/components/common/Loading.vue';
 import Empty from '@/components/common/Empty.vue';
 import Skeleton from '@/components/common/Skeleton.vue';
+import { useAvatarSync } from '@/composables/useAvatarSync';
+import { useLikeSync } from '@/composables/useLikeSync';
 
 const squareStore = useSquareStore();
+
+// 头像同步
+const posts = computed(() => ({ list: squareStore.posts }));
+useAvatarSync(posts, { nestedUserField: 'user' });
+
+// 点赞同步
+useLikeSync(posts, { targetType: 1 });
 
 const tabs = [
   { label: '最新', value: 'latest' },
@@ -150,6 +159,13 @@ const goToPostDetail = (id: number) => {
 };
 
 const handleLike = async (post: any) => {
+  const originalIsLiked = post.isLiked;
+  const originalLikeCount = post.likeCount || 0;
+
+  // 乐观更新 UI
+  post.isLiked = !originalIsLiked;
+  post.likeCount = originalIsLiked ? originalLikeCount - 1 : originalLikeCount + 1;
+
   try {
     await squareStore.toggleLike({
       targetId: post.id,
@@ -157,6 +173,13 @@ const handleLike = async (post: any) => {
     });
   } catch (error) {
     console.error('Like error:', error);
+    // 失败时回滚
+    post.isLiked = originalIsLiked;
+    post.likeCount = originalLikeCount;
+    uni.showToast({
+      title: '操作失败',
+      icon: 'none',
+    });
   }
 };
 

@@ -157,7 +157,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore, useSquareStore } from '@/stores';
+import { useNetworkStatus } from '@/composables/useNetworkStatus';
 import type { Comment } from '@/types';
 import Avatar from '@/components/common/Avatar.vue';
 
@@ -169,9 +170,12 @@ interface Props {
 const props = defineProps<Props>();
 const emit = defineEmits<{
   success: [];
+  delete: [];
 }>();
 
 const authStore = useAuthStore();
+const squareStore = useSquareStore();
+const { checkBeforeAction } = useNetworkStatus();
 
 // 响应式数据
 const content = ref('');
@@ -211,23 +215,22 @@ const loadComments = async (reset = false) => {
   }
 
   try {
-    const { squareApi } = await import('@/api');
-    const res = await squareApi.getComments(props.postId, {
+    const res = await squareStore.fetchComments(props.postId, {
       page: currentPage.value,
       pageSize: 20,
       sort: 'time',
     });
 
     if (reset) {
-      comments.value = res.data.list;
+      comments.value = squareStore.comments;
 
       // 不自动展开，让用户手动点击展开
       expandedComments.value.clear();
     } else {
-      comments.value = [...comments.value, ...res.data.list];
+      comments.value = [...comments.value, ...squareStore.comments];
     }
 
-    hasMore.value = res.data.list.length === 20;
+    hasMore.value = squareStore.comments.length === 20;
   } catch (error) {
     console.error('Load comments error:', error);
   }
@@ -236,12 +239,11 @@ const loadComments = async (reset = false) => {
 // 提交评论
 const submitComment = async () => {
   if (!canSend.value || sending.value) return;
+  if (!checkBeforeAction('发送评论')) return;
 
   sending.value = true;
 
   try {
-    const { squareApi } = await import('@/api');
-
     // 构建评论数据
     const commentData: any = {
       postId: props.postId,
@@ -262,7 +264,7 @@ const submitComment = async () => {
       }
     }
 
-    await squareApi.createComment(commentData);
+    await squareStore.createComment(commentData);
 
     // 清空输入
     content.value = '';
@@ -324,13 +326,12 @@ const viewAllReplies = async (comment: Comment) => {
           mask: true,
         });
 
-        const { squareApi } = await import('@/api');
-        const res = await squareApi.getReplies(comment.id, {
+        const replies = await squareStore.getReplies(comment.id, {
           page: 1,
           pageSize: comment.replyCount || 20,
         });
 
-        comment.replies = res.data.list;
+        comment.replies = replies;
 
         uni.hideLoading();
       } catch (e) {
@@ -366,6 +367,8 @@ const formatTime = (dateStr: string) => {
 
 // 点赞/取消点赞
 const toggleLike = async (comment: Comment) => {
+  if (!checkBeforeAction('点赞')) return;
+
   const originalIsLiked = comment.isLiked;
   const originalLikeCount = comment.likeCount || 0;
 
@@ -374,8 +377,7 @@ const toggleLike = async (comment: Comment) => {
   comment.likeCount = originalIsLiked ? originalLikeCount - 1 : originalLikeCount + 1;
 
   try {
-    const { squareApi } = await import('@/api');
-    await squareApi.toggleLike({
+    await squareStore.toggleLike({
       targetId: comment.id,
       targetType: 2, // 2 表示评论
     });
@@ -393,6 +395,8 @@ const toggleLike = async (comment: Comment) => {
 
 // 删除评论
 const deleteComment = async (comment: Comment) => {
+  if (!checkBeforeAction('删除评论')) return;
+
   uni.showModal({
     title: '删除评论',
     content: '确定要删除这条评论吗？',
@@ -404,8 +408,7 @@ const deleteComment = async (comment: Comment) => {
             mask: true,
           });
 
-          const { squareApi } = await import('@/api');
-          await squareApi.deleteComment(comment.id);
+          await squareStore.deleteComment(comment.id, props.postId);
 
           uni.hideLoading();
           uni.showToast({
@@ -415,7 +418,7 @@ const deleteComment = async (comment: Comment) => {
 
           // 刷新评论列表
           await loadComments(true);
-          emit('success');
+          emit('delete');
         } catch (error: any) {
           uni.hideLoading();
           uni.showToast({
