@@ -1,0 +1,1 @@
+import{a0 as s}from"./index-Cs-81CXp.js";const e={sendMessage:e=>s.post("/chat/send",e),getHistory:(e,t)=>s.get(`/chat/history/${e}`,t),getConversations:()=>s.get("/chat/conversations"),getMessages:e=>s.get("/chat/messages",e),markAsRead:e=>s.put(`/chat/read/${e}`)};export{e as c};
