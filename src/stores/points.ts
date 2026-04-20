@@ -43,7 +43,14 @@ export const usePointsStore = defineStore(
     const fetchLogs = async (page = 1, pageSize = 20, type?: number) => {
       try {
         const res = await pointsApi.getLogs(page, pageSize, type)
-        logs.value = res.data.list
+
+        // 如果是第一页，替换数据；否则追加数据
+        if (page === 1) {
+          logs.value = res.data.list
+        } else {
+          logs.value = [...logs.value, ...res.data.list]
+        }
+
         totalLogs.value = res.data.total
       } catch (error) {
         console.error('Failed to fetch logs:', error)

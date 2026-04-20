@@ -38,7 +38,12 @@
       </view>
     </view>
 
-    <view class="logs-list">
+    <scroll-view
+      class="logs-list"
+      scroll-y
+      @scrolltolower="loadMore"
+      :style="{ height: 'calc(100vh - 500rpx)' }"
+    >
       <view class="log-item" v-for="log in pointsStore.logs" :key="log.id">
         <view class="log-info">
           <text class="log-source">{{ log.source || log.remark }}</text>
@@ -48,10 +53,19 @@
           {{ log.type === 1 ? '+' : '-' }}{{ Math.abs(log.amount) }}
         </text>
       </view>
-      <view class="empty" v-if="pointsStore.logs.length === 0">
+
+      <view v-if="loading" class="loading-more">
+        <text>加载中...</text>
+      </view>
+
+      <view v-if="!hasMore && pointsStore.logs.length > 0" class="no-more">
+        <text>没有更多了</text>
+      </view>
+
+      <view class="empty" v-if="!loading && pointsStore.logs.length === 0">
         <text>暂无记录</text>
       </view>
-    </view>
+    </scroll-view>
   </view>
 </template>
 
@@ -63,6 +77,9 @@ const authStore = useAuthStore()
 const pointsStore = usePointsStore()
 
 const activeTab = ref(0)
+const currentPage = ref(1)
+const loading = ref(false)
+const hasMore = ref(true)
 
 onMounted(() => {
   if (!authStore.isLoggedIn) {
@@ -72,16 +89,39 @@ onMounted(() => {
   }
   pointsStore.fetchBalance()
   pointsStore.fetchSignStatus()
-  loadLogs()
+  loadLogs(true)
 })
 
-const loadLogs = (type?: number) => {
-  const typeMap = [undefined, 1, 2]
-  pointsStore.fetchLogs(1, 20, typeMap[activeTab.value])
+const loadLogs = async (reset = false) => {
+  if (loading.value) return
+
+  if (reset) {
+    currentPage.value = 1
+    hasMore.value = true
+  }
+
+  loading.value = true
+  try {
+    const typeMap = [undefined, 1, 2]
+    await pointsStore.fetchLogs(currentPage.value, 20, typeMap[activeTab.value])
+
+    // 判断是否还有更多数据
+    hasMore.value = pointsStore.logs.length < pointsStore.totalLogs
+  } catch (error) {
+    console.error('Load logs error:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadMore = () => {
+  if (!hasMore.value || loading.value) return
+  currentPage.value++
+  loadLogs()
 }
 
 watch(activeTab, () => {
-  loadLogs()
+  loadLogs(true)
 })
 
 const handleSign = async () => {
@@ -222,7 +262,8 @@ const formatTime = (time: string) => {
   }
 
   .logs-list {
-    background: #fff;
+    flex: 1;
+    overflow-y: auto;
 
     .log-item {
       display: flex;
@@ -230,6 +271,7 @@ const formatTime = (time: string) => {
       justify-content: space-between;
       padding: 30rpx 40rpx;
       border-bottom: 1rpx solid #f0f0f0;
+      background: #fff;
 
       .log-info {
         .log-source {
@@ -257,6 +299,20 @@ const formatTime = (time: string) => {
           color: #ff4d4f;
         }
       }
+    }
+
+    .loading-more {
+      padding: 30rpx 0;
+      text-align: center;
+      color: #999;
+      font-size: 26rpx;
+    }
+
+    .no-more {
+      padding: 30rpx 0;
+      text-align: center;
+      color: #999;
+      font-size: 26rpx;
     }
 
     .empty {
