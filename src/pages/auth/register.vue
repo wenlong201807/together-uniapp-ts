@@ -23,6 +23,21 @@
       </view>
 
       <view class="form-item">
+        <text class="label">邮箱</text>
+        <view class="input-wrapper">
+          <input
+            v-model="formData.email"
+            class="input"
+            type="text"
+            placeholder="请输入邮箱"
+          />
+          <text v-if="formData.email" class="clear-icon" @click="formData.email = ''">
+            ✕
+          </text>
+        </view>
+      </view>
+
+      <view class="form-item">
         <text class="label">验证码</text>
         <view class="code-input">
           <view class="input-wrapper">
@@ -42,7 +57,7 @@
           </button>
         </view>
         <view class="form-tip">
-          <text class="tip-text">💡 测试环境默认验证码：123456</text>
+          <text class="tip-text">💡 验证码将发送到您的邮箱</text>
         </view>
       </view>
 
@@ -139,6 +154,7 @@ const authStore = useAuthStore()
 
 const formData = ref({
   mobile: '',
+  email: '',
   code: '',
   password: '',
   nickname: '',
@@ -171,10 +187,32 @@ const sendCode = async () => {
     return
   }
 
-  try {
-    await authApi.sendSms({ mobile: formData.value.mobile, type: 'register' })
+  if (!formData.value.email) {
     uni.showToast({
-      title: '验证码已发送',
+      title: '请输入邮箱',
+      icon: 'none'
+    })
+    return
+  }
+
+  // 验证邮箱格式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(formData.value.email)) {
+    uni.showToast({
+      title: '请输入正确的邮箱格式',
+      icon: 'none'
+    })
+    return
+  }
+
+  try {
+    await authApi.sendSms({
+      mobile: formData.value.mobile,
+      email: formData.value.email,
+      type: 'register'
+    })
+    uni.showToast({
+      title: '验证码已发送到邮箱',
       icon: 'success'
     })
 
@@ -195,9 +233,19 @@ const sendCode = async () => {
 }
 
 const handleRegister = async () => {
-  if (!formData.value.mobile || !formData.value.code || !formData.value.password || !formData.value.nickname) {
+  if (!formData.value.mobile || !formData.value.email || !formData.value.code || !formData.value.password || !formData.value.nickname) {
     uni.showToast({
       title: '请填写完整信息',
+      icon: 'none'
+    })
+    return
+  }
+
+  // 验证邮箱格式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(formData.value.email)) {
+    uni.showToast({
+      title: '请输入正确的邮箱格式',
       icon: 'none'
     })
     return
@@ -211,6 +259,7 @@ const handleRegister = async () => {
     // 构建注册数据，确保 inviteCode 被传递
     const registerData = {
       mobile: formData.value.mobile,
+      email: formData.value.email,
       code: formData.value.code,
       password: encryptedPassword,
       nickname: formData.value.nickname,

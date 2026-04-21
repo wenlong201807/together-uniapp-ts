@@ -11,11 +11,13 @@ import type {
 
 export interface SmsDto {
   mobile: string;
+  email: string;
   type: 'register' | 'login' | 'reset_password';
 }
 
 export interface RegisterDto {
   mobile: string;
+  email: string;
   code: string;
   password: string;
   nickname: string;

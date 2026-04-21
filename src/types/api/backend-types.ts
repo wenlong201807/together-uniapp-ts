@@ -96,6 +96,8 @@ export interface User {
   id: number;
   /** 手机号 */
   mobile: string;
+  /** 邮箱 */
+  email: string;
   /** 密码（加密） */
   password: string;
   /** 昵称 */
@@ -372,6 +374,8 @@ export interface UpdatePointsConfigDto {
 export interface SmsDto {
   /** 手机号 */
   mobile: string;
+  /** 邮箱 */
+  email: string;
   /** 短信类型 */
   type: SmsType;
 }
@@ -382,6 +386,8 @@ export interface SmsDto {
 export interface RegisterDto {
   /** 手机号 */
   mobile: string;
+  /** 邮箱 */
+  email: string;
   /** 验证码 */
   code: string;
   /** 密码 */
@@ -410,6 +416,8 @@ export interface LoginDto {
 export interface ResetPasswordDto {
   /** 手机号 */
   mobile: string;
+  /** 邮箱 */
+  email: string;
   /** 验证码 */
   code: string;
   /** 新密码 */
