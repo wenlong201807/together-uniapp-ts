@@ -1,1 +1,0 @@
-import{T as t}from"./index-6CPQk3Qx.js";const g={getBalance:()=>t.get("/points/balance"),sign:()=>t.post("/points/sign"),getSignStatus:()=>t.get("/points/sign/status"),getLogs:(g=1,s=20,e)=>t.get("/points/logs",{page:g,pageSize:s,type:e}),getConfig:()=>t.get("/points/config"),getConfigList:()=>t.get("/points-configs")};export{g as p};

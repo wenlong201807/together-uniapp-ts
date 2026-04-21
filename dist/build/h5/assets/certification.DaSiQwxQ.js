@@ -1,1 +1,0 @@
-import{T as t}from"./index-6CPQk3Qx.js";const i={getTypes:()=>t.get("/certification-types"),getType:()=>t.get("/certification-type"),submit:i=>t.post("/certification",i),getMyList:i=>{const e={};return void 0!==i&&(e.status=i),t.get("/certification/list",e)},getDetail:i=>t.get(`/certification/${i}`)};export{i as c};
