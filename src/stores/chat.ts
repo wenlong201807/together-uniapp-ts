@@ -13,7 +13,14 @@ export const useChatStore = defineStore('chat', () => {
 
   const fetchConversations = async () => {
     const res = await chatApi.getConversations()
-    conversations.value = res.data.data
+    // 后端返回 avatarUrl/lastTime，前端统一映射为 avatar/lastMessageTime 兼容
+    conversations.value = (res.data.data || []).map((c: any) => ({
+      ...c,
+      avatar: c.avatarUrl || c.avatar,
+      avatarUrl: c.avatarUrl || c.avatar,
+      lastMessageTime: c.lastTime || c.lastMessageTime,
+      lastTime: c.lastTime || c.lastMessageTime,
+    }))
     unreadCount.value = res.data.unreadCount || 0
   }
 
@@ -150,6 +157,58 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+
+  const confirmSentMessage = (message: Message) => {
+    const authStore = useAuthStore()
+    const currentUserId = authStore.userInfo?.id
+
+    // 后端 senderId 可能是字符串类型（bigint），需要转换为数字比较
+    const msgSenderId = typeof message.senderId === 'string' ? parseInt(message.senderId) : message.senderId
+    const msgReceiverId = typeof message.receiverId === 'string' ? parseInt(message.receiverId) : message.receiverId
+
+    // 消息去重：检查是否已存在相同ID的消息
+    const exists = messages.value.some(m => m.id === message.id)
+    if (exists) {
+      console.log('[WebSocket] 发送确认消息已存在，跳过:', message.id)
+      return
+    }
+
+    // 查找是否有正在发送中的同内容临时消息，替换它
+    const tempIndex = messages.value.findIndex(m =>
+      m.status === 'sending' &&
+      m.receiverId === msgReceiverId &&
+      m.content === message.content
+    )
+
+    const messageWithFlag = {
+      ...message,
+      senderId: msgSenderId,
+      receiverId: msgReceiverId,
+      isSelf: true,
+    }
+
+    if (tempIndex !== -1) {
+      console.log('[WebSocket] 替换临时消息为确认消息:', message.id)
+      messages.value[tempIndex] = messageWithFlag
+    } else {
+      // 没有找到临时消息，直接添加（多端同步场景）
+      const isCurrentChat = currentChat.value &&
+        ((msgSenderId === currentUserId && msgReceiverId === currentChat.value.userId) ||
+         (msgSenderId === currentChat.value.userId && msgReceiverId === currentUserId))
+
+      if (isCurrentChat) {
+        messages.value.push(messageWithFlag)
+      }
+    }
+
+    // 更新会话列表
+    const conversation = conversations.value.find((c) => c.userId === msgReceiverId)
+    if (conversation) {
+      conversation.lastMessage = message.content
+      conversation.lastMessageTime = message.createdAt
+    }
+  }
+
   const setCurrentChat = (chat: Conversation | null) => {
     currentChat.value = chat
   }
@@ -168,6 +227,7 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     markAsRead,
     addMessage,
+    confirmSentMessage,
     setCurrentChat,
     clearMessages
   }

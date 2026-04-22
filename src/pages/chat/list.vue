@@ -24,7 +24,7 @@
           <view class="avatar-wrapper">
             <image
               class="avatar"
-              :src="conversation.avatar || '/static/images/default-avatar.png'"
+              :src="conversation.avatarUrl || '/static/images/default-avatar.png'"
               mode="aspectFill"
             />
             <view v-if="conversation.unreadCount > 0" class="unread-dot" />
@@ -33,7 +33,7 @@
             <view class="conversation-header">
               <text class="nickname">{{ conversation.nickname }}</text>
               <text class="time">{{
-                formatTime(conversation.lastMessageTime)
+                formatTime(conversation.lastTime)
               }}</text>
             </view>
             <view class="conversation-content">

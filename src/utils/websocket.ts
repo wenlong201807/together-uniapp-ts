@@ -96,6 +96,9 @@ class WebSocketManager {
     if (data.type === 'message' && data.data) {
       console.log('[WebSocket] 处理消息类型: message, 数据:', data.data)
       chatStore.addMessage(data.data)
+    } else if (data.type === 'message_sent' && data.data) {
+      console.log('[WebSocket] 处理消息类型: message_sent, 数据:', data.data)
+      chatStore.confirmSentMessage(data.data)
     } else if (data.type === 'connected') {
       console.log('[WebSocket] 服务器确认连接:', data)
     } else if (data.type === 'pong') {

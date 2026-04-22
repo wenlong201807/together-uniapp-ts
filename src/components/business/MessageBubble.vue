@@ -9,8 +9,8 @@
     <view class="bubble-wrapper">
       <view class="bubble-content">
         <text class="message-text">{{ message.content }}</text>
-        <text class="message-time">{{ formatTime(message.createdAt) }}</text>
       </view>
+      <text class="message-time">{{ formatTime(message.createdAt) }}</text>
       <view v-if="message.status === 'sending'" class="message-status">
         <view class="loading-dots">
           <view class="dot" />
@@ -160,19 +160,21 @@ const handleRetry = () => {
       word-break: break-word;
       white-space: pre-wrap;
     }
+  }
 
-    .message-time {
-      display: block;
-      font-size: $font-size-xs;
-      margin-top: $margin-xs;
-      opacity: 0.7;
-    }
+  .message-time {
+    display: block;
+    font-size: $font-size-xs;
+    color: $text-tertiary;
+    margin-top: 4rpx;
+    padding: 0 $padding-sm;
   }
 
   .message-status {
     display: flex;
     align-items: center;
     margin-top: $margin-xs;
+    padding: 0 $padding-sm;
 
     &.error {
       width: 32rpx;

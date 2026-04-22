@@ -25,14 +25,13 @@
       </view>
     </scroll-view>
 
-    <view class="input-bar" :style="{ bottom: keyboardHeight + 'px' }">
+    <view class="input-bar">
       <input
         v-model="inputText"
         class="message-input"
         placeholder="输入消息..."
         :adjust-position="false"
-        @focus="handleFocus"
-        @blur="handleBlur"
+        cursor-spacing="20"
         @confirm="sendMessage"
       />
       <button
@@ -62,19 +61,17 @@ const loading = ref(false);
 const targetUserId = ref<number>(0);
 const targetNickname = ref('');
 const scrollToView = ref('');
-const keyboardHeight = ref(0);
 const scrollViewHeight = ref(0);
-const inputBarHeight = 100; // 输入框固定高度（px）
 
-// 计算滚动区域高度
-const calculateScrollHeight = () => {
+// 动态测量输入栏高度
+const measureAndCalculate = () => {
   const systemInfo = uni.getSystemInfoSync();
-  const windowHeight = systemInfo.windowHeight;
-  const statusBarHeight = systemInfo.statusBarHeight || 0;
-  const navBarHeight = 44; // 导航栏高度
-
-  // 可用高度 = 窗口高度 - 状态栏 - 导航栏 - 输入框 - 键盘
-  scrollViewHeight.value = windowHeight - statusBarHeight - navBarHeight - inputBarHeight - keyboardHeight.value;
+  // windowHeight 已排除状态栏和导航栏
+  const query = uni.createSelectorQuery();
+  query.select('.input-bar').boundingClientRect((rect: any) => {
+    const barHeight = rect ? rect.height : 56;
+    scrollViewHeight.value = systemInfo.windowHeight - barHeight;
+  }).exec();
 };
 
 onMounted(async () => {
@@ -95,17 +92,34 @@ onMounted(async () => {
     unreadCount: 0,
   });
 
-  // 计算初始高度
-  calculateScrollHeight();
-
   await loadMessages();
 
   wsManager.connect();
+
+  // 等待渲染完成后测量并计算高度
+  await nextTick();
+  measureAndCalculate();
+
+  // 注册键盘高度监听（仅注册一次）
+  uni.onKeyboardHeightChange((res) => {
+    const systemInfo = uni.getSystemInfoSync();
+    const query = uni.createSelectorQuery();
+    query.select('.input-bar').boundingClientRect((rect: any) => {
+      const barHeight = rect ? rect.height : 56;
+      scrollViewHeight.value = systemInfo.windowHeight - barHeight - res.height;
+    }).exec();
+    if (res.height > 0) {
+      nextTick(() => {
+        scrollToBottom();
+      });
+    }
+  });
 });
 
 onUnmounted(() => {
   chatStore.clearMessages();
   chatStore.setCurrentChat(null);
+  uni.offKeyboardHeightChange(() => {});
 });
 
 // 监听消息变化，自动滚动到底部
@@ -120,7 +134,6 @@ const loadMessages = async () => {
     await chatStore.fetchHistory(targetUserId.value, { page: 1, pageSize: 50 });
     await chatStore.markAsRead(targetUserId.value);
 
-    // 加载完成后滚动到底部
     await nextTick();
     scrollToBottom();
   } catch (error) {
@@ -144,7 +157,6 @@ const sendMessage = async () => {
       msgType: 1,
     });
 
-    // 发送后滚动到底部
     await nextTick();
     scrollToBottom();
   } catch (error) {
@@ -171,32 +183,10 @@ const scrollToBottom = () => {
   const lastMessage = chatStore.messages[chatStore.messages.length - 1];
   if (lastMessage) {
     scrollToView.value = `msg-${lastMessage.id}`;
-    // 重置 scrollToView，允许下次滚动
     setTimeout(() => {
       scrollToView.value = '';
     }, 300);
   }
-};
-
-const handleFocus = () => {
-  // 监听键盘高度变化
-  uni.onKeyboardHeightChange((res) => {
-    keyboardHeight.value = res.height;
-    calculateScrollHeight();
-
-    // 键盘弹起后滚动到底部
-    nextTick(() => {
-      scrollToBottom();
-    });
-  });
-};
-
-const handleBlur = () => {
-  // 键盘收起，延迟恢复以避免闪烁
-  setTimeout(() => {
-    keyboardHeight.value = 0;
-    calculateScrollHeight();
-  }, 100);
 };
 </script>
 
@@ -208,7 +198,6 @@ const handleBlur = () => {
   display: flex;
   flex-direction: column;
   background: $bg-secondary;
-  position: relative;
 
   .messages-list {
     flex: 1;
@@ -217,7 +206,7 @@ const handleBlur = () => {
 
     .messages-wrapper {
       padding: $padding-md;
-      padding-bottom: $padding-xl;
+      padding-bottom: $padding-lg;
       min-height: 100%;
       display: flex;
       flex-direction: column;
@@ -255,18 +244,13 @@ const handleBlur = () => {
   }
 
   .input-bar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     padding: $padding-md;
     background: $bg-primary;
     border-top: 1rpx solid $divider-color;
     box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.05);
-    z-index: 100;
-    transition: bottom 0.3s ease;
 
     .message-input {
       flex: 1;
