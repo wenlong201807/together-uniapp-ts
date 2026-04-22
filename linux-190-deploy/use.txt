@@ -1,0 +1,3 @@
+
+cd /home/zwl/together-uniapp-ts/linux-190-deploy
+AUTO_CONFIRM=true ./deploy-staging.sh

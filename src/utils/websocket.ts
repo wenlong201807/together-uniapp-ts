@@ -1,19 +1,19 @@
 import { API_CONFIG } from '@/config'
 import { useChatStore } from '@/stores'
 import { useAuthStore } from '@/stores'
+import { io, Socket } from 'socket.io-client'
 
 class WebSocketManager {
-  private socketTask: UniApp.SocketTask | null = null
+  private socket: Socket | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private reconnectDelay = 3000
   private isConnecting = false
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
-  private isConnected = false
 
   connect() {
-    if (this.isConnecting || this.isConnected) {
+    if (this.isConnecting || (this.socket && this.socket.connected)) {
       console.log('WebSocket: Already connected or connecting')
       return
     }
@@ -31,61 +31,57 @@ class WebSocketManager {
       return
     }
 
-    // 使用原生 WebSocket URL 格式
-    const wsUrl = `${API_CONFIG.wsURL}?token=${token}`
+    // 使用 Socket.IO 客户端连接
+    const wsUrl = API_CONFIG.wsURL.replace('/ws', '')
     console.log('WebSocket: Connecting to', wsUrl)
 
-    this.socketTask = uni.connectSocket({
-      url: wsUrl,
-      success: () => {
-        console.log('WebSocket: Connection initiated')
+    this.socket = io(wsUrl, {
+      path: '/ws',
+      auth: {
+        token: token
       },
-      fail: (err) => {
-        console.error('WebSocket: Connection failed', err)
-        this.isConnecting = false
-        this.handleReconnect()
-      }
+      transports: ['websocket', 'polling'],
+      reconnection: false, // 手动控制重连
     })
 
     this.setupEventListeners()
   }
 
   private setupEventListeners() {
-    if (!this.socketTask) return
+    if (!this.socket) return
 
-    this.socketTask.onOpen(() => {
+    this.socket.on('connect', () => {
       console.log('WebSocket: Connected')
       this.isConnecting = false
-      this.isConnected = true
       this.reconnectAttempts = 0
       this.startHeartbeat()
     })
 
-    this.socketTask.onMessage((res) => {
-      try {
-        const data = res.data as string
-        console.log('WebSocket: Raw message', data)
-        
-        const jsonData = JSON.parse(data)
-        this.handleMessage(jsonData)
-      } catch (error) {
-        console.error('WebSocket: Failed to parse message', error)
-      }
+    this.socket.on('connected', (data) => {
+      console.log('WebSocket: Server confirmed connection', data)
     })
 
-    this.socketTask.onClose((res) => {
-      console.log('WebSocket: Connection closed', res)
+    this.socket.on('message', (data) => {
+      console.log('WebSocket: Received message', data)
+      this.handleMessage(data)
+    })
+
+    this.socket.on('pong', (data) => {
+      console.log('WebSocket: Received pong', data)
+    })
+
+    this.socket.on('disconnect', (reason) => {
+      console.log('WebSocket: Disconnected', reason)
       this.isConnecting = false
-      this.isConnected = false
       this.stopHeartbeat()
       this.handleReconnect()
     })
 
-    this.socketTask.onError((err) => {
-      console.error('WebSocket: Error', err)
+    this.socket.on('connect_error', (error) => {
+      console.error('WebSocket: Connection error', error)
       this.isConnecting = false
-      this.isConnected = false
       this.stopHeartbeat()
+      this.handleReconnect()
     })
   }
 
@@ -99,10 +95,6 @@ class WebSocketManager {
     } else if (data.type === 'message_sent' && data.data) {
       console.log('[WebSocket] 处理消息类型: message_sent, 数据:', data.data)
       chatStore.confirmSentMessage(data.data)
-    } else if (data.type === 'connected') {
-      console.log('[WebSocket] 服务器确认连接:', data)
-    } else if (data.type === 'pong') {
-      console.log('[WebSocket] 收到心跳响应')
     } else if (data.id && data.senderId) {
       // 直接是消息对象
       console.log('[WebSocket] 处理直接消息对象:', data)
@@ -114,8 +106,8 @@ class WebSocketManager {
 
   private startHeartbeat() {
     this.heartbeatTimer = setInterval(() => {
-      if (this.isConnected) {
-        this.send({ type: 'ping' })
+      if (this.socket && this.socket.connected) {
+        this.socket.emit('ping')
       }
     }, 25000)
   }
@@ -137,24 +129,15 @@ class WebSocketManager {
     console.log(`WebSocket: Reconnecting (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
 
     this.reconnectTimer = setTimeout(() => {
-      this.socketTask = null
-      this.isConnected = false
+      this.socket = null
       this.connect()
     }, this.reconnectDelay)
   }
 
-  send(data: object) {
-    if (this.socketTask && this.isConnected) {
-      const message = JSON.stringify(data)
-      this.socketTask.send({
-        data: message,
-        success: () => {
-          console.log('WebSocket: Message sent', message)
-        },
-        fail: (err) => {
-          console.error('WebSocket: Failed to send message', err)
-        }
-      })
+  send(event: string, data: any) {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit(event, data)
+      console.log('WebSocket: Message sent', event, data)
     } else {
       console.error('WebSocket: Not connected')
     }
@@ -168,13 +151,12 @@ class WebSocketManager {
       this.reconnectTimer = null
     }
 
-    if (this.socketTask) {
-      this.socketTask.close()
-      this.socketTask = null
+    if (this.socket) {
+      this.socket.disconnect()
+      this.socket = null
     }
 
     this.isConnecting = false
-    this.isConnected = false
     this.reconnectAttempts = 0
   }
 }
