@@ -32,16 +32,21 @@ class WebSocketManager {
     }
 
     // 使用 Socket.IO 客户端连接
-    const wsUrl = API_CONFIG.wsURL.replace('/ws', '')
-    console.log('WebSocket: Connecting to', wsUrl)
+    // wsURL 格式: ws://host:port 或 http://host:port
+    // path 选项指定 WebSocket 路径
+    const wsUrl = API_CONFIG.wsURL.replace('/api/v1/ws', '')
+    console.log('WebSocket: Connecting to', wsUrl, 'path: /api/v1/ws')
 
     this.socket = io(wsUrl, {
-      path: '/ws',
+      path: '/api/v1/ws',
       auth: {
         token: token
       },
       transports: ['websocket', 'polling'],
-      reconnection: false, // 手动控制重连
+      reconnection: true, // 启用自动重连
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      timeout: 10000,
     })
 
     this.setupEventListeners()
@@ -89,14 +94,15 @@ class WebSocketManager {
     console.log('[WebSocket] 收到原始消息:', JSON.stringify(data))
     const chatStore = useChatStore()
 
+    // 处理不同格式的消息
     if (data.type === 'message' && data.data) {
       console.log('[WebSocket] 处理消息类型: message, 数据:', data.data)
       chatStore.addMessage(data.data)
     } else if (data.type === 'message_sent' && data.data) {
       console.log('[WebSocket] 处理消息类型: message_sent, 数据:', data.data)
       chatStore.confirmSentMessage(data.data)
-    } else if (data.id && data.senderId) {
-      // 直接是消息对象
+    } else if (data.id && data.senderId && data.content) {
+      // 直接是消息对象（兼容旧格式）
       console.log('[WebSocket] 处理直接消息对象:', data)
       chatStore.addMessage(data)
     } else {
