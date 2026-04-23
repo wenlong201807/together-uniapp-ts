@@ -80,7 +80,7 @@ const handleRetry = () => {
 
   &.self {
     flex-direction: row-reverse;
-    justify-content: flex-start;
+    justify-content: flex-end;
 
     .bubble-wrapper {
       align-items: flex-end;
