@@ -51,7 +51,10 @@ export const friendApi = {
     request.delete<{ success: boolean }>(`/friend/${userId}`),
 
   blockUser: (blockedUserId: number, reason?: string) =>
-    request.post<UserBlacklist>('/friend/block', { blockedUserId, reason }),
+    request.post<UserBlacklist>('/friend/block', { friendId: blockedUserId, reason }),
+
+  unblockUser: (blockedUserId: number) =>
+    request.post<{ success: boolean }>('/friend/unblock', { friendId: blockedUserId }),
 
   getBlocklist: () =>
     request.get<UserBlacklist[]>('/friend/blocklist')

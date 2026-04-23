@@ -1,6 +1,10 @@
 <template>
   <view class="settings-container">
     <view class="settings-list">
+      <view class="settings-item" @click="goToBlacklist">
+        <text class="settings-label">黑名单管理</text>
+        <text class="settings-arrow">›</text>
+      </view>
       <view class="settings-item">
         <text class="settings-label">版本</text>
         <text class="settings-value">1.0.0</text>
@@ -25,6 +29,12 @@
 import { useAuthStore } from '@/stores'
 
 const authStore = useAuthStore()
+
+const goToBlacklist = () => {
+  uni.navigateTo({
+    url: '/pages/friend/blacklist'
+  })
+}
 
 const clearCache = () => {
   uni.showModal({

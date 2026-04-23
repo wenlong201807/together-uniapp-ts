@@ -79,6 +79,12 @@
       }
     },
     {
+      "path": "pages/friend/blacklist",
+      "style": {
+        "navigationBarTitleText": "黑名单"
+      }
+    },
+    {
       "path": "pages/square/index",
       "style": {
         "navigationBarTitleText": "广场"

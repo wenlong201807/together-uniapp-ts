@@ -365,7 +365,7 @@ const handleBlock = () => {
     success: async (res) => {
       if (res.confirm) {
         try {
-          await userApi.blockUser(userId.value);
+          await friendApi.blockUser(userId.value);
           uni.showToast({
             title: '已拉黑',
             icon: 'success'
