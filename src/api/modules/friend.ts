@@ -20,8 +20,20 @@ export const friendApi = {
   getFollowingList: () =>
     request.get<Friendship[]>('/friend/following'),
 
+  getUserFollowingList: (userId: number) =>
+    request.get<Friendship[]>(`/friend/following/${userId}`),
+
+  getFollowersList: () =>
+    request.get<Friendship[]>('/friend/followers'),
+
+  getUserFollowersList: (userId: number) =>
+    request.get<Friendship[]>(`/friend/followers/${userId}`),
+
   follow: (friendId: number) =>
     request.post<Friendship>('/friend/follow', { friendId }),
+
+  unfollow: (friendId: number) =>
+    request.post<{ success: boolean }>('/friend/unfollow', { friendId }),
 
   friendRequest: (friendId: number, message?: string) =>
     request.post<Friendship>('/friend/request', { friendId, message }),

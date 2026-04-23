@@ -73,6 +73,12 @@
       }
     },
     {
+      "path": "pages/friend/followers",
+      "style": {
+        "navigationBarTitleText": "粉丝列表"
+      }
+    },
+    {
       "path": "pages/square/index",
       "style": {
         "navigationBarTitleText": "广场"

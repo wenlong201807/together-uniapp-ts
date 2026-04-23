@@ -32,11 +32,11 @@
 
       <!-- 用户统计 -->
       <view class="user-stats">
-        <view class="stat-item">
+        <view class="stat-item" @click="goToFollowingList">
           <text class="stat-value">{{ userInfo.followingCount || 0 }}</text>
           <text class="stat-label">关注</text>
         </view>
-        <view class="stat-item">
+        <view class="stat-item" @click="goToFollowersList">
           <text class="stat-value">{{ userInfo.followerCount || 0 }}</text>
           <text class="stat-label">粉丝</text>
         </view>
@@ -385,6 +385,18 @@ const handleBlock = () => {
     }
   });
 };
+
+const goToFollowingList = () => {
+  uni.navigateTo({
+    url: `/pages/friend/following?userId=${userId.value}`
+  });
+};
+
+const goToFollowersList = () => {
+  uni.navigateTo({
+    url: `/pages/friend/followers?userId=${userId.value}`
+  });
+};
 </script>
 
 <style scoped lang="scss">
@@ -470,6 +482,12 @@ const handleBlock = () => {
         display: flex;
         flex-direction: column;
         align-items: center;
+        cursor: pointer;
+        transition: opacity 0.3s ease;
+
+        &:active {
+          opacity: 0.6;
+        }
 
         .stat-value {
           font-size: 40rpx;

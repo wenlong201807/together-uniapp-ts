@@ -205,7 +205,7 @@ const scrollToBottom = () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: $bg-secondary;
+  background: #EDEDED;
 
   .messages-list {
     flex: 1;
@@ -213,8 +213,7 @@ const scrollToBottom = () => {
     -webkit-overflow-scrolling: touch;
 
     .messages-wrapper {
-      padding: $padding-md;
-      padding-bottom: $padding-lg;
+      padding: $padding-md 0;
       min-height: 100%;
       display: flex;
       flex-direction: column;
