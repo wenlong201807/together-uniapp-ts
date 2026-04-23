@@ -7,7 +7,7 @@
         class="friend-item"
         @click="goToChat(friend)"
       >
-        <image class="avatar" :src="friend.user?.avatar || '/static/images/default-avatar.png'" mode="aspectFill" />
+        <image class="avatar" :src="friend.user?.avatarUrl || '/static/images/default-avatar.png'" mode="aspectFill" />
         <view class="friend-info">
           <text class="nickname">{{ friend.user?.nickname }}</text>
           <text class="mobile">{{ friend.user?.mobile }}</text>
@@ -122,7 +122,7 @@ const handleUnfollow = (friend: any) => {
 
 <style scoped lang="scss">
 .following-list-container {
-  
+  min-height: 100vh;
   background: #f8f8f8;
 
   .following-list {

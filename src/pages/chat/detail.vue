@@ -46,15 +46,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useChatStore, useAuthStore } from '@/stores';
 import { useNetworkStatus } from '@/composables/useNetworkStatus';
+import { useAvatarSync } from '@/composables/useAvatarSync';
 import { wsManager } from '@/utils';
 import MessageBubble from '@/components/business/MessageBubble.vue';
 
 const chatStore = useChatStore();
 const authStore = useAuthStore();
 const { checkBeforeAction } = useNetworkStatus();
+
+// 头像同步 - 消息列表中的发送者头像
+const messagesList = computed(() => ({ list: chatStore.messages }));
+useAvatarSync(messagesList, {
+  userIdField: 'senderId',
+  nestedUserField: 'sender'
+});
 
 const inputText = ref('');
 const loading = ref(false);

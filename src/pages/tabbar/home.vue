@@ -56,7 +56,6 @@ useAvatarSync(recentPosts, { nestedUserField: 'user' });
 const actions = [
   { icon: '📝', text: '发布动态', handler: goToSquare },
   { icon: '🧠', text: 'MBTI测试', handler: goToMbti },
-  { icon: '💬', text: '聊天', handler: goToChatList },
   { icon: '👥', text: '好友', handler: goToFriendList },
 ];
 
