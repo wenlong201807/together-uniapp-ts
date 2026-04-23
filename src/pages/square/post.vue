@@ -105,11 +105,8 @@ const handleReplyComment = (comment: Comment) => {
 const handleCommentSuccess = async () => {
   replyToComment.value = undefined;
 
-  // 乐观更新评论计数
-  const originalCount = squareStore.currentPost?.commentCount || 0;
-  if (squareStore.currentPost) {
-    squareStore.currentPost.commentCount = originalCount + 1;
-  }
+  // 注意: squareStore.createComment 已经更新了 commentCount
+  // 这里不需要再次手动 +1，否则会导致重复计数
 
   try {
     // 重新加载评论列表
@@ -120,10 +117,6 @@ const handleCommentSuccess = async () => {
     });
   } catch (error) {
     console.error('Fetch comments error:', error);
-    // 失败时回滚计数
-    if (squareStore.currentPost) {
-      squareStore.currentPost.commentCount = originalCount;
-    }
     uni.showToast({
       title: '刷新评论失败',
       icon: 'none',

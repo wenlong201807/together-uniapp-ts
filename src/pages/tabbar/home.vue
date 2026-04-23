@@ -36,6 +36,15 @@
         @share="handleShare(post)"
       />
     </view>
+
+    <!-- NPS反馈弹窗 -->
+    <NPSModal
+      :visible="npsVisible"
+      :trigger-type="npsTriggerType"
+      :trigger-scene="npsTriggerScene"
+      @close="closeNPS"
+      @success="onNPSSuccess"
+    />
   </view>
 </template>
 
@@ -43,10 +52,13 @@
 import { ref, onMounted } from 'vue';
 import { useAuthStore, useSquareStore } from '@/stores';
 import PostCard from '@/components/business/PostCard.vue';
+import NPSModal from '@/components/business/NPSModal.vue';
 import { useAvatarSync } from '@/composables/useAvatarSync';
+import { useNPS, NPSScene } from '@/composables/useNPS';
 
 const authStore = useAuthStore();
 const squareStore = useSquareStore();
+const { npsVisible, npsTriggerType, npsTriggerScene, checkAndTrigger, closeNPS, onNPSSuccess } = useNPS();
 
 const recentPosts = ref<any[]>([]);
 
@@ -91,6 +103,13 @@ function goToProfile() {
 
 onMounted(async () => {
   await loadRecentPosts();
+
+  // 检查并触发NPS（定期触发场景）
+  // 延迟3秒，让用户先看到内容
+  checkAndTrigger({
+    scene: NPSScene.PERIODIC,
+    delay: 3000
+  });
 });
 
 const loadRecentPosts = async () => {

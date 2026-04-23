@@ -17,18 +17,34 @@
         <text class="settings-label">关于我们</text>
         <text class="settings-arrow">›</text>
       </view>
+      <view class="settings-item" @click="handleFeedback">
+        <text class="settings-label">意见反馈</text>
+        <text class="settings-arrow">›</text>
+      </view>
     </view>
 
     <view class="logout-section">
       <button class="logout-btn" @click="handleLogout">退出登录</button>
     </view>
+
+    <!-- NPS反馈弹窗 -->
+    <NPSModal
+      :visible="npsVisible"
+      :trigger-type="npsTriggerType"
+      :trigger-scene="npsTriggerScene"
+      @close="closeNPS"
+      @success="onNPSSuccess"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
 import { useAuthStore } from '@/stores'
+import { useNPS } from '@/composables/useNPS'
+import NPSModal from '@/components/business/NPSModal.vue'
 
 const authStore = useAuthStore()
+const { npsVisible, npsTriggerType, npsTriggerScene, manualTrigger, closeNPS, onNPSSuccess } = useNPS()
 
 const goToBlacklist = () => {
   uni.navigateTo({
@@ -58,6 +74,10 @@ const showAbout = () => {
     content: 'WeTogether - 遇见美好，从这里开始',
     showCancel: false
   })
+}
+
+const handleFeedback = () => {
+  manualTrigger()
 }
 
 const handleLogout = () => {
