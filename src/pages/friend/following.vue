@@ -104,67 +104,6 @@ const goToUserDetail = (userId: number) => {
   })
 }
 </script>
-              await friendStore.follow(friend.friendId)
-              uni.showToast({
-                title: '关注成功',
-                icon: 'success'
-              })
-            }
-          }
-        })
-        return
-      }
-      
-      if (status.chatCount < 8) {
-        uni.showModal({
-          title: '提示',
-          content: `与 ${friend.user?.nickname} 互发8条消息后才能解锁私聊，当前已发送 ${status.chatCount} 条消息。`,
-          showCancel: false
-        })
-        return
-      }
-      
-      if (status.currentPoints < status.requiredPoints) {
-        uni.showModal({
-          title: '积分不足',
-          content: `解锁私聊需要 ${status.requiredPoints} 积分，当前您只有 ${status.currentPoints} 积分，不足以解锁私聊。`,
-          showCancel: false
-        })
-        return
-      }
-    }
-    
-    uni.navigateTo({
-      url: `/pages/chat/detail?userId=${friend.friendId}&nickname=${friend.user?.nickname}`
-    })
-  } catch (error: any) {
-    uni.showToast({
-      title: error?.message || '进入聊天失败',
-      icon: 'none'
-    })
-  }
-}
-
-const handleUnfollow = (friend: any) => {
-  uni.showModal({
-    title: '提示',
-    content: `确定要取消关注 ${friend.user?.nickname} 吗？`,
-    success: async (res) => {
-      if (res.confirm) {
-        try {
-          await friendStore.deleteFriend(friend.friendId)
-          uni.showToast({
-            title: '已取消关注',
-            icon: 'success'
-          })
-        } catch (error) {
-          console.error('Unfollow error:', error)
-        }
-      }
-    }
-  })
-}
-</script>
 
 <style scoped lang="scss">
 .following-list-container {

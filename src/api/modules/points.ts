@@ -31,7 +31,7 @@ export interface PointsLog {
 
 export const pointsApi = {
   getBalance: () =>
-    request.get<{ balance: number }>('/points/balance'),
+    request.get<PointsBalance>('/points/balance'),
 
   sign: () =>
     request.post<SignResult>('/points/sign'),
