@@ -15,6 +15,14 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    include: ['socket.io-client'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/socket\.io-client/, /node_modules/],
+    },
+  },
   server: {
     port: Number(env.VITE_APP_PORT) || 8106,
     proxy: {

@@ -56,12 +56,21 @@ importers:
       '@dcloudio/uni-quickapp-webview':
         specifier: 3.0.0-4080420251103001
         version: 3.0.0-4080420251103001(postcss@8.5.9)(rollup@4.60.1)(vue@3.5.32(typescript@5.9.3))
+      '@socket.io/component-emitter':
+        specifier: ^3.1.2
+        version: 3.1.2
       crypto-js:
         specifier: ^4.2.0
         version: 4.2.0
       dayjs:
         specifier: ^1.11.10
         version: 1.11.20
+      engine.io-client:
+        specifier: ^6.6.4
+        version: 6.6.4
+      engine.io-parser:
+        specifier: ^5.2.3
+        version: 5.2.3
       lodash-es:
         specifier: ^4.17.21
         version: 4.18.1
@@ -80,6 +89,9 @@ importers:
       socket.io-client:
         specifier: ^4.6.1
         version: 4.8.3
+      socket.io-parser:
+        specifier: ^4.2.6
+        version: 4.2.6
       vue:
         specifier: ^3.4.21
         version: 3.5.32(typescript@5.9.3)
