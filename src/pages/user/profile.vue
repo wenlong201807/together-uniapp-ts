@@ -349,35 +349,38 @@ const handleSave = async () => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/design-tokens.scss' as *;
+
 .profile-container {
-  
-  background: #f8f8f8;
+  min-height: 100vh;
+  background: $bg-secondary;
 
   .profile-header {
-    display: flex;
+    @include flex-center;
     flex-direction: column;
-    align-items: center;
-    padding: 80rpx 40rpx;
-    background: #fff;
-    margin-bottom: 20rpx;
+    padding: $padding-xxl $padding-xl;
+    background: $bg-primary;
+    margin-bottom: $margin-md;
 
     .avatar-wrapper {
       position: relative;
-      cursor: pointer;
+      @include transition(transform);
+
+      &:active {
+        transform: scale(0.95);
+      }
 
       .avatar {
-        width: 160rpx;
-        height: 160rpx;
-        border-radius: 50%;
-        margin-bottom: 24rpx;
-        background: #f0f0f0;
+        width: $avatar-size-xl;
+        height: $avatar-size-xl;
+        border-radius: $radius-circle;
+        margin-bottom: $margin-lg;
+        background: $bg-tertiary;
         display: block;
 
         &.mbti-avatar {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          @include flex-center;
+          background: $gradient-primary;
 
           .mbti-icon {
             font-size: 80rpx;
@@ -387,16 +390,16 @@ const handleSave = async () => {
 
       .avatar-edit {
         position: absolute;
-        bottom: 20rpx;
+        bottom: $spacing-md;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.5);
-        padding: 4rpx 16rpx;
-        border-radius: 20rpx;
+        background: rgba(0, 0, 0, 0.6);
+        padding: $padding-xs $padding-sm;
+        border-radius: $radius-full;
 
         .edit-icon {
-          font-size: 20rpx;
-          color: #fff;
+          font-size: $font-size-xs;
+          color: $bg-primary;
         }
       }
     }
@@ -406,69 +409,73 @@ const handleSave = async () => {
 
       .nickname {
         display: block;
-        font-size: 32rpx;
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 8rpx;
+        font-size: $font-size-lg;
+        font-weight: $font-weight-bold;
+        color: $text-primary;
+        margin-bottom: $margin-xs;
       }
 
       .mobile {
         display: block;
-        font-size: 24rpx;
-        color: #999;
+        font-size: $font-size-sm;
+        color: $text-tertiary;
       }
     }
   }
 
   .profile-form {
-    padding: 40rpx;
+    padding: $padding-xl;
 
     .form-item {
-      margin-bottom: 40rpx;
+      margin-bottom: $margin-xl;
 
       .label {
         display: block;
-        font-size: 28rpx;
-        color: #333;
-        margin-bottom: 16rpx;
+        font-size: $font-size-base;
+        color: $text-primary;
+        margin-bottom: $margin-sm;
+        font-weight: $font-weight-medium;
       }
 
       .input {
         width: 100%;
-        height: 88rpx;
-        padding: 0 24rpx;
-        border: 2rpx solid #e0e0e0;
-        border-radius: 12rpx;
-        font-size: 28rpx;
-        background: #f8f8f8;
+        height: $input-height-lg;
+        padding: 0 $padding-lg;
+        border: 2rpx solid $border-color;
+        border-radius: $radius-base;
+        font-size: $font-size-base;
+        background: $bg-secondary;
+        @include transition(all);
 
         &:focus {
-          border-color: #007aff;
-          background: #fff;
+          border-color: $primary-color;
+          background: $bg-primary;
         }
       }
 
       .gender-options {
         display: flex;
-        gap: 20rpx;
+        gap: $spacing-md;
 
         .gender-option {
           flex: 1;
-          height: 88rpx;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 2rpx solid #e0e0e0;
-          border-radius: 12rpx;
-          font-size: 28rpx;
-          color: #666;
-          background: #f8f8f8;
-          cursor: pointer;
+          height: $input-height-lg;
+          @include flex-center;
+          border: 2rpx solid $border-color;
+          border-radius: $radius-base;
+          font-size: $font-size-base;
+          color: $text-secondary;
+          background: $bg-secondary;
+          @include transition(all);
+
+          &:active {
+            transform: scale(0.98);
+          }
 
           &.active {
-            border-color: #007aff;
-            background: #007aff;
-            color: #fff;
+            border-color: $primary-color;
+            background: $primary-color;
+            color: $bg-primary;
           }
         }
       }
@@ -476,17 +483,22 @@ const handleSave = async () => {
 
     .save-btn {
       width: 100%;
-      height: 88rpx;
-      line-height: 88rpx;
-      background: #007aff;
-      color: #fff;
-      font-size: 32rpx;
-      border-radius: 12rpx;
+      height: $button-height-lg;
+      line-height: $button-height-lg;
+      background: $primary-color;
+      color: $bg-primary;
+      font-size: $font-size-lg;
+      border-radius: $radius-base;
       border: none;
-      margin-top: 40rpx;
+      margin-top: $margin-xl;
+      @include active-scale;
 
       &:disabled {
         opacity: 0.6;
+      }
+
+      &::after {
+        border: none;
       }
     }
   }
@@ -498,7 +510,7 @@ const handleSave = async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 1000;
+    z-index: $z-index-modal;
     display: flex;
     align-items: flex-end;
 
@@ -514,49 +526,55 @@ const handleSave = async () => {
     .modal-content {
       position: relative;
       width: 100%;
-      background: #fff;
-      border-radius: 24rpx 24rpx 0 0;
+      background: $bg-primary;
+      border-radius: $radius-xl $radius-xl 0 0;
       max-height: 80vh;
       display: flex;
       flex-direction: column;
-      z-index: 1001;
+      z-index: $z-index-modal + 1;
+      animation: slideUp $duration-base $ease-out;
 
       .modal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 24rpx 40rpx;
-        border-bottom: 1rpx solid #f0f0f0;
+        padding: $padding-lg $padding-xl;
+        border-bottom: 1rpx solid $divider-color;
 
         .modal-title {
-          font-size: 32rpx;
-          font-weight: bold;
-          color: #333;
+          font-size: $font-size-lg;
+          font-weight: $font-weight-bold;
+          color: $text-primary;
         }
 
         .modal-close {
-          font-size: 36rpx;
-          color: #999;
-          cursor: pointer;
+          font-size: $font-size-xl;
+          color: $text-tertiary;
+          @include transition(opacity);
+
+          &:active {
+            opacity: 0.6;
+          }
         }
       }
 
       .tabs {
         display: flex;
-        border-bottom: 1rpx solid #f0f0f0;
+        border-bottom: 1rpx solid $divider-color;
 
         .tab-item {
           flex: 1;
-          padding: 20rpx;
+          padding: $padding-md;
           text-align: center;
-          font-size: 28rpx;
-          color: #999;
+          font-size: $font-size-base;
+          color: $text-tertiary;
           border-bottom: 4rpx solid transparent;
-          cursor: pointer;
+          @include transition(all);
 
           &.active {
-            color: #007aff;
-            border-bottom-color: #007aff;
+            color: $primary-color;
+            border-bottom-color: $primary-color;
+            font-weight: $font-weight-medium;
           }
         }
       }
@@ -564,113 +582,105 @@ const handleSave = async () => {
       .avatar-selector {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 20rpx;
-        padding: 24rpx;
+        gap: $spacing-md;
+        padding: $padding-lg;
         overflow-y: auto;
         flex: 1;
 
         .avatar-item {
           position: relative;
-          cursor: pointer;
-          border-radius: 16rpx;
+          border-radius: $radius-md;
           overflow: hidden;
           border: 3rpx solid transparent;
-          transition: all 0.3s;
+          @include transition(all);
           aspect-ratio: 1;
           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 
-          &:hover {
-            transform: scale(1.05);
+          &:active {
+            transform: scale(0.95);
           }
 
           &.selected {
-            border-color: #007aff;
+            border-color: $primary-color;
             box-shadow: 0 0 20rpx rgba(0, 122, 255, 0.5);
           }
 
           .mbti-avatar-item {
             width: 100%;
             height: 100%;
-            display: flex;
+            @include flex-center;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8rpx;
+            gap: $spacing-xs;
 
             .mbti-icon {
               font-size: 60rpx;
             }
 
             .mbti-type {
-              font-size: 20rpx;
-              font-weight: bold;
-              color: #333;
+              font-size: $font-size-xs;
+              font-weight: $font-weight-bold;
+              color: $text-primary;
             }
           }
         }
       }
 
       .custom-upload {
-        padding: 40rpx 24rpx;
+        padding: $padding-xl $padding-lg;
         overflow-y: auto;
         flex: 1;
 
         .upload-area {
-          display: flex;
+          @include flex-center;
           flex-direction: column;
-          align-items: center;
-          justify-content: center;
           height: 300rpx;
-          border: 2rpx dashed #e0e0e0;
-          border-radius: 12rpx;
-          cursor: pointer;
-          transition: all 0.3s;
+          border: 2rpx dashed $border-color;
+          border-radius: $radius-base;
+          @include transition(all);
 
           &:active {
-            background: #f8f8f8;
-            border-color: #007aff;
+            background: $bg-secondary;
+            border-color: $primary-color;
           }
 
           .upload-icon {
             font-size: 80rpx;
-            margin-bottom: 16rpx;
+            margin-bottom: $margin-sm;
           }
 
           .upload-text {
-            font-size: 28rpx;
-            color: #999;
+            font-size: $font-size-base;
+            color: $text-tertiary;
           }
         }
 
         .preview-image {
           width: 100%;
           height: 300rpx;
-          border-radius: 12rpx;
-          margin-top: 24rpx;
+          border-radius: $radius-base;
+          margin-top: $margin-lg;
           object-fit: cover;
         }
       }
 
       .action-buttons {
         display: flex;
-        gap: 16rpx;
-        padding: 24rpx;
-        border-top: 1rpx solid #f0f0f0;
+        gap: $spacing-md;
+        padding: $padding-lg;
+        border-top: 1rpx solid $divider-color;
 
         .btn-cancel,
         .btn-confirm {
           flex: 1;
-          height: 88rpx;
-          line-height: 88rpx;
+          height: $button-height-lg;
+          line-height: $button-height-lg;
           padding: 0;
-          border-radius: 12rpx;
-          font-size: 28rpx;
+          border-radius: $radius-base;
+          font-size: $font-size-base;
           border: none;
-          cursor: pointer;
           text-align: center;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          @include flex-center;
+          @include active-scale;
 
           &::after {
             border: none;
@@ -678,20 +688,28 @@ const handleSave = async () => {
         }
 
         .btn-cancel {
-          background: #f0f0f0;
-          color: #333;
+          background: $bg-tertiary;
+          color: $text-primary;
         }
 
         .btn-confirm {
-          background: #007aff;
-          color: #fff;
+          background: $primary-color;
+          color: $bg-primary;
 
           &:disabled {
             opacity: 0.6;
-            cursor: not-allowed;
           }
         }
       }
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
     }
   }
 }

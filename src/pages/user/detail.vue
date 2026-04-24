@@ -1,8 +1,6 @@
 <template>
   <view class="user-detail-container">
-    <view v-if="loading" class="loading-wrapper">
-      <Loading text="加载中..." />
-    </view>
+    <UserDetailSkeleton v-if="loading" />
 
     <view v-else-if="userInfo" class="user-detail">
       <!-- 用户头部信息 -->
@@ -100,8 +98,8 @@ import { squareApi } from '@/api/modules/square';
 import { friendApi } from '@/api/modules/friend';
 import PostCard from '@/components/business/PostCard.vue';
 import Avatar from '@/components/common/Avatar.vue';
-import Loading from '@/components/common/Loading.vue';
 import Empty from '@/components/common/Empty.vue';
+import UserDetailSkeleton from './components/UserDetailSkeleton.vue';
 
 const authStore = useAuthStore();
 
@@ -414,23 +412,19 @@ const goToFollowersList = () => {
 
 .user-detail-container {
   min-height: 100vh;
-  background: #f8f8f8;
-
-  .loading-wrapper {
-    padding: 200rpx 0;
-    text-align: center;
-  }
+  background: $bg-secondary;
 
   .user-detail {
     .user-header {
-      background: #fff;
-      padding: 40rpx;
+      background: $bg-primary;
+      padding: $padding-xl;
       display: flex;
       align-items: center;
-      margin-bottom: 20rpx;
+      margin-bottom: $margin-md;
+      @include transition(all);
 
       .avatar {
-        margin-right: 24rpx;
+        margin-right: $margin-lg;
         flex-shrink: 0;
       }
 
@@ -440,90 +434,93 @@ const goToFollowersList = () => {
         .nickname-row {
           display: flex;
           align-items: center;
-          margin-bottom: 12rpx;
+          margin-bottom: $margin-sm;
 
           .nickname {
-            font-size: 36rpx;
-            font-weight: 600;
-            color: #333;
-            margin-right: 12rpx;
+            font-size: $font-size-xl;
+            font-weight: $font-weight-bold;
+            color: $text-primary;
+            margin-right: $margin-sm;
           }
 
           .verified-icon {
-            width: 32rpx;
-            height: 32rpx;
+            width: $icon-size-sm;
+            height: $icon-size-sm;
           }
         }
 
         .mbti-tag {
           display: inline-block;
-          padding: 8rpx 16rpx;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: #fff;
-          font-size: 24rpx;
-          border-radius: 8rpx;
-          font-weight: 500;
+          padding: $padding-xs $padding-sm;
+          background: $gradient-primary;
+          color: $bg-primary;
+          font-size: $font-size-sm;
+          border-radius: $radius-sm;
+          font-weight: $font-weight-medium;
         }
       }
 
       .more-btn {
-        padding: 0 10rpx;
-        cursor: pointer;
-
-        .icon {
-          font-size: 40rpx;
-          color: #999;
-          font-weight: bold;
-        }
-      }
-    }
-
-    .user-stats {
-      background: #fff;
-      padding: 32rpx 40rpx;
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 20rpx;
-
-      .stat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        cursor: pointer;
-        transition: opacity 0.3s ease;
+        padding: 0 $padding-xs;
+        @include transition(opacity);
 
         &:active {
           opacity: 0.6;
         }
 
+        .icon {
+          font-size: $font-size-xxl;
+          color: $text-tertiary;
+          font-weight: $font-weight-bold;
+        }
+      }
+    }
+
+    .user-stats {
+      background: $bg-primary;
+      padding: $padding-lg $padding-xl;
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: $margin-md;
+
+      .stat-item {
+        @include flex-center;
+        flex-direction: column;
+        @include transition(transform);
+
+        &:active {
+          transform: scale(0.95);
+        }
+
         .stat-value {
-          font-size: 40rpx;
-          font-weight: 600;
-          color: #333;
-          margin-bottom: 8rpx;
+          font-size: $font-size-xxl;
+          font-weight: $font-weight-bold;
+          color: $text-primary;
+          margin-bottom: $margin-xs;
         }
 
         .stat-label {
-          font-size: 24rpx;
-          color: #999;
+          font-size: $font-size-sm;
+          color: $text-tertiary;
         }
       }
     }
 
     .action-buttons {
-      padding: 0 40rpx 20rpx;
+      padding: 0 $padding-xl $padding-md;
       display: flex;
-      gap: 20rpx;
+      gap: $spacing-md;
 
       .action-btn {
         flex: 1;
-        height: 80rpx;
-        line-height: 80rpx;
-        border-radius: 40rpx;
-        font-size: 28rpx;
-        font-weight: 500;
+        height: $button-height-lg;
+        line-height: $button-height-lg;
+        border-radius: $radius-full;
+        font-size: $font-size-base;
+        font-weight: $font-weight-medium;
         border: none;
-        transition: all 0.3s ease;
+        @include transition(all);
+        @include active-scale;
 
         &::after {
           border: none;
@@ -531,28 +528,18 @@ const goToFollowersList = () => {
 
         &.follow-btn {
           background: $primary-color;
-          color: #fff;
+          color: $bg-primary;
 
           &.following {
-            background: #f0f0f0;
-            color: #666;
-          }
-
-          &:active {
-            transform: scale(0.98);
-            opacity: 0.9;
+            background: $bg-tertiary;
+            color: $text-secondary;
           }
         }
 
         &.chat-btn {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: #fff;
+          background: $gradient-primary;
+          color: $bg-primary;
           position: relative;
-
-          &:active:not(.btn-loading) {
-            transform: scale(0.98);
-            opacity: 0.9;
-          }
 
           &.btn-loading {
             opacity: 0.7;
@@ -563,21 +550,17 @@ const goToFollowersList = () => {
     }
 
     .user-posts {
-      padding: 20rpx;
+      padding: $padding-md;
 
       .section-title {
-        padding: 20rpx 0;
-        margin-bottom: 20rpx;
+        padding: $padding-md 0;
+        margin-bottom: $margin-md;
 
         text {
-          font-size: 32rpx;
-          font-weight: 600;
-          color: #333;
+          font-size: $font-size-lg;
+          font-weight: $font-weight-bold;
+          color: $text-primary;
         }
-      }
-
-      .posts-list {
-        // PostCard 自带 margin-bottom
       }
     }
   }

@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import { getValues, saveValue, deleteValue } from '@/api/profile'
 import type { UserValue } from '@/api/profile'
 
@@ -215,6 +215,18 @@ const getCategoryAnsweredCount = (category: string) => {
 // 加载数据
 onMounted(async () => {
   await loadValues()
+})
+
+// 清理定时器
+onUnmounted(() => {
+  // 清理所有保存定时器
+  Object.keys(saveTimers).forEach(category => {
+    Object.keys(saveTimers[category]).forEach(index => {
+      if (saveTimers[category][index]) {
+        clearTimeout(saveTimers[category][index])
+      }
+    })
+  })
 })
 
 const loadValues = async () => {

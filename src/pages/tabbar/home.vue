@@ -1,41 +1,111 @@
 <template>
   <view class="home-container">
-    <view class="welcome-section">
-      <text class="welcome-text"
-        >欢迎，{{ authStore.userInfo?.nickname || '用户' }}</text
-      >
-    </view>
+    <!-- 顶部导航 -->
+    <TopNavigation
+      :city="currentCity"
+      :unread-count="unreadCount"
+      @location-click="handleLocationClick"
+      @search-click="handleSearchClick"
+      @message-click="handleMessageClick"
+    />
 
-    <view class="quick-actions">
-      <view
-        v-for="(action, index) in actions"
-        :key="index"
-        class="action-item"
-        :style="{ animationDelay: `${index * 0.1}s` }"
-        @click="action.handler"
-      >
-        <view class="action-icon-wrapper">
-          <text class="action-icon">{{ action.icon }}</text>
-        </view>
-        <text class="action-text">{{ action.text }}</text>
-      </view>
-    </view>
-
-    <view class="recent-posts">
-      <view class="section-header">
-        <text class="section-title">最新动态</text>
-        <text class="section-more" @click="goToSquare">查看更多</text>
-      </view>
-      <PostCard
-        v-for="post in recentPosts.list"
-        :key="post.id"
-        :post="post"
-        @click="goToPostDetail(post.id)"
-        @like="handleLike(post)"
-        @comment="handleComment(post)"
-        @share="handleShare(post)"
+    <!-- 滚动容器 -->
+    <scroll-view
+      class="scroll-container"
+      scroll-y
+      :refresher-enabled="true"
+      :refresher-triggered="refreshing"
+      @refresherrefresh="handleRefresh"
+      @scroll="handleScroll"
+    >
+      <!-- Banner轮播 -->
+      <BannerCarousel
+        :banners="banners"
+        @banner-click="handleBannerClick"
       />
-    </view>
+
+      <!-- 快速入口 -->
+      <QuickActions
+        :actions="quickActions"
+        @action-click="handleActionClick"
+      />
+
+      <!-- 推荐流 -->
+      <view class="recommendation-feed">
+        <view class="section-header">
+          <text class="section-title">为你推荐</text>
+        </view>
+
+        <!-- 骨架屏 -->
+        <template v-if="showSkeleton">
+          <SkeletonCard v-for="i in 3" :key="i" />
+        </template>
+
+        <!-- 推荐内容 -->
+        <template v-else>
+          <template v-for="item in recommendationItems" :key="item.id">
+          <!-- 个性化推荐卡片 -->
+          <RecommendationCard
+            v-if="item.type === 'personalized'"
+            :user="item.data.user"
+            @card-click="handleUserClick"
+            @like="handleUserLike"
+            @skip="handleUserSkip"
+            @detail="handleUserDetail"
+          />
+
+          <!-- 热门卡片 -->
+          <HotCard
+            v-else-if="item.type === 'hot'"
+            :user="item.data.user"
+            :hot-score="item.data.hotScore"
+            @card-click="handleUserClick"
+            @like="handleUserLike"
+            @skip="handleUserSkip"
+          />
+
+          <!-- 附近的人卡片 -->
+          <NearbyCard
+            v-else-if="item.type === 'nearby'"
+            :user="item.data.user"
+            :distance="item.data.distance"
+            @card-click="handleUserClick"
+            @like="handleUserLike"
+            @skip="handleUserSkip"
+          />
+
+          <!-- 话题卡片 -->
+          <TopicCard
+            v-else-if="item.type === 'topic'"
+            :topic="item.data"
+            @card-click="handleTopicClick"
+            @view="handleTopicView"
+            @join="handleTopicJoin"
+          />
+
+          <!-- 新用户卡片 -->
+          <NewUserCard
+            v-else-if="item.type === 'new'"
+            :user="item.data.user"
+            :join-days="item.data.joinDays"
+            @card-click="handleUserClick"
+            @like="handleUserLike"
+            @skip="handleUserSkip"
+          />
+        </template>
+
+        <!-- 加载状态 -->
+        <view v-if="loading && recommendationItems.length > 0" class="loading-state">
+          <text class="loading-text">加载中...</text>
+        </view>
+
+        <!-- 无更多数据 -->
+        <view v-if="!hasMore && recommendationItems.length > 0" class="no-more">
+          <text class="no-more-text">没有更多内容了</text>
+        </view>
+        </template>
+      </view>
+    </scroll-view>
 
     <!-- NPS反馈弹窗 -->
     <NPSModal
@@ -45,299 +115,374 @@
       @close="closeNPS"
       @success="onNPSSuccess"
     />
+
+    <!-- 城市选择弹窗 -->
+    <CitySelector
+      :visible="showCitySelector"
+      :current-city="currentCity"
+      @close="showCitySelector = false"
+      @select="handleCitySelect"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useAuthStore, useSquareStore } from '@/stores';
-import PostCard from '@/components/business/PostCard.vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useAuthStore } from '@/stores';
+import TopNavigation from './home/components/TopNavigation.vue';
+import BannerCarousel from './home/components/BannerCarousel.vue';
+import QuickActions from './home/components/QuickActions.vue';
+import RecommendationCard from './home/components/RecommendationCard.vue';
+import HotCard from './home/components/HotCard.vue';
+import NearbyCard from './home/components/NearbyCard.vue';
+import TopicCard from './home/components/TopicCard.vue';
+import NewUserCard from './home/components/NewUserCard.vue';
+import SkeletonCard from './home/components/SkeletonCard.vue';
 import NPSModal from '@/components/business/NPSModal.vue';
-import { useAvatarSync } from '@/composables/useAvatarSync';
+import CitySelector from '@/components/business/CitySelector.vue';
 import { useNPS, NPSScene } from '@/composables/useNPS';
+import { useRecommendation } from './home/composables/useRecommendation';
+import { useInfiniteScroll } from './home/composables/useInfiniteScroll';
+import { useImageLazyLoad, ImagePreloadStrategy } from '@/utils/imageLoader';
+import { CacheManager, CACHE_KEYS, CACHE_EXPIRE_TIME } from '@/utils/cache';
+import { getBanners } from '@/api/home';
+import type { Banner } from './home/components/BannerCarousel.vue';
+import type { QuickAction } from './home/components/QuickActions.vue';
 
 const authStore = useAuthStore();
-const squareStore = useSquareStore();
 const { npsVisible, npsTriggerType, npsTriggerScene, checkAndTrigger, closeNPS, onNPSSuccess } = useNPS();
 
-const recentPosts = ref<any[]>([]);
-
-// 头像同步
-useAvatarSync(recentPosts, { nestedUserField: 'user' });
-
-const actions = [
-  { icon: '📝', text: '发布动态', handler: goToSquare },
-  { icon: '🧠', text: 'MBTI测试', handler: goToMbti },
-  { icon: '👥', text: '好友', handler: goToFriendList },
-];
-
-function goToSquare() {
-  uni.switchTab({
-    url: '/pages/tabbar/square',
-  });
-}
-
-function goToChatList() {
-  uni.navigateTo({
-    url: '/pages/chat/list',
-  });
-}
-
-function goToFriendList() {
-  uni.navigateTo({
-    url: '/pages/friend/list',
-  });
-}
-
-function goToMbti() {
-  uni.navigateTo({
-    url: '/pages/mbti/intro',
-  });
-}
-
-function goToProfile() {
-  uni.navigateTo({
-    url: '/pages/user/profile',
-  });
-}
-
-onMounted(async () => {
-  await loadRecentPosts();
-
-  // 检查并触发NPS（定期触发场景）
-  // 延迟3秒，让用户先看到内容
-  checkAndTrigger({
-    scene: NPSScene.PERIODIC,
-    delay: 3000
-  });
+// 图片懒加载
+const { preloadImages } = useImageLazyLoad({
+  placeholder: 'https://via.placeholder.com/400',
 });
 
-const loadRecentPosts = async () => {
-  try {
-    await squareStore.fetchPosts({ page: 1, pageSize: 10 });
-    recentPosts.value = squareStore.posts;
-    console.log('消息列表', recentPosts.value);
-  } catch (error) {
-    console.error('Load posts error:', error);
-  }
-};
+// 图片预加载策略
+const imagePreloadStrategy = new ImagePreloadStrategy();
 
-const goToPostDetail = (id: number) => {
-  if (!id) {
-    return uni.showToast({
-      title: '先选择评论',
-      icon: 'none',
-    });
-  }
-  uni.navigateTo({
-    url: `/pages/square/post?id=${id}`,
-  });
-};
+// 推荐流
+const {
+  items: recommendationItems,
+  loading,
+  hasMore,
+  fetchRecommendations,
+  loadMore,
+  refresh,
+  trackAction,
+} = useRecommendation({ useMockData: true });
 
-const handleLike = async (post: any) => {
-  try {
-    await squareStore.toggleLike({
-      targetId: post?.id,
-      targetType: 1,
-    });
-  } catch (error) {
-    console.error('Like error:', error);
-  }
-};
+// 无限滚动
+const { refreshing, handleScroll } = useInfiniteScroll({
+  onLoadMore: loadMore,
+  onRefresh: refresh,
+});
 
-const handleComment = (post: any) => {
-  if (!post?.id) {
-    return uni.showToast({
-      title: '先选择评论',
-      icon: 'none',
-    });
-  }
-  uni.navigateTo({
-    url: `/pages/square/post?id=${post?.id}`,
-  });
-};
+// 当前城市
+const currentCity = ref('定位中...');
 
-const handleShare = (post: any) => {
-  uni.showActionSheet({
-    itemList: ['分享到微信', '分享到朋友圈', '复制链接'],
-    success: (res) => {
-      if (res.tapIndex === 0) {
-        shareToWeChat(post);
-      } else if (res.tapIndex === 1) {
-        shareToMoments(post);
-      } else if (res.tapIndex === 2) {
-        copyLink(post);
-      }
-    }
-  });
-};
+// 城市选择弹窗
+const showCitySelector = ref(false);
 
-const shareToWeChat = (post: any) => {
-  // #ifdef MP-WEIXIN
-  uni.shareAppMessage({
-    title: post.content.substring(0, 30) + (post.content.length > 30 ? '...' : ''),
-    path: `/pages/square/post?id=${post.id}`,
-    imageUrl: post.images?.[0] || '',
-  });
-  // #endif
+// 未读消息数
+const unreadCount = ref(0);
 
-  // #ifndef MP-WEIXIN
-  uni.showToast({
-    title: '仅支持微信小程序',
-    icon: 'none'
-  });
-  // #endif
-};
+// Banner数据
+const banners = ref<Banner[]>([]);
 
-const shareToMoments = (post: any) => {
-  // #ifdef MP-WEIXIN
-  uni.showShareMenu({
-    withShareTicket: true,
-    menus: ['shareAppMessage', 'shareTimeline']
-  });
-  uni.showToast({
-    title: '请点击右上角分享',
-    icon: 'none'
-  });
-  // #endif
+// 是否显示骨架屏
+const showSkeleton = computed(() => loading.value && recommendationItems.value.length === 0);
 
-  // #ifndef MP-WEIXIN
-  uni.showToast({
-    title: '仅支持微信小程序',
-    icon: 'none'
-  });
-  // #endif
-};
+// 定时器引用
+let cleanupTimer: number | null = null;
 
-const copyLink = (post: any) => {
-  const link = `${window.location.origin}/pages/square/post?id=${post.id}`;
-  uni.setClipboardData({
-    data: link,
-    success: () => {
-      uni.showToast({
-        title: '链接已复制',
-        icon: 'success'
-      });
+// 快速入口
+const quickActions = ref<QuickAction[]>([
+  {
+    id: 'publish',
+    icon: '📝',
+    text: '发布动态',
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    handler: () => {
+      uni.switchTab({ url: '/pages/tabbar/square' });
     },
-    fail: () => {
-      uni.showToast({
-        title: '复制失败',
-        icon: 'none'
-      });
+  },
+  {
+    id: 'mbti',
+    icon: '🧠',
+    text: 'MBTI测试',
+    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    handler: () => {
+      uni.navigateTo({ url: '/pages/mbti/intro' });
+    },
+  },
+  {
+    id: 'friends',
+    icon: '👥',
+    text: '好友',
+    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    handler: () => {
+      uni.navigateTo({ url: '/pages/friend/list' });
+    },
+  },
+  {
+    id: 'nearby',
+    icon: '📍',
+    text: '附近的人',
+    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    handler: () => {
+      uni.navigateTo({ url: '/pages/nearby/index' });
+    },
+  },
+]);
+
+// 加载 Banner
+const loadBanners = async () => {
+  try {
+    // 先从缓存读取
+    const memoryCache = CacheManager.getMemoryCache();
+    const cachedBanners = memoryCache.get<Banner[]>(CACHE_KEYS.BANNERS);
+
+    if (cachedBanners) {
+      banners.value = cachedBanners;
+      return;
     }
+
+    // 缓存未命中，调用API
+    const response = await getBanners();
+    if (response.code === 200 && response.data) {
+      banners.value = response.data;
+      // 缓存数据
+      memoryCache.set(CACHE_KEYS.BANNERS, response.data, CACHE_EXPIRE_TIME.BANNERS);
+    }
+  } catch (error) {
+    console.error('Load banners error:', error);
+    // 使用默认数据
+    banners.value = [
+      {
+        id: 1,
+        title: '欢迎来到社交平台',
+        subtitle: '发现更多有趣的人和事',
+        imageUrl: 'https://picsum.photos/800/400?random=1',
+        linkType: 'activity',
+      },
+      {
+        id: 2,
+        title: '热门话题',
+        subtitle: '参与讨论，分享你的观点',
+        imageUrl: 'https://picsum.photos/800/400?random=2',
+        linkType: 'topic',
+      },
+      {
+        id: 3,
+        title: '附近的人',
+        subtitle: '发现身边的朋友',
+        imageUrl: 'https://picsum.photos/800/400?random=3',
+        linkType: 'user',
+      },
+    ];
+  }
+};
+
+// 顶部导航事件
+const handleLocationClick = () => {
+  console.log('Location clicked');
+  showCitySelector.value = true;
+};
+
+const handleSearchClick = () => {
+  console.log('Search clicked');
+  uni.showToast({ title: '搜索功能开发中', icon: 'none' });
+};
+
+const handleMessageClick = () => {
+  console.log('Message clicked');
+  uni.navigateTo({ url: '/pages/chat/list' });
+};
+
+// 城市选择
+const handleCitySelect = (city: string) => {
+  currentCity.value = city;
+
+  // 刷新推荐内容
+  page.value = 1;
+  recommendationItems.value = [];
+  hasMore.value = true;
+  loadRecommendations();
+};
+
+// Banner事件
+const handleBannerClick = (banner: Banner) => {
+  console.log('Banner clicked:', banner);
+  trackAction('view', 'post', banner.id);
+};
+
+// 快速入口事件
+const handleActionClick = (action: QuickAction) => {
+  console.log('Action clicked:', action);
+};
+
+// 用户卡片事件
+const handleUserClick = (user: any) => {
+  console.log('User clicked:', user);
+  trackAction('view', 'user', user.id);
+  uni.navigateTo({
+    url: `/pages/user/detail?id=${user.id}`
   });
 };
+
+const handleUserLike = (user: any) => {
+  console.log('User liked:', user);
+  trackAction('like', 'user', user.id);
+  uni.showToast({ title: '已喜欢', icon: 'success' });
+};
+
+const handleUserSkip = (user: any) => {
+  console.log('User skipped:', user);
+  trackAction('skip', 'user', user.id);
+  // 从列表中移除
+  const index = recommendationItems.value.findIndex(item => item.data.user?.id === user.id);
+  if (index > -1) {
+    recommendationItems.value.splice(index, 1);
+  }
+};
+
+const handleUserDetail = (user: any) => {
+  console.log('User detail:', user);
+  trackAction('view', 'user', user.id);
+  uni.navigateTo({
+    url: `/pages/user/detail?id=${user.id}`
+  });
+};
+
+// 话题卡片事件
+const handleTopicClick = (topic: any) => {
+  console.log('Topic clicked:', topic);
+  trackAction('view', 'topic', topic.id);
+  uni.navigateTo({
+    url: `/pages/square/topic?id=${topic.id}`
+  });
+};
+
+const handleTopicView = (topic: any) => {
+  console.log('Topic view:', topic);
+  trackAction('view', 'topic', topic.id);
+  uni.navigateTo({
+    url: `/pages/square/topic?id=${topic.id}`
+  });
+};
+
+const handleTopicJoin = async (topic: any) => {
+  console.log('Topic join:', topic);
+  trackAction('favorite', 'topic', topic.id);
+
+  // 跳转到话题详情页进行参与
+  uni.navigateTo({
+    url: `/pages/square/topic?id=${topic.id}`
+  });
+};
+
+// 刷新
+const handleRefresh = async () => {
+  await refresh();
+  // 清理过期缓存
+  CacheManager.clearAllExpired();
+};
+
+// 预加载下一页图片
+const preloadNextPageImages = async () => {
+  if (recommendationItems.value.length > 0) {
+    const lastVisibleIndex = Math.min(5, recommendationItems.value.length - 1);
+    await imagePreloadStrategy.preloadNextPage(recommendationItems.value, lastVisibleIndex, 3);
+  }
+};
+
+// 初始化
+onMounted(async () => {
+  // 获取定位
+  currentCity.value = '北京';
+
+  // 并行加载数据
+  const results = await Promise.allSettled([
+    loadBanners(),
+    fetchRecommendations(),
+  ]);
+
+  // 检查加载结果
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(`数据加载失败 [${index}]:`, result.reason);
+    }
+  });
+
+  // 预加载图片
+  await preloadNextPageImages();
+
+  // 检查并触发NPS
+  checkAndTrigger({
+    scene: NPSScene.PERIODIC,
+    delay: 3000,
+  });
+
+  // 定期清理过期缓存
+  cleanupTimer = setInterval(() => {
+    CacheManager.clearAllExpired();
+  }, 10 * 60 * 1000) as unknown as number;
+});
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (cleanupTimer) {
+    clearInterval(cleanupTimer);
+    cleanupTimer = null;
+  }
+});
 </script>
 
 <style scoped lang="scss">
 @use '@/assets/styles/design-tokens.scss' as *;
 
 .home-container {
-  
-  padding: $padding-xl;
+  min-height: 100vh;
   background: $bg-secondary;
+  display: flex;
+  flex-direction: column;
 
-  .welcome-section {
-    margin-bottom: $margin-xl;
+  .scroll-container {
+    flex: 1;
+    height: calc(100vh - 120rpx);
+    padding: $padding-lg;
 
-    .welcome-text {
-      font-size: $font-size-xl;
-      font-weight: $font-weight-bold;
-      color: $text-primary;
-    }
-  }
+    .recommendation-feed {
+      .section-header {
+        margin-bottom: $margin-lg;
 
-  .quick-actions {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: $spacing-md;
-    margin-bottom: $margin-xl;
-
-    .action-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: $padding-lg $padding-md;
-      background: $bg-primary;
-      border-radius: $radius-lg;
-      box-shadow: $shadow-sm;
-      animation: action-fade-in $duration-base $ease-out both;
-      @include transition(all);
-
-      &:active {
-        transform: scale(0.95);
-        box-shadow: $shadow-xs;
-      }
-
-      .action-icon-wrapper {
-        width: 80rpx;
-        height: 80rpx;
-        @include flex-center;
-        background: linear-gradient(135deg, $primary-color, $primary-hover);
-        border-radius: $radius-circle;
-        margin-bottom: $margin-sm;
-        box-shadow: 0 4rpx 12rpx rgba($primary-color, 0.3);
-        @include transition(transform);
-
-        .action-icon {
-          font-size: 40rpx;
+        .section-title {
+          font-size: $font-size-xl;
+          font-weight: $font-weight-bold;
+          color: $text-primary;
         }
       }
 
-      &:active .action-icon-wrapper {
-        transform: scale(0.9);
+      .loading-state {
+        padding: $padding-xl;
+        text-align: center;
+
+        .loading-text {
+          font-size: $font-size-sm;
+          color: $text-tertiary;
+        }
       }
 
-      .action-text {
-        font-size: $font-size-sm;
-        color: $text-secondary;
-      }
-    }
-  }
+      .no-more {
+        padding: $padding-xl;
+        text-align: center;
 
-  .recent-posts {
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: $margin-md;
-
-      .section-title {
-        font-size: $font-size-lg;
-        font-weight: $font-weight-bold;
-        color: $text-primary;
-      }
-
-      .section-more {
-        font-size: $font-size-sm;
-        color: $primary-color;
-        @include transition(opacity);
-
-        &:active {
-          opacity: 0.6;
+        .no-more-text {
+          font-size: $font-size-sm;
+          color: $text-tertiary;
         }
       }
     }
-  }
-}
-
-@keyframes action-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(20rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
   }
 }
 </style>

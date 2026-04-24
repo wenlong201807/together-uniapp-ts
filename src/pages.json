@@ -103,6 +103,12 @@
       }
     },
     {
+      "path": "pages/square/topic",
+      "style": {
+        "navigationBarTitleText": "话题详情"
+      }
+    },
+    {
       "path": "pages/user/profile",
       "style": {
         "navigationBarTitleText": "个人资料"
@@ -202,6 +208,12 @@
       "path": "pages/profile/certification",
       "style": {
         "navigationBarTitleText": "认证申请"
+      }
+    },
+    {
+      "path": "pages/nearby/index",
+      "style": {
+        "navigationBarTitleText": "附近的人"
       }
     }
   ],

@@ -87,7 +87,7 @@
 
         <view class="form-item">
           <text class="form-label">生肖</text>
-          <picker :value="chineseZodirange="chineseZodiacOptions" @change="onChineseZodiacChange">
+          <picker :value="chineseZodiacIndex" :range="chineseZodiacOptions" @change="onChineseZodiacChange">
             <view class="form-picker" :class="{ placeholder: !formData.chineseZodiac }">
               {{ formData.chineseZodiac || '请选择生肖' }}
             </view>
@@ -544,7 +544,11 @@ const validateForm = (): boolean => {
       return false
     }
     if (!formData.value.height || formData.value.height < 100 || formData.value.height > 250) {
-      uni.showToast({ title: '请输入有效的身高', icon: 'none' })
+      uni.showToast({ title: '请输入有效的身高(100-250cm)', icon: 'none' })
+      return false
+    }
+    if (formData.value.weight && (formData.value.weight < 30 || formData.value.weight > 200)) {
+      uni.showToast({ title: '请输入有效的体重(30-200kg)', icon: 'none' })
       return false
     }
     if (!formData.value.occupation?.trim()) {
@@ -553,6 +557,31 @@ const validateForm = (): boolean => {
     }
     if (!formData.value.education) {
       uni.showToast({ title: '请选择学历', icon: 'none' })
+      return false
+    }
+  }
+
+  if (section.value === 'education') {
+    if (formData.value.workYears && (formData.value.workYears < 0 || formData.value.workYears > 50)) {
+      uni.showToast({ title: '请输入有效的工作年限(0-50年)', icon: 'none' })
+      return false
+    }
+    if (formData.value.income && formData.value.income < 0) {
+      uni.showToast({ title: '请输入有效的收入', icon: 'none' })
+      return false
+    }
+  }
+
+  if (section.value === 'family') {
+    if (formData.value.familyMembers && (formData.value.familyMembers < 1 || formData.value.familyMembers > 20)) {
+      uni.showToast({ title: '请输入有效的家庭成员数(1-20人)', icon: 'none' })
+      return false
+    }
+  }
+
+  if (section.value === 'marital') {
+    if (formData.value.childrenCount && (formData.value.childrenCount < 0 || formData.value.childrenCount > 10)) {
+      uni.showToast({ title: '请输入有效的孩子数量(0-10人)', icon: 'none' })
       return false
     }
   }

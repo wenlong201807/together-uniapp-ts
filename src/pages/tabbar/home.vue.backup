@@ -1,0 +1,405 @@
+<template>
+  <view class="home-container">
+    <!-- 顶部导航 -->
+    <TopNavigation
+      :city="currentCity"
+      :unread-count="unreadCount"
+      @location-click="handleLocationClick"
+      @search-click="handleSearchClick"
+      @message-click="handleMessageClick"
+    />
+
+    <!-- 滚动容器 -->
+    <scroll-view
+      class="scroll-container"
+      scroll-y
+      :refresher-enabled="true"
+      :refresher-triggered="refreshing"
+      @refresherrefresh="handleRefresh"
+      @scroll="handleScroll"
+    >
+      <!-- Banner轮播 -->
+      <BannerCarousel
+        :banners="banners"
+        @banner-click="handleBannerClick"
+      />
+
+      <!-- 快速入口 -->
+      <QuickActions
+        :actions="quickActions"
+        @action-click="handleActionClick"
+      />
+
+      <!-- 推荐流 -->
+      <view class="recommendation-feed">
+        <view class="section-header">
+          <text class="section-title">为你推荐</text>
+        </view>
+
+        <template v-for="item in recommendationItems" :key="item.id">
+          <!-- 个性化推荐卡片 -->
+          <RecommendationCard
+            v-if="item.type === 'personalized'"
+            :user="item.data.user"
+            @card-click="handleUserClick"
+            @like="handleUserLike"
+            @skip="handleUserSkip"
+            @detail="handleUserDetail"
+          />
+
+          <!-- 热门卡片 -->
+          <HotCard
+            v-else-if="item.type === 'hot'"
+            :user="item.data.user"
+            :hot-score="item.data.hotScore"
+            @card-click="handleUserClick"
+            @like="handleUserLike"
+            @skip="handleUserSkip"
+          />
+
+          <!-- 附近的人卡片 -->
+          <NearbyCard
+            v-else-if="item.type === 'nearby'"
+            :user="item.data.user"
+            :distance="item.data.distance"
+            @card-click="handleUserClick"
+            @like="handleUserLike"
+            @skip="handleUserSkip"
+          />
+
+          <!-- 话题卡片 -->
+          <TopicCard
+            v-else-if="item.type === 'topic'"
+            :topic="item.data"
+            @card-click="handleTopicClick"
+            @view="handleTopicView"
+            @join="handleTopicJoin"
+          />
+
+          <!-- 新用户卡片 -->
+          <NewUserCard
+            v-else-if="item.type === 'new'"
+            :user="item.data.user"
+            :join-days="item.data.joinDays"
+            @card-click="handleUserClick"
+            @like="handleUserLike"
+            @skip="handleUserSkip"
+          />
+        </template>
+
+        <!-- 加载状态 -->
+        <view v-if="loading" class="loading-state">
+          <text class="loading-text">加载中...</text>
+        </view>
+
+        <!-- 无更多数据 -->
+        <view v-if="!hasMore && recommendationItems.length > 0" class="no-more">
+          <text class="no-more-text">没有更多内容了</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- NPS反馈弹窗 -->
+    <NPSModal
+      :visible="npsVisible"
+      :trigger-type="npsTriggerType"
+      :trigger-scene="npsTriggerScene"
+      @close="closeNPS"
+      @success="onNPSSuccess"
+    />
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useAuthStore, useSquareStore } from '@/stores';
+import PostCard from '@/components/business/PostCard.vue';
+import NPSModal from '@/components/business/NPSModal.vue';
+import { useAvatarSync } from '@/composables/useAvatarSync';
+import { useNPS, NPSScene } from '@/composables/useNPS';
+
+const authStore = useAuthStore();
+const squareStore = useSquareStore();
+const { npsVisible, npsTriggerType, npsTriggerScene, checkAndTrigger, closeNPS, onNPSSuccess } = useNPS();
+
+const recentPosts = ref<any[]>([]);
+
+// 头像同步
+useAvatarSync(recentPosts, { nestedUserField: 'user' });
+
+const actions = [
+  { icon: '📝', text: '发布动态', handler: goToSquare },
+  { icon: '🧠', text: 'MBTI测试', handler: goToMbti },
+  { icon: '👥', text: '好友', handler: goToFriendList },
+];
+
+function goToSquare() {
+  uni.switchTab({
+    url: '/pages/tabbar/square',
+  });
+}
+
+function goToChatList() {
+  uni.navigateTo({
+    url: '/pages/chat/list',
+  });
+}
+
+function goToFriendList() {
+  uni.navigateTo({
+    url: '/pages/friend/list',
+  });
+}
+
+function goToMbti() {
+  uni.navigateTo({
+    url: '/pages/mbti/intro',
+  });
+}
+
+function goToProfile() {
+  uni.navigateTo({
+    url: '/pages/user/profile',
+  });
+}
+
+onMounted(async () => {
+  await loadRecentPosts();
+
+  // 检查并触发NPS（定期触发场景）
+  // 延迟3秒，让用户先看到内容
+  checkAndTrigger({
+    scene: NPSScene.PERIODIC,
+    delay: 3000
+  });
+});
+
+const loadRecentPosts = async () => {
+  try {
+    await squareStore.fetchPosts({ page: 1, pageSize: 10 });
+    recentPosts.value = squareStore.posts;
+    console.log('消息列表', recentPosts.value);
+  } catch (error) {
+    console.error('Load posts error:', error);
+  }
+};
+
+const goToPostDetail = (id: number) => {
+  if (!id) {
+    return uni.showToast({
+      title: '先选择评论',
+      icon: 'none',
+    });
+  }
+  uni.navigateTo({
+    url: `/pages/square/post?id=${id}`,
+  });
+};
+
+const handleLike = async (post: any) => {
+  try {
+    await squareStore.toggleLike({
+      targetId: post?.id,
+      targetType: 1,
+    });
+  } catch (error) {
+    console.error('Like error:', error);
+  }
+};
+
+const handleComment = (post: any) => {
+  if (!post?.id) {
+    return uni.showToast({
+      title: '先选择评论',
+      icon: 'none',
+    });
+  }
+  uni.navigateTo({
+    url: `/pages/square/post?id=${post?.id}`,
+  });
+};
+
+const handleShare = (post: any) => {
+  uni.showActionSheet({
+    itemList: ['分享到微信', '分享到朋友圈', '复制链接'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        shareToWeChat(post);
+      } else if (res.tapIndex === 1) {
+        shareToMoments(post);
+      } else if (res.tapIndex === 2) {
+        copyLink(post);
+      }
+    }
+  });
+};
+
+const shareToWeChat = (post: any) => {
+  // #ifdef MP-WEIXIN
+  uni.shareAppMessage({
+    title: post.content.substring(0, 30) + (post.content.length > 30 ? '...' : ''),
+    path: `/pages/square/post?id=${post.id}`,
+    imageUrl: post.images?.[0] || '',
+  });
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  uni.showToast({
+    title: '仅支持微信小程序',
+    icon: 'none'
+  });
+  // #endif
+};
+
+const shareToMoments = (post: any) => {
+  // #ifdef MP-WEIXIN
+  uni.showShareMenu({
+    withShareTicket: true,
+    menus: ['shareAppMessage', 'shareTimeline']
+  });
+  uni.showToast({
+    title: '请点击右上角分享',
+    icon: 'none'
+  });
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  uni.showToast({
+    title: '仅支持微信小程序',
+    icon: 'none'
+  });
+  // #endif
+};
+
+const copyLink = (post: any) => {
+  const link = `${window.location.origin}/pages/square/post?id=${post.id}`;
+  uni.setClipboardData({
+    data: link,
+    success: () => {
+      uni.showToast({
+        title: '链接已复制',
+        icon: 'success'
+      });
+    },
+    fail: () => {
+      uni.showToast({
+        title: '复制失败',
+        icon: 'none'
+      });
+    }
+  });
+};
+</script>
+
+<style scoped lang="scss">
+@use '@/assets/styles/design-tokens.scss' as *;
+
+.home-container {
+  
+  padding: $padding-xl;
+  background: $bg-secondary;
+
+  .welcome-section {
+    margin-bottom: $margin-xl;
+
+    .welcome-text {
+      font-size: $font-size-xl;
+      font-weight: $font-weight-bold;
+      color: $text-primary;
+    }
+  }
+
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-md;
+    margin-bottom: $margin-xl;
+
+    .action-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: $padding-lg $padding-md;
+      background: $bg-primary;
+      border-radius: $radius-lg;
+      box-shadow: $shadow-sm;
+      animation: action-fade-in $duration-base $ease-out both;
+      @include transition(all);
+
+      &:active {
+        transform: scale(0.95);
+        box-shadow: $shadow-xs;
+      }
+
+      .action-icon-wrapper {
+        width: 80rpx;
+        height: 80rpx;
+        @include flex-center;
+        background: linear-gradient(135deg, $primary-color, $primary-hover);
+        border-radius: $radius-circle;
+        margin-bottom: $margin-sm;
+        box-shadow: 0 4rpx 12rpx rgba($primary-color, 0.3);
+        @include transition(transform);
+
+        .action-icon {
+          font-size: 40rpx;
+        }
+      }
+
+      &:active .action-icon-wrapper {
+        transform: scale(0.9);
+      }
+
+      .action-text {
+        font-size: $font-size-sm;
+        color: $text-secondary;
+      }
+    }
+  }
+
+  .recent-posts {
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $margin-md;
+
+      .section-title {
+        font-size: $font-size-lg;
+        font-weight: $font-weight-bold;
+        color: $text-primary;
+      }
+
+      .section-more {
+        font-size: $font-size-sm;
+        color: $primary-color;
+        @include transition(opacity);
+
+        &:active {
+          opacity: 0.6;
+        }
+      }
+    }
+  }
+}
+
+@keyframes action-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+</style>

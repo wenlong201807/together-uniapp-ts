@@ -73,6 +73,7 @@ $padding-base: 16rpx;
 $padding-md: 20rpx;
 $padding-lg: 24rpx;
 $padding-xl: 32rpx;
+$padding-xxl: 40rpx;
 
 // 外边距
 $margin-xs: 8rpx;
@@ -81,15 +82,18 @@ $margin-base: 16rpx;
 $margin-md: 20rpx;
 $margin-lg: 24rpx;
 $margin-xl: 32rpx;
+$margin-xxl: 40rpx;
 
 // ==================== 圆角系统 ====================
 
 $radius-xs: 4rpx;
 $radius-sm: 8rpx;
 $radius-base: 12rpx;
-$radius-lg: 16rpx;
+$radius-md: 16rpx;
+$radius-lg: 20rpx;
 $radius-xl: 24rpx;
 $radius-circle: 50%;
+$radius-full: 9999rpx; // 完全圆角
 
 // ==================== 阴影系统 ====================
 
