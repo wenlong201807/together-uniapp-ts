@@ -41,6 +41,7 @@
 import { ref } from 'vue'
 import { useSquareStore } from '@/stores'
 import { fileApi } from '@/api'
+import { triggerAfterFirstPost } from '@/composables/useNPS'
 
 const squareStore = useSquareStore()
 
@@ -113,6 +114,10 @@ const handlePublish = async () => {
       title: '发布成功',
       icon: 'success'
     })
+
+    // 发帖成功后，检查是否需要触发 NPS
+    triggerAfterFirstPost()
+
     setTimeout(() => {
       uni.switchTab({ url: '/pages/tabbar/square' })
     }, 1500)

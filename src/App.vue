@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/stores';
+import { useNPS } from '@/composables/useNPS';
+import NPSModal from '@/components/business/NPSModal.vue';
+
+const { npsVisible, npsTriggerType, npsTriggerScene, closeNPS, onNPSSuccess } = useNPS();
 
 onLaunch(() => {
   console.log('App Launch');
@@ -20,6 +24,17 @@ onHide(() => {
   console.log('App Hide');
 });
 </script>
+
+<template>
+  <!-- NPS 全局弹窗 -->
+  <NPSModal
+    :visible="npsVisible"
+    :trigger-type="npsTriggerType"
+    :trigger-scene="npsTriggerScene"
+    @close="closeNPS"
+    @success="onNPSSuccess"
+  />
+</template>
 
 <style lang="scss">
 @use '@/assets/styles/index.scss';

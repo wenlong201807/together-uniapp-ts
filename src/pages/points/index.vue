@@ -216,14 +216,34 @@ const formatTime = (time: string) => {
     }
 
     .sign-btn {
-      padding: 16rpx 40rpx;
-      background: #667eea;
+      padding: 12rpx 32rpx;
+      height: 64rpx;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #fff;
-      border-radius: 30rpx;
+      border-radius: 32rpx;
       font-size: 26rpx;
+      font-weight: 500;
+      border: none;
+      box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:active:not([disabled]) {
+        transform: scale(0.95);
+        box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
+      }
 
       &[disabled] {
-        background: #ccc;
+        opacity: 0.5;
+        background: #e0e0e0;
+        color: #999;
+        box-shadow: none;
+      }
+
+      &::after {
+        border: none;
       }
     }
   }

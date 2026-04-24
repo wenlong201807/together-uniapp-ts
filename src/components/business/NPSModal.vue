@@ -53,7 +53,12 @@
             :maxlength="500"
             auto-height
           />
-          <view class="char-count">{{ reason.length }}/500</view>
+          <view class="char-count">
+            <text :class="{ 'text-warning': reason.length < 10 }">
+              {{ reason.length }}/500
+              <text v-if="reason.length < 10" class="min-tip">（至少10字）</text>
+            </text>
+          </view>
 
           <view class="tags-section">
             <text class="tags-label">选择标签（可选，最多3个）</text>
@@ -237,9 +242,22 @@ const handleTagToggle = (tag: string) => {
 
 // 提交反馈
 const handleSubmit = async () => {
-  if (!canSubmit.value || selectedScore.value === null) return
+  console.log('[NPS] handleSubmit 被调用')
+  console.log('[NPS] canSubmit:', canSubmit.value)
+  console.log('[NPS] selectedScore:', selectedScore.value)
+  console.log('[NPS] reason length:', reason.value.trim().length)
+
+  if (!canSubmit.value || selectedScore.value === null) {
+    console.log('[NPS] 提交被阻止 - canSubmit:', canSubmit.value, 'selectedScore:', selectedScore.value)
+    uni.showToast({
+      title: reason.value.trim().length < 10 ? '请至少输入10个字' : '请先评分',
+      icon: 'none'
+    })
+    return
+  }
 
   submitting.value = true
+  console.log('[NPS] 开始提交反馈...')
 
   try {
     const dto: SubmitNPSDto = {
@@ -250,7 +268,9 @@ const handleSubmit = async () => {
       triggerScene: props.triggerScene
     }
 
+    console.log('[NPS] 提交数据:', dto)
     const result = await submitNPSFeedback(dto)
+    console.log('[NPS] 提交成功:', result)
 
     // 根据反馈长度计算积分
     pointsReward.value = reason.value.length >= 50 ? 30 : 20
@@ -263,6 +283,7 @@ const handleSubmit = async () => {
       handleClose()
     }, 3000)
   } catch (error: any) {
+    console.error('[NPS] 提交失败:', error)
     uni.showToast({
       title: error.message || '提交失败',
       icon: 'none'
@@ -408,6 +429,15 @@ const handleOverlayTap = () => {
   font-size: 24rpx;
   color: #999;
   margin-top: 8rpx;
+
+  .text-warning {
+    color: #ff9800;
+  }
+
+  .min-tip {
+    font-size: 22rpx;
+    color: #ff9800;
+  }
 }
 
 .tags-section {

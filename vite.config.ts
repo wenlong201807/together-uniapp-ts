@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import uni from '@dcloudio/vite-plugin-uni';
+import path from 'path';
 
 // 加载环境变量
 const env = loadEnv('', process.cwd());
@@ -16,11 +17,11 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['socket.io-client'],
+    include: ['socket.io-client', 'ms', 'debug'],
   },
   build: {
     commonjsOptions: {
-      include: [/socket\.io-client/, /node_modules/],
+      include: [/socket\.io-client/, /debug/, /ms/, /node_modules/],
     },
   },
   server: {

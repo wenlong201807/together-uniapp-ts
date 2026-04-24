@@ -19,6 +19,7 @@
     <scroll-view
       class="posts-list"
       scroll-y
+      :show-scrollbar="false"
       @scrolltolower="loadMore"
       refresher-enabled
       :refresher-triggered="refreshing"

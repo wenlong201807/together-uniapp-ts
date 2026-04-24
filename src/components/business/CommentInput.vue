@@ -12,13 +12,14 @@
       :disabled="!content.trim() || loading"
       @click="submit"
     >
-      {{ loading ? '发送中...' : '发送' }}
+      {{ buttonText }}
     </button>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useDebounceButton } from '@/composables/useDebounce';
 import type { Comment } from '@/types';
 
 interface Props {
@@ -32,7 +33,7 @@ const emit = defineEmits<{
 }>();
 
 const content = ref('');
-const loading = ref(false);
+const { loading, buttonText, execute } = useDebounceButton('发送', '发送中...');
 
 const placeholder = computed(() => {
   if (props.replyToComment) {
@@ -52,8 +53,7 @@ const handleBlur = () => {
 const submit = async () => {
   if (!content.value.trim()) return;
 
-  loading.value = true;
-  try {
+  await execute(async () => {
     const { squareApi } = await import('@/api');
     await squareApi.createComment({
       postId: props.postId,
@@ -69,15 +69,7 @@ const submit = async () => {
       title: '评论成功',
       icon: 'success',
     });
-  } catch (error) {
-    console.error('Submit comment error:', error);
-    uni.showToast({
-      title: '评论失败',
-      icon: 'none',
-    });
-  } finally {
-    loading.value = false;
-  }
+  });
 };
 </script>
 
@@ -102,15 +94,28 @@ const submit = async () => {
   .submit-btn {
     padding: 0 32rpx;
     height: 72rpx;
-    line-height: 72rpx;
-    background: #007aff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
     font-size: 28rpx;
+    font-weight: 500;
     border-radius: 36rpx;
     border: none;
+    box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:active:not(:disabled) {
+      transform: scale(0.95);
+      box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
+    }
 
     &:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
+      background: #e0e0e0;
+      color: #999;
+      box-shadow: none;
     }
   }
 }

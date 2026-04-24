@@ -20,7 +20,7 @@
             :disabled="!canSend || sending"
             @click="submitComment"
           >
-            {{ sending ? '发送中...' : '发送' }}
+            {{ sendButtonText }}
           </button>
         </view>
       </view>
@@ -159,6 +159,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore, useSquareStore } from '@/stores';
 import { useNetworkStatus } from '@/composables/useNetworkStatus';
+import { useDebounceButton } from '@/composables/useDebounce';
 import type { Comment } from '@/types';
 import Avatar from '@/components/common/Avatar.vue';
 
@@ -176,6 +177,7 @@ const emit = defineEmits<{
 const authStore = useAuthStore();
 const squareStore = useSquareStore();
 const { checkBeforeAction } = useNetworkStatus();
+const { loading: sending, buttonText: sendButtonText, execute: executeSubmit } = useDebounceButton('发送', '发送中...');
 
 // 响应式数据
 const content = ref('');
@@ -183,7 +185,6 @@ const comments = ref<Comment[]>([]);
 const currentPage = ref(1);
 const hasMore = ref(true);
 const isFocused = ref(false);
-const sending = ref(false);
 const replyingComment = ref<Comment | null>(null);
 const replyingRoot = ref<Comment | null>(null);
 const expandedComments = ref<Set<number>>(new Set());
@@ -238,12 +239,10 @@ const loadComments = async (reset = false) => {
 
 // 提交评论
 const submitComment = async () => {
-  if (!canSend.value || sending.value) return;
+  if (!canSend.value) return;
   if (!checkBeforeAction('发送评论')) return;
 
-  sending.value = true;
-
-  try {
+  await executeSubmit(async () => {
     // 构建评论数据
     const commentData: any = {
       postId: props.postId,
@@ -280,15 +279,7 @@ const submitComment = async () => {
     });
 
     emit('success');
-  } catch (error) {
-    console.error('Submit comment error:', error);
-    uni.showToast({
-      title: '评论失败',
-      icon: 'none',
-    });
-  } finally {
-    sending.value = false;
-  }
+  });
 };
 
 // 开始回复
@@ -487,15 +478,38 @@ onMounted(async () => {
         }
 
         .send-btn {
-          padding: 10rpx 30rpx;
-          background: #00a1d6;
+          padding: 12rpx 32rpx;
+          height: 64rpx;
+          line-height: 64rpx;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: #fff;
-          font-size: 26rpx;
-          border-radius: 6rpx;
+          font-size: 28rpx;
+          font-weight: 500;
+          border-radius: 32rpx;
           border: none;
+          box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:active:not(:disabled) {
+            transform: scale(0.95);
+            box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            background: #e0e0e0;
+            color: #999;
+            box-shadow: none;
+          }
 
           &.disabled {
-            background: #ccc;
+            opacity: 0.5;
+            background: #e0e0e0;
+            color: #999;
+            box-shadow: none;
           }
         }
       }

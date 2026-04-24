@@ -31,19 +31,12 @@ export interface CanTriggerResponse {
  * 检查是否可以触发NPS
  */
 export const canTriggerNPS = () => {
-  return request<CanTriggerResponse>({
-    url: '/nps/can-trigger',
-    method: 'GET'
-  })
+  return request.get<CanTriggerResponse>('/nps/can-trigger')
 }
 
 /**
  * 提交NPS反馈
  */
 export const submitNPSFeedback = (data: SubmitNPSDto) => {
-  return request<NPSFeedback>({
-    url: '/nps/submit',
-    method: 'POST',
-    data
-  })
+  return request.post<NPSFeedback>('/nps/submit', data)
 }

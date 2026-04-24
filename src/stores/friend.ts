@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { friendApi, type FriendshipStatus } from '@/api/modules/friend';
 import type { Friend } from '@/types';
+import { triggerAfterAddFriend } from '@/composables/useNPS';
 
 export const useFriendStore = defineStore('friend', () => {
   const friendList = ref<Friend[]>([]);
@@ -28,6 +29,9 @@ export const useFriendStore = defineStore('friend', () => {
   const follow = async (userId: number) => {
     await friendApi.follow(userId);
     await fetchFollowingList();
+
+    // 关注成功后，检查是否需要触发 NPS
+    triggerAfterAddFriend();
   };
 
   const unlockChat = async (userId: number) => {

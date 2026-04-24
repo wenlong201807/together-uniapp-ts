@@ -7,10 +7,11 @@
     <view v-else-if="userInfo" class="user-detail">
       <!-- 用户头部信息 -->
       <view class="user-header">
-        <image
+        <Avatar
+          :avatar-id="userInfo.avatarId"
+          :avatar-url="userInfo.avatarUrl"
+          size="large"
           class="avatar"
-          :src="userInfo.avatarUrl || '/static/images/default-avatar.png'"
-          mode="aspectFill"
         />
         <view class="user-info">
           <view class="nickname-row">
@@ -79,6 +80,7 @@
             :post="post"
             @click="goToPostDetail(post.id)"
             @like="handleLike(post)"
+            @comment="handleComment(post)"
           />
         </view>
 
@@ -97,6 +99,7 @@ import { userApi } from '@/api/modules/user';
 import { squareApi } from '@/api/modules/square';
 import { friendApi } from '@/api/modules/friend';
 import PostCard from '@/components/business/PostCard.vue';
+import Avatar from '@/components/common/Avatar.vue';
 import Loading from '@/components/common/Loading.vue';
 import Empty from '@/components/common/Empty.vue';
 
@@ -109,7 +112,8 @@ const loading = ref(true);
 const chatLoading = ref(false);
 
 const isSelf = computed(() => {
-  return userId.value === authStore.user?.id;
+  const currentUserId = authStore.user?.id || authStore.userInfo?.id;
+  return userId.value === currentUserId;
 });
 
 onMounted(async () => {
@@ -313,6 +317,12 @@ const handleLike = async (post: any) => {
   }
 };
 
+const handleComment = (post: any) => {
+  uni.navigateTo({
+    url: `/pages/square/post?id=${post.id}`
+  });
+};
+
 const showMoreActions = () => {
   uni.showActionSheet({
     itemList: ['举报用户', '拉黑用户'],
@@ -420,11 +430,8 @@ const goToFollowersList = () => {
       margin-bottom: 20rpx;
 
       .avatar {
-        width: 120rpx;
-        height: 120rpx;
-        border-radius: 50%;
         margin-right: 24rpx;
-        background: #f0f0f0;
+        flex-shrink: 0;
       }
 
       .user-info {

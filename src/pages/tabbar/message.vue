@@ -1,98 +1,102 @@
 <template>
   <view class="message-container">
-    <view class="message-tabs">
+    <!-- 好友列表 -->
+    <scroll-view class="friend-list" scroll-y :show-scrollbar="false">
       <view
-        :class="['tab-item', activeTab === 'chat' ? 'active' : '']"
-        @click="activeTab = 'chat'"
+        v-for="friend in friendsWithUnread"
+        :key="friend.friendId"
+        class="friend-item"
+        @click="goToChat(friend)"
       >
-        <text>聊天</text>
-        <view v-if="chatStore.unreadCount > 0" class="badge">{{
-          chatStore.unreadCount
-        }}</view>
-      </view>
-      <view
-        :class="['tab-item', activeTab === 'friend' ? 'active' : '']"
-        @click="activeTab = 'friend'"
-      >
-        <text>好友</text>
-      </view>
-    </view>
-
-    <scroll-view class="message-list" scroll-y>
-      <view v-if="activeTab === 'chat'">
-        <view
-          v-for="conversation in chatStore.conversations"
-          :key="conversation.userId"
-          class="conversation-item"
-          @click="goToChat(conversation)"
-        >
-          <image
+        <view class="avatar-wrapper">
+          <Avatar
+            :avatar-id="friend.avatarId"
+            :avatar-url="friend.avatarUrl"
+            size="large"
             class="avatar"
-            :src="conversation.avatarUrl || '/static/images/default-avatar.png'"
-            mode="aspectFill"
           />
-          <view class="conversation-info">
-            <view class="conversation-header">
-              <text class="nickname">{{ conversation.nickname }}</text>
-              <text class="time">{{
-                formatTime(conversation.lastMessageTime)
-              }}</text>
-            </view>
-            <view class="conversation-content">
-              <text class="last-message">{{
-                conversation.lastMessage || '暂无消息'
-              }}</text>
-              <view v-if="conversation.unreadCount > 0" class="unread-badge">
-                {{ conversation.unreadCount }}
-              </view>
+          <view v-if="friend.unreadCount > 0" class="unread-dot" />
+        </view>
+
+        <view class="friend-info">
+          <view class="friend-header">
+            <text class="nickname">{{ friend.nickname }}</text>
+            <text v-if="friend.lastMessageTime" class="time">
+              {{ formatTime(friend.lastMessageTime) }}
+            </text>
+          </view>
+          <view class="friend-content">
+            <text class="last-message">
+              {{ friend.lastMessage || '开始聊天吧~' }}
+            </text>
+            <view v-if="friend.unreadCount > 0" class="unread-badge">
+              {{ friend.unreadCount > 99 ? '99+' : friend.unreadCount }}
             </view>
           </view>
         </view>
-
-        <Empty v-if="chatStore?.conversations?.length === 0" text="暂无聊天" />
       </view>
 
-      <view v-if="activeTab === 'friend'">
-        <view
-          v-for="friend in friendStore.friendList"
-          :key="friend.id"
-          class="friend-item"
-          @click="
-            goToChat({
-              userId: friend.friendId,
-              nickname: friend.user?.nickname,
-              avatarUrl: friend.user?.avatarUrl,
-            })
-          "
-        >
-          <image
-            class="avatar"
-            :src="friend.user?.avatarUrl || '/static/images/default-avatar.png'"
-            mode="aspectFill"
-          />
-          <view class="friend-info">
-            <text class="nickname">{{ friend.user?.nickname }}</text>
-          </view>
-        </view>
-
-        <Empty v-if="friendStore?.friendList?.length === 0" text="暂无好友" />
-      </view>
+      <Empty v-if="friendsWithUnread.length === 0" text="暂无好友" description="去广场认识新朋友吧" />
     </scroll-view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { useChatStore, useFriendStore } from '@/stores';
 import { formatTime } from '@/utils';
+import Avatar from '@/components/common/Avatar.vue';
 import Empty from '@/components/common/Empty.vue';
 
 const chatStore = useChatStore();
 const friendStore = useFriendStore();
 
-const activeTab = ref('chat');
+// 合并好友列表和未读消息
+const friendsWithUnread = computed(() => {
+  const friends = friendStore.friendList || [];
+  const conversations = chatStore.conversations || [];
+
+  // 创建会话映射表（按 userId 索引）
+  const conversationMap = new Map();
+  conversations.forEach(conv => {
+    conversationMap.set(conv.userId, conv);
+  });
+
+  // 合并好友信息和会话信息
+  const merged = friends.map(friend => {
+    const conv = conversationMap.get(friend.friendId);
+    return {
+      id: friend.id,
+      friendId: friend.friendId,
+      userId: friend.friendId,
+      nickname: friend.user?.nickname || '未知用户',
+      avatarId: friend.user?.avatarId,
+      avatarUrl: friend.user?.avatarUrl,
+      unreadCount: conv?.unreadCount || 0,
+      lastMessage: conv?.lastMessage || '',
+      lastMessageTime: conv?.lastMessageTime || conv?.lastTime || '',
+      // 排序权重：有未读消息的排前面，然后按时间排序
+      sortWeight: (conv?.unreadCount || 0) * 10000000000 +
+                  (conv?.lastMessageTime ? new Date(conv.lastMessageTime).getTime() : 0)
+    };
+  });
+
+  // 排序：有未读消息的在前，然后按最后消息时间倒序
+  return merged.sort((a, b) => b.sortWeight - a.sortWeight);
+});
+
+// 总未读数
+const totalUnreadCount = computed(() => {
+  return friendsWithUnread.value.reduce((sum, friend) => sum + friend.unreadCount, 0);
+});
 
 onMounted(async () => {
+  await loadData();
+});
+
+onShow(async () => {
+  // 每次显示页面时刷新数据
   await loadData();
 });
 
@@ -107,195 +111,174 @@ const loadData = async () => {
   }
 };
 
-const goToChat = async (conversation: any) => {
-  if (!conversation.userId || !conversation.nickname) {
+const goToChat = async (friend: any) => {
+  if (!friend.userId || !friend.nickname) {
     return uni.showToast({
-      title: '昵称不能为空',
+      title: '用户信息不完整',
       icon: 'none',
     });
   }
-  
+
   try {
-    const status = await friendStore.getFriendshipStatus(conversation.userId)
-    
+    const status = await friendStore.getFriendshipStatus(friend.userId);
+
     if (!status.canChat) {
       if (!status.isFollowing) {
         uni.showModal({
           title: '提示',
-          content: `您还没有关注 ${conversation.nickname}，是否先关注？`,
+          content: `您还没有关注 ${friend.nickname}，是否先关注？`,
           success: async (res) => {
             if (res.confirm) {
-              await friendStore.follow(conversation.userId)
+              await friendStore.follow(friend.userId);
               uni.showToast({
                 title: '关注成功',
                 icon: 'success'
-              })
+              });
             }
           }
-        })
-        return
+        });
+        return;
       }
-      
+
       if (status.chatCount < 8) {
         uni.showModal({
           title: '提示',
-          content: `与 ${conversation.nickname} 互发8条消息后才能解锁私聊，当前已发送 ${status.chatCount} 条消息。`,
+          content: `与 ${friend.nickname} 互发8条消息后才能解锁私聊，当前已发送 ${status.chatCount} 条消息。`,
           showCancel: false
-        })
-        return
+        });
+        return;
       }
-      
+
       if (status.currentPoints < status.requiredPoints) {
         uni.showModal({
           title: '积分不足',
           content: `解锁私聊需要 ${status.requiredPoints} 积分，当前您只有 ${status.currentPoints} 积分，不足以解锁私聊。`,
           showCancel: false
-        })
-        return
+        });
+        return;
       }
     }
-    
+
     uni.navigateTo({
-      url: `/pages/chat/detail?userId=${conversation.userId}&nickname=${conversation.nickname}`,
+      url: `/pages/chat/detail?userId=${friend.userId}&nickname=${friend.nickname}`,
     });
   } catch (error: any) {
     uni.showToast({
       title: error?.message || '进入聊天失败',
       icon: 'none'
-    })
+    });
   }
 };
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/design-tokens.scss' as *;
+
 .message-container {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8f8f8;
+  background: $bg-secondary;
 
-  .message-tabs {
-    display: flex;
-    padding: 20rpx 40rpx;
-    background: #fff;
-    gap: 40rpx;
-
-    .tab-item {
-      position: relative;
-      font-size: 28rpx;
-      color: #666;
-
-      &.active {
-        font-weight: bold;
-        color: #007aff;
-
-        &::after {
-          content: '';
-          position: absolute;
-          bottom: -8rpx;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 40rpx;
-          height: 4rpx;
-          background: #007aff;
-          border-radius: 2rpx;
-        }
-      }
-
-      .badge {
-        position: absolute;
-        top: -8rpx;
-        right: -20rpx;
-        min-width: 32rpx;
-        height: 32rpx;
-        padding: 0 8rpx;
-        background: #ff4d4f;
-        color: #fff;
-        font-size: 20rpx;
-        border-radius: 16rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-    }
-  }
-
-  .message-list {
+  .friend-list {
     flex: 1;
     padding: 20rpx;
 
-    .conversation-item,
     .friend-item {
       display: flex;
       align-items: center;
       padding: 24rpx;
-      background: #fff;
+      background: $bg-primary;
       border-radius: 16rpx;
       margin-bottom: 20rpx;
+      box-shadow: $shadow-xs;
+      @include transition(all);
 
-      .avatar {
-        width: 80rpx;
-        height: 80rpx;
-        border-radius: 50%;
-        margin-right: 20rpx;
-        background: #f0f0f0;
+      &:active {
+        transform: scale(0.98);
+        box-shadow: $shadow-sm;
       }
 
-      .conversation-info,
+      .avatar-wrapper {
+        position: relative;
+        margin-right: 24rpx;
+        flex-shrink: 0;
+
+        .avatar {
+          // Avatar 组件自带尺寸
+        }
+
+        .unread-dot {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 20rpx;
+          height: 20rpx;
+          background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);
+          border: 3rpx solid $bg-primary;
+          border-radius: 50%;
+          box-shadow: 0 2rpx 8rpx rgba(255, 71, 87, 0.4);
+        }
+      }
+
       .friend-info {
         flex: 1;
-        overflow: hidden;
+        min-width: 0;
 
-        .conversation-header {
+        .friend-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 8rpx;
 
           .nickname {
-            font-size: 28rpx;
-            font-weight: 500;
-            color: #333;
+            font-size: 30rpx;
+            font-weight: $font-weight-medium;
+            color: $text-primary;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            margin-right: 16rpx;
           }
 
           .time {
-            font-size: 24rpx;
-            color: #999;
+            font-size: 22rpx;
+            color: $text-tertiary;
+            flex-shrink: 0;
           }
         }
 
-        .conversation-content {
+        .friend-content {
           display: flex;
           justify-content: space-between;
           align-items: center;
 
           .last-message {
             flex: 1;
-            font-size: 24rpx;
-            color: #999;
+            font-size: 26rpx;
+            color: $text-secondary;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            margin-right: 16rpx;
           }
 
           .unread-badge {
-            min-width: 32rpx;
-            height: 32rpx;
-            padding: 0 8rpx;
-            background: #ff4d4f;
+            min-width: 36rpx;
+            height: 36rpx;
+            padding: 0 10rpx;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);
             color: #fff;
-            font-size: 20rpx;
-            border-radius: 16rpx;
+            font-size: 22rpx;
+            font-weight: $font-weight-bold;
+            border-radius: 18rpx;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 2rpx 8rpx rgba(255, 71, 87, 0.3);
           }
-        }
-
-        .nickname {
-          font-size: 28rpx;
-          font-weight: 500;
-          color: #333;
         }
       }
     }

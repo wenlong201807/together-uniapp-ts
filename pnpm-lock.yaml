@@ -77,6 +77,9 @@ importers:
       lodash-es:
         specifier: ^4.17.21
         version: 4.18.1
+      ms:
+        specifier: ^2.1.3
+        version: 2.1.3
       nanoid:
         specifier: ^5.0.4
         version: 5.1.7

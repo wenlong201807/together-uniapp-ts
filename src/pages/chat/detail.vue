@@ -3,9 +3,9 @@
     <scroll-view
       class="messages-list"
       scroll-y
+      :show-scrollbar="false"
       :scroll-into-view="scrollToView"
       :scroll-with-animation="true"
-      :style="{ height: scrollViewHeight + 'px' }"
     >
       <view class="messages-wrapper">
         <MessageBubble
@@ -36,10 +36,10 @@
       />
       <button
         class="send-btn"
-        :disabled="!inputText.trim()"
+        :disabled="!inputText.trim() || sending"
         @click="sendMessage"
       >
-        发送
+        {{ sendButtonText }}
       </button>
     </view>
   </view>
@@ -50,12 +50,14 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useChatStore, useAuthStore } from '@/stores';
 import { useNetworkStatus } from '@/composables/useNetworkStatus';
 import { useAvatarSync } from '@/composables/useAvatarSync';
+import { useDebounceButton } from '@/composables/useDebounce';
 import { wsManager } from '@/utils';
 import MessageBubble from '@/components/business/MessageBubble.vue';
 
 const chatStore = useChatStore();
 const authStore = useAuthStore();
 const { checkBeforeAction } = useNetworkStatus();
+const { loading: sending, buttonText: sendButtonText, execute: executeSend } = useDebounceButton('发送', '发送中...');
 
 // 头像同步 - 消息列表中的发送者头像
 const messagesList = computed(() => ({ list: chatStore.messages }));
@@ -69,18 +71,6 @@ const loading = ref(false);
 const targetUserId = ref<number>(0);
 const targetNickname = ref('');
 const scrollToView = ref('');
-const scrollViewHeight = ref(0);
-
-// 动态测量输入栏高度
-const measureAndCalculate = () => {
-  const systemInfo = uni.getSystemInfoSync();
-  // windowHeight 已排除状态栏和导航栏
-  const query = uni.createSelectorQuery();
-  query.select('.input-bar').boundingClientRect((rect: any) => {
-    const barHeight = rect ? rect.height : 56;
-    scrollViewHeight.value = systemInfo.windowHeight - barHeight;
-  }).exec();
-};
 
 onMounted(async () => {
   const pages = getCurrentPages();
@@ -104,24 +94,9 @@ onMounted(async () => {
 
   wsManager.connect();
 
-  // 等待渲染完成后测量并计算高度
+  // 等待渲染完成后滚动到底部
   await nextTick();
-  measureAndCalculate();
-
-  // 注册键盘高度监听（仅注册一次）
-  uni.onKeyboardHeightChange((res) => {
-    const systemInfo = uni.getSystemInfoSync();
-    const query = uni.createSelectorQuery();
-    query.select('.input-bar').boundingClientRect((rect: any) => {
-      const barHeight = rect ? rect.height : 56;
-      scrollViewHeight.value = systemInfo.windowHeight - barHeight - res.height;
-    }).exec();
-    if (res.height > 0) {
-      nextTick(() => {
-        scrollToBottom();
-      });
-    }
-  });
+  scrollToBottom();
 });
 
 onUnmounted(() => {
@@ -158,7 +133,7 @@ const sendMessage = async () => {
   const content = inputText.value;
   inputText.value = '';
 
-  try {
+  await executeSend(async () => {
     await chatStore.sendMessage({
       receiverId: targetUserId.value,
       content,
@@ -167,9 +142,7 @@ const sendMessage = async () => {
 
     await nextTick();
     scrollToBottom();
-  } catch (error) {
-    console.error('Send message error:', error);
-  }
+  });
 };
 
 const handleRetry = async (messageId: number) => {

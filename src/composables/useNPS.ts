@@ -17,7 +17,8 @@ export const useNPS = () => {
    */
   const checkAndTrigger = async (config: NPSTriggerConfig) => {
     try {
-      const { canTrigger, reason } = await canTriggerNPS()
+      const result = await canTriggerNPS()
+      const { canTrigger, reason } = result.data
 
       if (canTrigger) {
         npsTriggerType.value = 'auto'
@@ -41,7 +42,7 @@ export const useNPS = () => {
    */
   const manualTrigger = () => {
     npsTriggerType.value = 'manual'
-    npsTriggerScene.value = 'manual'
+    npsTriggerScene.value = 'manual_trigger'
     npsVisible.value = true
   }
 
@@ -58,6 +59,10 @@ export const useNPS = () => {
   const onNPSSuccess = (feedback: any) => {
     console.log('[NPS] 提交成功:', feedback)
     // 可以在这里触发其他逻辑，比如刷新用户积分
+    uni.showToast({
+      title: '感谢您的反馈！',
+      icon: 'success'
+    })
   }
 
   return {
@@ -80,5 +85,60 @@ export const NPSScene = {
   AFTER_ADD_FRIEND: 'after_add_friend', // 添加好友后48小时
   AFTER_ACTIVE_WEEK: 'after_active_week', // 连续活跃7天
   PERIODIC: 'periodic', // 定期触发（45天）
-  MANUAL: 'manual' // 手动触发
+  MANUAL: 'manual_trigger' // 手动触发
 } as const
+
+/**
+ * 在首页自动检查是否需要触发NPS（定期触发场景）
+ */
+export const checkPeriodicNPS = () => {
+  const { checkAndTrigger } = useNPS()
+  checkAndTrigger({
+    scene: NPSScene.PERIODIC,
+    delay: 3000 // 3秒后检查
+  })
+}
+
+/**
+ * 注册成功后触发（延迟7天后自动触发）
+ */
+export const triggerAfterRegister = () => {
+  const { checkAndTrigger } = useNPS()
+  checkAndTrigger({
+    scene: NPSScene.AFTER_REGISTER,
+    delay: 2000
+  })
+}
+
+/**
+ * 首次发帖后触发（延迟24小时后自动触发）
+ */
+export const triggerAfterFirstPost = () => {
+  const { checkAndTrigger } = useNPS()
+  checkAndTrigger({
+    scene: NPSScene.AFTER_FIRST_POST,
+    delay: 2000
+  })
+}
+
+/**
+ * 添加好友后触发（延迟48小时后自动触发）
+ */
+export const triggerAfterAddFriend = () => {
+  const { checkAndTrigger } = useNPS()
+  checkAndTrigger({
+    scene: NPSScene.AFTER_ADD_FRIEND,
+    delay: 2000
+  })
+}
+
+/**
+ * 连续活跃7天后触发
+ */
+export const triggerAfterActiveWeek = () => {
+  const { checkAndTrigger } = useNPS()
+  checkAndTrigger({
+    scene: NPSScene.AFTER_ACTIVE_WEEK,
+    delay: 2000
+  })
+}
