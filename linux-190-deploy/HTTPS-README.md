@@ -16,60 +16,71 @@
 ## 端口配置
 
 - **80**: HTTP（重定向到 HTTPS，除了 Let's Encrypt 验证路径）
-- **443**: HTTPS
-- **8107**: 宿主机 HTTP 端口映射
-- **8108**: 宿主机 HTTPS 端口映射
+- **443**: HTTPS（主要访问端口）
 
 ## 首次部署步骤
 
-### 1. 修改邮箱地址
+### 前提条件
 
-编辑 `init-letsencrypt.sh`，将邮箱地址改为你的：
+1. **确保域名已解析**
+   ```bash
+   nslookup app.wenlong.life
+   # 应该返回服务器 IP: 23.94.103.190
+   ```
 
-```bash
-EMAIL="your-email@example.com"  # 修改这里
-```
+2. **停止宿主机 nginx（如果占用了 80/443 端口）**
+   ```bash
+   sudo systemctl stop nginx
+   # 或者配置宿主机 nginx 不监听 80/443 端口
+   ```
 
-### 2. 确保域名已解析
+### 部署步骤
 
-确认 `app.wenlong.life` 已正确解析到服务器 IP：
+1. **部署前端应用**
+   ```bash
+   cd ~/together-uniapp-ts/linux-190-deploy
+   ./deploy-staging.sh
+   ```
 
-```bash
-nslookup app.wenlong.life
-```
+2. **初始化 SSL 证书**
+   ```bash
+   ./init-letsencrypt.sh
+   ```
 
-### 3. 初始化 SSL 证书
+   脚本会自动：
+   - 创建临时自签名证书
+   - 启动 nginx
+   - 申请 Let's Encrypt 真实证书
+   - 重新加载 nginx
 
-运行初始化脚本：
+3. **验证 HTTPS**
+   ```bash
+   curl -I https://app.wenlong.life
+   ```
 
-```bash
-cd ~/together-uniapp-ts/linux-190-deploy
-./init-letsencrypt.sh
-```
+## 访问地址
 
-脚本会自动：
-1. 下载推荐的 TLS 参数
-2. 创建临时自签名证书
-3. 启动 nginx
-4. 申请 Let's Encrypt 真实证书
-5. 重新加载 nginx
+- **HTTP**: http://app.wenlong.life → 自动重定向到 HTTPS
+- **HTTPS**: https://app.wenlong.life ✅ 推荐使用
+- **后端 API**: http://app.wenlong.life:8125/api/v1
 
-### 4. 验证 HTTPS
+## 证书管理
 
-访问以下地址验证：
+### 自动续期
 
-- HTTP: http://app.wenlong.life:8107 （应自动重定向到 HTTPS）
-- HTTPS: https://app.wenlong.life:8108
+certbot 容器会每 12 小时自动检查并续期证书（证书到期前 30 天）。
 
-## 证书续期
-
-证书会自动续期，certbot 容器每 12 小时检查一次证书状态并在需要时自动续期。
-
-手动续期命令：
+### 手动续期
 
 ```bash
 docker-compose run --rm certbot renew
 docker-compose exec frontend nginx -s reload
+```
+
+### 查看证书状态
+
+```bash
+docker-compose run --rm certbot certificates
 ```
 
 ## 测试模式
@@ -86,9 +97,33 @@ STAGING=1  # 设置为 1 启用测试模式
 
 ### 证书申请失败
 
-1. 检查域名是否正确解析到服务器
-2. 检查防火墙是否开放 80 和 443 端口
-3. 查看 certbot 日志：
+1. **检查域名解析**
+   ```bash
+   nslookup app.wenlong.life
+   ping app.wenlong.life
+   ```
+
+2. **检查端口占用**
+   ```bash
+   sudo netstat -tlnp | grep :80
+   sudo netstat -tlnp | grep :443
+   ```
+   
+   如果宿主机 nginx 占用了端口，需要停止或重新配置：
+   ```bash
+   sudo systemctl stop nginx
+   # 或者修改宿主机 nginx 配置，不监听 80/443
+   ```
+
+3. **检查防火墙**
+   ```bash
+   sudo ufw status
+   # 确保 80 和 443 端口开放
+   sudo ufw allow 80/tcp
+   sudo ufw allow 443/tcp
+   ```
+
+4. **查看 certbot 日志**
    ```bash
    docker-compose logs certbot
    ```
@@ -96,15 +131,15 @@ STAGING=1  # 设置为 1 启用测试模式
 ### Nginx 配置错误
 
 测试配置文件语法：
-
 ```bash
 docker-compose exec frontend nginx -t
 ```
 
-### 查看证书信息
+### 容器无法启动
 
+查看容器日志：
 ```bash
-docker-compose run --rm certbot certificates
+docker-compose logs frontend
 ```
 
 ## 文件结构
@@ -127,13 +162,45 @@ linux-190-deploy/
 3. 定期备份证书文件（certbot/conf 目录）
 4. 监控证书续期日志
 
+## 与宿主机 Nginx 共存
+
+如果服务器上已有 nginx 监听 80/443 端口，有两种方案：
+
+### 方案 1：停止宿主机 nginx（推荐）
+
+```bash
+sudo systemctl stop nginx
+sudo systemctl disable nginx
+```
+
+### 方案 2：配置宿主机 nginx 反向代理
+
+修改宿主机 nginx 配置，将请求代理到容器：
+
+```nginx
+server {
+    listen 80;
+    server_name app.wenlong.life;
+    
+    location / {
+        proxy_pass http://127.0.0.1:8080;  # 修改容器端口映射
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+然后修改 `docker-compose.yml` 使用其他端口（如 8080:80）。
+
 ## 回退到 HTTP
 
-如果需要临时回退到纯 HTTP：
+如需临时回退到纯 HTTP：
 
-1. 恢复旧的 nginx.conf
-2. 修改 docker-compose.yml 移除 443 端口和 certbot 服务
-3. 重新部署
+1. 修改 `nginx.conf`，注释掉 HTTPS server 块
+2. 修改 `docker-compose.y`，移除 443 端口映射
+3. 重新部署：`./deploy-staging.sh`
 
 ## 相关链接
 

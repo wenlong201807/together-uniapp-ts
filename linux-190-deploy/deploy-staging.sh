@@ -101,8 +101,8 @@ main() {
     print_header "✅ 部署完成！"
 
     log_info "访问地址："
-    echo "  - 前端页面 (HTTP): http://app.wenlong.life:${FRONTEND_PORT}"
-    echo "  - 前端页面 (HTTPS): https://app.wenlong.life:${FRONTEND_HTTPS_PORT}"
+    echo "  - 前端页面 (HTTP): http://app.wenlong.life"
+    echo "  - 前端页面 (HTTPS): https://app.wenlong.life"
     echo "  - 后端 API: ${BACKEND_API_URL}/api/v1"
     echo "  - Swagger: ${BACKEND_API_URL}/api/docs"
     echo ""

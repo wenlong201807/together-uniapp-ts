@@ -8,8 +8,8 @@ services:
     container_name: together-frontend-staging
     restart: unless-stopped
     ports:
-      - "8107:80"
-      - "8108:443"
+      - "80:80"
+      - "443:443"
     volumes:
       - certbot-conf:/etc/letsencrypt
       - certbot-www:/var/www/certbot
