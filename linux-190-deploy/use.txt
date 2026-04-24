@@ -1,3 +1,8 @@
 
 cd /home/zwl/together-uniapp-ts/linux-190-deploy
 AUTO_CONFIRM=true ./deploy-staging.sh
+
+
+要完成 HTTPS 部署，请在终端中执行
+cd ~/together-uniapp-ts/linux-190-deploy
+sudo ./setup-https.sh
