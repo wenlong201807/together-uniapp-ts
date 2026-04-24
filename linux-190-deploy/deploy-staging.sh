@@ -101,7 +101,8 @@ main() {
     print_header "✅ 部署完成！"
 
     log_info "访问地址："
-    echo "  - 前端页面: http://23.94.103.190:${FRONTEND_PORT}"
+    echo "  - 前端页面 (HTTP): http://app.wenlong.life:${FRONTEND_PORT}"
+    echo "  - 前端页面 (HTTPS): https://app.wenlong.life:${FRONTEND_HTTPS_PORT}"
     echo "  - 后端 API: ${BACKEND_API_URL}/api/v1"
     echo "  - Swagger: ${BACKEND_API_URL}/api/docs"
     echo ""
@@ -112,6 +113,11 @@ main() {
 
     log_info "健康检查："
     echo "  ./04-health-check.sh"
+    echo ""
+
+    log_info "SSL 证书："
+    echo "  如果是首次部署 HTTPS，请运行: ./init-letsencrypt.sh"
+    echo "  查看证书状态: docker-compose run --rm certbot certificates"
     echo ""
 }
 
