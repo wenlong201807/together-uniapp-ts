@@ -70,8 +70,11 @@
           </view>
 
           <!-- 打招呼按钮 -->
-          <view class="action-btn" @click.stop="handleSayHello(user)">
-            <text>👋</text>
+          <view
+            :class="['action-btn', { disabled: user.hasSaidHello }]"
+            @click.stop="handleSayHello(user)"
+          >
+            <text>{{ user.hasSaidHello ? '✓' : '👋' }}</text>
           </view>
         </view>
       </view>
@@ -231,9 +234,16 @@ const currentSortText = computed(() => {
 });
 
 onMounted(async () => {
+  // 初始化定位
   await initLocation();
-  await loadStats();
-  await loadUsers();
+
+  // 定位成功后才加载数据
+  if (filters.value.latitude !== 0 && filters.value.longitude !== 0) {
+    await Promise.all([
+      loadStats(),
+      loadUsers()
+    ]);
+  }
 });
 
 // 初始化位置
@@ -263,6 +273,10 @@ const initLocation = async () => {
       title: errorMessage,
       icon: 'none'
     });
+
+    // 定位失败，使用默认坐标（北京）
+    filters.value.latitude = 39.9042;
+    filters.value.longitude = 116.4074;
   }
 };
 
@@ -281,6 +295,7 @@ const loadUsers = async () => {
   if (loadingMore.value || !hasMore.value) return;
 
   try {
+    // 立即设置加载状态，防止重复请求
     if (page.value === 1) {
       loading.value = true;
     } else {
@@ -350,7 +365,11 @@ const selectDistance = (value: number) => {
   page.value = 1;
   users.value = [];
   hasMore.value = true;
-  loadUsers();
+
+  Promise.all([
+    loadStats(),
+    loadUsers()
+  ]);
 };
 
 // 选择性别
@@ -362,7 +381,11 @@ const selectGender = (value: number) => {
   page.value = 1;
   users.value = [];
   hasMore.value = true;
-  loadUsers();
+
+  Promise.all([
+    loadStats(),
+    loadUsers()
+  ]);
 };
 
 // 选择排序
@@ -374,7 +397,11 @@ const selectSort = (value: 'distance' | 'active') => {
   page.value = 1;
   users.value = [];
   hasMore.value = true;
-  loadUsers();
+
+  Promise.all([
+    loadStats(),
+    loadUsers()
+  ]);
 };
 
 // 点击用户
@@ -386,8 +413,20 @@ const handleUserClick = (user: NearbyUser) => {
 
 // 打招呼
 const handleSayHello = async (user: NearbyUser) => {
+  // 防止重复打招呼
+  if (user.hasSaidHello) {
+    uni.showToast({
+      title: '已经打过招呼了',
+      icon: 'none'
+    });
+    return;
+  }
+
   try {
     await sayHello(user.id);
+
+    // 更新本地状态
+    user.hasSaidHello = true;
 
     uni.showToast({
       title: '已发送打招呼',
@@ -600,6 +639,12 @@ const formatActiveTime = (timestamp: number): string => {
           @include transition(all);
           @include active-scale;
           flex-shrink: 0;
+
+          &.disabled {
+            background: $bg-tertiary;
+            opacity: 0.6;
+            pointer-events: none;
+          }
         }
       }
     }

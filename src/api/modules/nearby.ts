@@ -17,6 +17,7 @@ export interface NearbyUser {
   distanceText: string; // 距离文本（如：1.2km）
   lastActiveTime: number; // 最后活跃时间
   isOnline: boolean; // 是否在线
+  hasSaidHello?: boolean; // 是否已打招呼
 }
 
 /**
@@ -74,7 +75,7 @@ export function getUserCurrentLocation(): Promise<
 /**
  * 打招呼
  */
-export function sayHello(userId: number): Promise<ApiResponse<{ success: boolean }>> {
+export function sayHello(userId: number): Promise<ApiResponse<void>> {
   return request.post(`/api/nearby/users/${userId}/hello`);
 }
 
