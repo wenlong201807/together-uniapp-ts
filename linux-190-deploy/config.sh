@@ -16,7 +16,7 @@ export CONTAINER_NAME="together-frontend-staging"
 
 # 端口配置
 export FRONTEND_PORT="8107"
-export BACKEND_API_URL="http://23.94.103.190:8125"
+export BACKEND_API_URL="http://app.wenlong.life:8125"
 
 # Git 配置
 export GIT_BRANCH="test9"
