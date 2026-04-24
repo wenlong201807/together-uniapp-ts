@@ -174,8 +174,13 @@ const goToChat = async (friend: any) => {
 <style scoped lang="scss">
 @use '@/assets/styles/design-tokens.scss' as *;
 
+page {
+  height: 100%;
+  overflow: hidden;
+}
+
 .message-container {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: $bg-secondary;

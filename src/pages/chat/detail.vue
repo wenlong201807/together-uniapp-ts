@@ -22,6 +22,8 @@
             <view class="dot" />
           </view>
         </view>
+        <!-- 底部锚点，用于滚动到底部 -->
+        <view id="bottom-anchor" class="bottom-anchor" />
       </view>
     </scroll-view>
 
@@ -161,21 +163,24 @@ const handleRetry = async (messageId: number) => {
 };
 
 const scrollToBottom = () => {
-  const lastMessage = chatStore.messages[chatStore.messages.length - 1];
-  if (lastMessage) {
-    scrollToView.value = `msg-${lastMessage.id}`;
-    setTimeout(() => {
-      scrollToView.value = '';
-    }, 300);
-  }
+  // 滚动到底部锚点
+  scrollToView.value = 'bottom-anchor';
+  setTimeout(() => {
+    scrollToView.value = '';
+  }, 300);
 };
 </script>
 
 <style scoped lang="scss">
 @use '@/assets/styles/design-tokens.scss' as *;
 
+page {
+  height: 100%;
+  overflow: hidden;
+}
+
 .chat-detail-container {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #EDEDED;
@@ -220,6 +225,11 @@ const scrollToBottom = () => {
           }
         }
       }
+    }
+
+    .bottom-anchor {
+      height: 1rpx;
+      width: 100%;
     }
   }
 

@@ -6,27 +6,35 @@
     </view>
 
     <view :class="['message-bubble', isSelf ? 'self' : 'other', { 'bubble-enter': isEntering }]">
+      <!-- 对方消息：头像在左 -->
       <image
         v-if="!isSelf"
         class="avatar"
         :src="message.sender?.avatarUrl || '/static/images/default-avatar.png'"
         mode="aspectFill"
       />
+
+      <!-- 消息内容 -->
       <view class="bubble-content-wrapper">
-        <view class="bubble-content">
-          <text class="message-text">{{ message.content }}</text>
-        </view>
-        <view v-if="message.status === 'sending'" class="message-status">
+        <!-- 发送状态（自己的消息才显示） -->
+        <view v-if="isSelf && message.status === 'sending'" class="message-status">
           <view class="loading-dots">
             <view class="dot" />
             <view class="dot" />
             <view class="dot" />
           </view>
         </view>
-        <view v-else-if="message.status === 'failed'" class="message-status error" @click="handleRetry">
+        <view v-else-if="isSelf && message.status === 'failed'" class="message-status error" @click="handleRetry">
           <text>!</text>
         </view>
+
+        <!-- 消息气泡 -->
+        <view class="bubble-content">
+          <text class="message-text">{{ message.content }}</text>
+        </view>
       </view>
+
+      <!-- 自己的消息：头像在右 -->
       <image
         v-if="isSelf"
         class="avatar"
@@ -96,7 +104,6 @@ const handleRetry = () => {
   padding: 0 24rpx;
   opacity: 1;
   transform: translateY(0);
-  width: 100%;
 
   &.bubble-enter {
     animation: bubble-slide-in 0.3s ease-out;
@@ -113,13 +120,14 @@ const handleRetry = () => {
   .bubble-content-wrapper {
     display: flex;
     align-items: center;
-    max-width: calc(100% - 160rpx);
+    max-width: calc(100% - 120rpx);
   }
 
   .bubble-content {
     padding: 20rpx 24rpx;
     word-break: break-word;
     position: relative;
+    max-width: 100%;
 
     .message-text {
       font-size: 32rpx;
@@ -132,7 +140,7 @@ const handleRetry = () => {
   .message-status {
     display: flex;
     align-items: center;
-    margin-left: 16rpx;
+    flex-shrink: 0;
 
     &.error {
       width: 40rpx;
@@ -145,7 +153,6 @@ const handleRetry = () => {
       justify-content: center;
       font-size: 24rpx;
       font-weight: bold;
-      cursor: pointer;
 
       &:active {
         transform: scale(0.9);
@@ -178,12 +185,17 @@ const handleRetry = () => {
     }
   }
 
+  // 对方的消息：左对齐
   &.other {
     flex-direction: row;
     justify-content: flex-start;
 
     .avatar {
       margin-right: 20rpx;
+    }
+
+    .bubble-content-wrapper {
+      flex-direction: row;
     }
 
     .bubble-content {
@@ -194,9 +206,10 @@ const handleRetry = () => {
     }
   }
 
+  // 自己的消息：右对齐
   &.self {
     flex-direction: row-reverse;
-    justify-content: flex-end;
+    justify-content: flex-start;
 
     .avatar {
       margin-left: 20rpx;
@@ -214,7 +227,6 @@ const handleRetry = () => {
     }
 
     .message-status {
-      margin-left: 0;
       margin-right: 16rpx;
     }
   }

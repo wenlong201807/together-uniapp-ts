@@ -287,13 +287,19 @@ const copyLink = (post: any) => {
 <style scoped lang="scss">
 @use '@/assets/styles/design-tokens.scss' as *;
 
+page {
+  height: 100%;
+  overflow: hidden;
+}
+
 .square-container {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #f8f8f8;
 
   .square-header {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
