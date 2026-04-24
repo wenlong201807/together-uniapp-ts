@@ -45,7 +45,7 @@ export function getNearbyUsers(params: NearbyFilterParams): Promise<
     hasMore: boolean;
   }>
 > {
-  return request.get('/api/nearby/users', params);
+  return request.get('/nearby/users', params);
 }
 
 /**
@@ -55,7 +55,7 @@ export function updateUserLocation(params: {
   latitude: number;
   longitude: number;
 }): Promise<ApiResponse<void>> {
-  return request.post('/api/nearby/location', params);
+  return request.post('/nearby/location', params);
 }
 
 /**
@@ -69,14 +69,16 @@ export function getUserCurrentLocation(): Promise<
     updateTime: number;
   }>
 > {
-  return request.get('/api/nearby/location');
+  return request.get('/nearby/location');
 }
 
 /**
  * 打招呼
  */
-export function sayHello(userId: number): Promise<ApiResponse<void>> {
-  return request.post(`/api/nearby/users/${userId}/hello`);
+export function sayHello(userId: number, content?: string): Promise<ApiResponse<void>> {
+  return request.post(`/nearby/users/${userId}/hello`, {
+    content: content || '你好，很高兴认识你！'
+  });
 }
 
 /**
@@ -89,5 +91,5 @@ export function getNearbyStats(): Promise<
     newCount: number; // 新用户数
   }>
 > {
-  return request.get('/api/nearby/stats');
+  return request.get('/nearby/stats');
 }

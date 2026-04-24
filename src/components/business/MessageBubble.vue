@@ -260,16 +260,15 @@ const handleRetry = () => {
 
   // 自己的消息：右对齐
   &.self {
+    flex-direction: row;
     justify-content: flex-end;
 
-    .avatar {
+    .avatar-wrapper {
       margin-left: 20rpx;
-      order: 2;
     }
 
     .bubble-content-wrapper {
       flex-direction: row-reverse;
-      order: 1;
     }
 
     .bubble-content {

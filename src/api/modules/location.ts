@@ -17,7 +17,7 @@ export interface LocationInfo {
  * 获取当前定位
  */
 export function getCurrentLocation(): Promise<ApiResponse<LocationInfo>> {
-  return request.get('/api/location/current');
+  return request.get('/location/current');
 }
 
 /**
@@ -27,19 +27,19 @@ export function getCityByCoordinates(params: {
   latitude: number;
   longitude: number;
 }): Promise<ApiResponse<LocationInfo>> {
-  return request.get('/api/location/geocode', params);
+  return request.post('/location/geocode', params);
 }
 
 /**
  * 保存用户选择的城市
  */
 export function saveUserCity(city: string): Promise<ApiResponse<void>> {
-  return request.post('/api/location/city', { city });
+  return request.post('/location/save-city', { city });
 }
 
 /**
  * 获取用户保存的城市
  */
 export function getUserCity(): Promise<ApiResponse<{ city: string }>> {
-  return request.get('/api/location/city');
+  return request.get('/location/user-city');
 }

@@ -61,7 +61,7 @@ export interface TopicParticipant {
  * 获取话题详情
  */
 export function getTopicDetail(topicId: number): Promise<ApiResponse<TopicDetail>> {
-  return request.get(`/api/topics/${topicId}`);
+  return request.get(`/topics/${topicId}`);
 }
 
 /**
@@ -73,7 +73,7 @@ export function getTopicPosts(params: {
   pageSize: number;
   sort?: 'hot' | 'latest';
 }): Promise<ApiResponse<{ list: TopicPost[]; total: number; hasMore: boolean }>> {
-  return request.get(`/api/topics/${params.topicId}/posts`, {
+  return request.get(`/topics/${params.topicId}/posts`, {
     page: params.page,
     pageSize: params.pageSize,
     sort: params.sort || 'latest',
@@ -84,27 +84,28 @@ export function getTopicPosts(params: {
  * 参与话题（关注）
  */
 export function joinTopic(topicId: number): Promise<ApiResponse<{ success: boolean }>> {
-  return request.post(`/api/topics/${topicId}/join`);
+  return request.post(`/topics/${topicId}/follow`);
 }
 
 /**
  * 退出话题（取消关注）
  */
 export function leaveTopic(topicId: number): Promise<ApiResponse<{ success: boolean }>> {
-  return request.post(`/api/topics/${topicId}/leave`);
+  return request.delete(`/topics/${topicId}/follow`);
 }
 
 /**
- * 发布话题动态
+ * 发布话题动态（使用 square 模块）
  */
 export function publishTopicPost(data: {
   topicId: number;
   content: string;
   images?: string[];
 }): Promise<ApiResponse<{ id: number }>> {
-  return request.post(`/api/topics/${data.topicId}/posts`, {
+  return request.post('/square/posts', {
     content: data.content,
     images: data.images,
+    topicId: data.topicId,
   });
 }
 
@@ -112,7 +113,7 @@ export function publishTopicPost(data: {
  * 获取话题统计
  */
 export function getTopicStats(topicId: number): Promise<ApiResponse<TopicStats>> {
-  return request.get(`/api/topics/${topicId}/stats`);
+  return request.get(`/topics/${topicId}/stats`);
 }
 
 /**
@@ -123,24 +124,24 @@ export function getTopicParticipants(params: {
   page: number;
   pageSize: number;
 }): Promise<ApiResponse<{ list: TopicParticipant[]; total: number }>> {
-  return request.get(`/api/topics/${params.topicId}/participants`, {
+  return request.get(`/topics/${params.topicId}/participants`, {
     page: params.page,
     pageSize: params.pageSize,
   });
 }
 
 /**
- * 点赞话题动态
+ * 点赞话题动态（使用 square 模块）
  */
 export function likeTopicPost(postId: number): Promise<ApiResponse<{ isLiked: boolean }>> {
-  return request.post(`/api/topics/posts/${postId}/like`);
+  return request.post(`/square/posts/${postId}/like`);
 }
 
 /**
- * 取消点赞话题动态
+ * 取消点赞话题动态（使用 square 模块）
  */
 export function unlikeTopicPost(postId: number): Promise<ApiResponse<{ isLiked: boolean }>> {
-  return request.delete(`/api/topics/posts/${postId}/like`);
+  return request.delete(`/square/posts/${postId}/like`);
 }
 
 /**
@@ -151,7 +152,7 @@ export function searchTopics(params: {
   page: number;
   pageSize: number;
 }): Promise<ApiResponse<{ list: TopicDetail[]; total: number }>> {
-  return request.get('/api/topics/search', params);
+  return request.get('/topics/search', params);
 }
 
 /**
@@ -161,5 +162,5 @@ export function getHotTopics(params: {
   page: number;
   pageSize: number;
 }): Promise<ApiResponse<{ list: TopicDetail[]; total: number }>> {
-  return request.get('/api/topics/hot', params);
+  return request.get('/topics/hot', params);
 }
