@@ -1,0 +1,1 @@
+import{_ as a,c as s,w as e,i as n,a as t,e as f,f as l,g as r}from"./index-SGSHlYsd.js";const u=a({},[["render",function(a,u){const d=l,o=n;return t(),s(o,null,{default:e(()=>[f(d,null,{default:e(()=>[r("asdf")]),_:1})]),_:1})}]]);export{u as default};
