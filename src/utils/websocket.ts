@@ -33,16 +33,16 @@ class WebSocketManager {
 
     // 使用 Socket.IO 客户端连接
     // wsURL 格式: ws://host:port 或 http://host:port
-    // path 选项指定 WebSocket 路径
+    // path 选项指定 Socket.IO 服务器路径（完整路径，包含 /socket.io）
     const wsUrl = API_CONFIG.wsURL.replace('/api/v1/ws', '')
-    console.log('WebSocket: Connecting to', wsUrl, 'path: /api/v1/ws')
+    console.log('WebSocket: Connecting to', wsUrl, 'path: /api/v1/ws/socket.io')
 
     this.socket = io(wsUrl, {
-      path: '/api/v1/ws',
+      path: '/api/v1/ws/socket.io',  // 修复：完整的 Socket.IO 路径
       auth: {
         token: token
       },
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],  // 修复：先 polling 握手，再升级到 websocket
       reconnection: true, // 启用自动重连
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
