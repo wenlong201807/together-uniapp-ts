@@ -105,7 +105,7 @@
             <switch
               :checked="formData.acceptLongDistance"
               @change="formData.acceptLongDistance = $event.detail.value"
-        ="#667eea"
+              color="#667eea"
             />
           </view>
         </view>
@@ -128,7 +128,7 @@
               {{ formData.maritalStatusRequirement || '请选择' }}
             </view>
           </picker>
-   ew>
+        </view>
 
         <view class="form-item">
           <view class="form-label-row">
@@ -170,7 +170,7 @@
 
       <!-- 生活方式要求 -->
       <view class="form-section">
-        <ass="section-title">
+        <view class="section-title">
           <text class="title-text">生活方式</text>
         </view>
 
@@ -247,7 +247,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { getMatePreferences, updateMatePreferences } from '@/api/profile'
-import type { UserMatePreference } from '@/api/pro/ 表单数据
+import type { UserMatePreference } from '@/api/profile'
+
+// 表单数据
 const formData = ref<Partial<UserMatePreference>>({
   ageMin: undefined,
   ageMax: undefined,
@@ -272,7 +274,7 @@ const loading = ref(false)
 
 // 选项数据
 const educationOptions = ['不限', '高中及以下', '大专', '本科', '硕士', '博士']
-constns = ['不限', '5k以下', '5k-10k', '10k-20k', '20k-30k', '30k以上']
+const incomeOptions = ['不限', '5k以下', '5k-10k', '10k-20k', '20k-30k', '30k以上']
 const maritalOptions = ['不限', '未婚', '离异', '丧偶']
 const housingOptions = ['不限', '已购房', '计划购房', '租房']
 const carOptions = ['不限', '已购车', '计划购车', '不需要']
@@ -420,7 +422,7 @@ const handleSave = async () => {
 
 .tips-desc {
   font-size: 24rpx;
-  color: #e91e6
+  color: #e91e63;
 }
 
 // ========== 表单 ==========
@@ -469,7 +471,8 @@ const handleSave = async () => {
 }
 
 .range-input {
-  display: flegn-items: center;
+  display: flex;
+  align-items: center;
   gap: 16rpx;
 }
 
@@ -512,9 +515,10 @@ const handleSave = async () => {
 
 .form-textarea {
   width: 100%;
-  min-height: 200rpxng: 24rpx;
+  min-height: 200rpx;
+  padding: 24rpx;
   background: #f5f5f5;
-  borderdius: 16rpx;
+  border-radius: 16rpx;
   font-size: 28rpx;
   color: #333;
   line-height: 1.6;

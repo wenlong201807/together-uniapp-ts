@@ -91,7 +91,8 @@
         </view>
       </view>
 
-      <!-- 步骤2: 外   <view class="form-section" @tap="editSection('appearance')">
+      <!-- 步骤2: 外貌体征 -->
+      <view class="form-section" @tap="editSection('appearance')">
         <view class="section-header">
           <view class="section-left">
             <view class="section-icon">✨</view>
@@ -245,20 +246,31 @@ const loadCompletenessData = async () => {
 }
 
 const loadStatistics = async () => {
+  // 加载兴趣数量
   try {
-    // 加载兴趣数量
     const interestsRes = await getInterests()
     interestCount.value = interestsRes.data.length
+  } catch (error: any) {
+    console.error('[ProfileEdit] 加载兴趣数量失败:', error)
+    interestCount.value = 0
+  }
 
-    // 加载照片数量
+  // 加载照片数量
+  try {
     const photosRes = await getPhotos()
     photoCount.value = photosRes.data.length
+  } catch (error: any) {
+    console.error('[ProfileEdit] 加载照片数量失败:', error)
+    photoCount.value = 0
+  }
 
-    // 检查是否设置择偶要求
+  // 检查是否设置择偶要求
+  try {
     const mateRes = await getMatePreferences()
     hasMatePreference.value = !!mateRes.data
   } catch (error: any) {
-    console.error('[ProfileEdit] 加载统计数据失败:', error)
+    console.error('[ProfileEdit] 加载择偶要求失败:', error)
+    hasMatePreference.value = false
   }
 }
 

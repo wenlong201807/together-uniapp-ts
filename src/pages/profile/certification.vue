@@ -205,6 +205,7 @@ import {
   applyCertification,
   getCertificationDetail,
 } from '@/api/profile'
+import { uploadFile } from '@/api/modules/file'
 import type { Certification, CertificationType } from '@/api/profile'
 
 // 认证类型配置
@@ -426,9 +427,29 @@ const chooseImage = () => {
     count: remaining,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
-    success: (res) => {
-      // 这里应该调用文件上传接口，暂时使用本地路径
-      applyForm.value.images.push(...res.tempFilePaths)
+    success: async (res) => {
+      try {
+        uni.showLoading({ title: '上传中...' })
+
+        // 上传到七牛云
+        for (const filePath of res.tempFilePaths) {
+          const result = await uploadFile(filePath, { type: 'certificate' })
+          applyForm.value.images.push(result.url)
+        }
+
+        uni.hideLoading()
+        uni.showToast({
+          title: '上传成功',
+          icon: 'success',
+        })
+      } catch (error: any) {
+        uni.hideLoading()
+        console.error('[Certification] 上传失败:', error)
+        uni.showToast({
+          title: error.message || '上传失败',
+          icon: 'none',
+        })
+      }
     },
   })
 }

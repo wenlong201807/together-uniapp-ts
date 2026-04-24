@@ -7,12 +7,22 @@
 
     <view :class="['message-bubble', isSelf ? 'self' : 'other', { 'bubble-enter': isEntering }]">
       <!-- 对方消息：头像在左 -->
-      <image
-        v-if="!isSelf"
-        class="avatar"
-        :src="message.sender?.avatarUrl || '/static/images/default-avatar.png'"
-        mode="aspectFill"
-      />
+      <view v-if="!isSelf" class="avatar-wrapper">
+        <!-- 预设头像显示 -->
+        <view
+          v-if="otherAvatarDisplay.type === 'preset' && otherAvatarDisplay.icon"
+          class="avatar mbti-avatar"
+        >
+          <text class="mbti-icon">{{ otherAvatarDisplay.icon }}</text>
+        </view>
+        <!-- 自定义头像显示 -->
+        <image
+          v-else
+          class="avatar"
+          :src="otherAvatarDisplay.displayUrl"
+          mode="aspectFill"
+        />
+      </view>
 
       <!-- 消息内容 -->
       <view class="bubble-content-wrapper">
@@ -35,12 +45,22 @@
       </view>
 
       <!-- 自己的消息：头像在右 -->
-      <image
-        v-if="isSelf"
-        class="avatar"
-        :src="authStore.userInfo?.avatarUrl || '/static/images/default-avatar.png'"
-        mode="aspectFill"
-      />
+      <view v-if="isSelf" class="avatar-wrapper">
+        <!-- 预设头像显示 -->
+        <view
+          v-if="selfAvatarDisplay.type === 'preset' && selfAvatarDisplay.icon"
+          class="avatar mbti-avatar"
+        >
+          <text class="mbti-icon">{{ selfAvatarDisplay.icon }}</text>
+        </view>
+        <!-- 自定义头像显示 -->
+        <image
+          v-else
+          class="avatar"
+          :src="selfAvatarDisplay.displayUrl"
+          mode="aspectFill"
+        />
+      </view>
     </view>
   </view>
 </template>
@@ -48,6 +68,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { formatTime } from '@/utils'
+import { getAvatarDisplay } from '@/utils/avatar'
 import { useAuthStore } from '@/stores'
 
 const props = defineProps<{
@@ -64,6 +85,22 @@ const isEntering = ref(true)
 
 const isSelf = computed(() => {
   return props.message.isSelf === true || props.message.senderId === authStore.userInfo?.id
+})
+
+// 计算自己的头像显示
+const selfAvatarDisplay = computed(() => {
+  return getAvatarDisplay(
+    authStore.userInfo?.avatarId,
+    authStore.userInfo?.avatarUrl
+  )
+})
+
+// 计算对方的头像显示
+const otherAvatarDisplay = computed(() => {
+  return getAvatarDisplay(
+    props.message.sender?.avatarId,
+    props.message.sender?.avatarUrl
+  )
 })
 
 onMounted(() => {
@@ -115,6 +152,21 @@ const handleRetry = () => {
     border-radius: 8rpx;
     flex-shrink: 0;
     background: #f0f0f0;
+
+    &.mbti-avatar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+      .mbti-icon {
+        font-size: 40rpx;
+      }
+    }
+  }
+
+  .avatar-wrapper {
+    flex-shrink: 0;
   }
 
   .bubble-content-wrapper {
@@ -208,15 +260,16 @@ const handleRetry = () => {
 
   // 自己的消息：右对齐
   &.self {
-    flex-direction: row-reverse;
-    justify-content: flex-start;
+    justify-content: flex-end;
 
     .avatar {
       margin-left: 20rpx;
+      order: 2;
     }
 
     .bubble-content-wrapper {
       flex-direction: row-reverse;
+      order: 1;
     }
 
     .bubble-content {

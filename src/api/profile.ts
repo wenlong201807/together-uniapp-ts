@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request from './request'
 
 // ========== 类型定义 ==========
 
@@ -138,64 +138,37 @@ export interface CompletenessDetails {
 
 // 基础资料
 export const getProfile = (userId: number) => {
-  return request<UserProfile>({
-    url: `/profile/${userId}`,
-    method: 'GET',
-  })
+  return request.get<UserProfile>(`/profile/${userId}`)
 }
 
 export const updateProfile = (data: Partial<UserProfile>) => {
-  return request<UserProfile>({
-    url: '/profile',
-    method: 'PUT',
-    data,
-  })
+  return request.put<UserProfile>('/profile', data)
 }
 
 export const getCompletenessDetails = () => {
-  return request<CompletenessDetails>({
-    url: '/profile/completeness/details',
-    method: 'GET',
-  })
+  return request.get<CompletenessDetails>('/profile/completeness/details')
 }
 
 // 兴趣管理
 export const getInterests = () => {
-  return request<UserInterest[]>({
-    url: '/profile/interests/list',
-    method: 'GET',
-  })
+  return request.get<UserInterest[]>('/profile/interests/list')
 }
 
 export const addInterest = (data: { category: string; name: string; level: number }) => {
-  return request<UserInterest>({
-    url: '/profile/interests',
-    method: 'POST',
-    data,
-  })
+  return request.post<UserInterest>('/profile/interests', data)
 }
 
 export const removeInterest = (id: number) => {
-  return request({
-    url: `/profile/interests/${id}`,
-    method: 'DELETE',
-  })
+  return request.delete(`/profile/interests/${id}`)
 }
 
 export const updateInterestSort = (sortData: Array<{ id: number; sortOrder: number }>) => {
-  return request({
-    url: '/profile/interests/sort',
-    method: 'PUT',
-    data: { sortData },
-  })
+  return request.put('/profile/interests/sort', { sortData })
 }
 
 // 照片管理
 export const getPhotos = () => {
-  return request<UserPhoto[]>({
-    url: '/profile/photos/list',
-    method: 'GET',
-  })
+  return request.get<UserPhoto[]>('/profile/photos/list')
 }
 
 export const addPhoto = (data: {
@@ -204,49 +177,28 @@ export const addPhoto = (data: {
   category: string
   isPublic?: boolean
 }) => {
-  return request<UserPhoto>({
-    url: '/profile/photos',
-    method: 'POST',
-    data,
-  })
+  return request.post<UserPhoto>('/profile/photos', data)
 }
 
 export const deletePhoto = (id: number) => {
-  return request({
-    url: `/profile/photos/${id}`,
-    method: 'DELETE',
-  })
+  return request.delete(`/profile/photos/${id}`)
 }
 
 export const setAvatar = (id: number) => {
-  return request({
-    url: `/profile/photos/${id}/avatar`,
-    method: 'PUT',
-  })
+  return request.put(`/profile/photos/${id}/avatar`)
 }
 
 export const updatePhotoSort = (sortData: Array<{ id: number; sortOrder: number }>) => {
-  return request({
-    url: '/profile/photos/sort',
-    method: 'PUT',
-    data: { sortData },
-  })
+  return request.put('/profile/photos/sort', { sortData })
 }
 
 // 择偶要求
 export const getMatePreferences = () => {
-  return request<UserMatePreference>({
-    url: '/profile/mate-preferences',
-    method: 'GET',
-  })
+  return request.get<UserMatePreference>('/profile/mate-preferences')
 }
 
 export const updateMatePreferences = (data: Partial<UserMatePreference>) => {
-  return request<UserMatePreference>({
-    url: '/profile/mate-preferences',
-    method: 'PUT',
-    data,
-  })
+  return request.put<UserMatePreference>('/profile/mate-preferences', data)
 }
 
 // 隐私设置
@@ -282,45 +234,29 @@ export interface BlacklistUser {
     age?: number
     city?: string
   }
-  reastring
+  reason: string
   createdAt: string
 }
 
 export const getPrivacySettings = () => {
-  return request<PrivacySettings>({
-    url: '/profile/privacy-settings',
-    method: 'GET',
-  })
+  return request.get<PrivacySettings>('/profile/privacy-settings')
 }
 
 export const updatePrivacySettings = (data: Partial<PrivacySettings>) => {
-  return request<PrivacySettings>({
-    url: '/profile/privacy-settings',
-    method: 'PUT',
-    data,
-  })
+  return request.put<PrivacySettings>('/profile/privacy-settings', data)
 }
 
 export const getBlacklist = () => {
-  return request<BlacklistUser[]>({
-    url: '/profile/blacklist',
-    method: 'GET',
-  })
+  return request.get<BlacklistUser[]>('/profile/blacklist')
 }
 
 export const removeFromBlacklist = (blockedUserId: number) => {
-  return request({
-    url: `/profile/blacklist/${blockedUserId}`,
-    method: 'DELETE',
-  })
+  return request.delete(`/profile/blacklist/${blockedUserId}`)
 }
 
 // 价值观管理
 export const getValues = () => {
-  return request<UserValue[]>({
-    url: '/profile/values/list',
-    method: 'GET',
-  })
+  return request.get<UserValue[]>('/profile/values/list')
 }
 
 export const saveValue = (data: {
@@ -329,18 +265,11 @@ export const saveValue = (data: {
   answer: string
   isPublic: boolean
 }) => {
-  return request<UserValue>({
-    url: '/profile/values',
-    method: 'POST',
-    data,
-  })
+  return request.post<UserValue>('/profile/values', data)
 }
 
 export const deleteValue = (id: number) => {
-  return request({
-    url: `/profile/values/${id}`,
-    method: 'DELETE',
-  })
+  return request.delete(`/profile/values/${id}`)
 }
 
 // 认证管理
@@ -361,10 +290,7 @@ export interface Certification {
 }
 
 export const getCertifications = () => {
-  return request<Certification[]>({
-    url: '/profile/certifications/list',
-    method: 'GET',
-  })
+  return request.get<Certification[]>('/profile/certifications/list')
 }
 
 export const applyCertification = (data: {
@@ -372,16 +298,9 @@ export const applyCertification = (data: {
   images: string[]
   remark?: string
 }) => {
-  return request<Certification>({
-    url: '/profile/certifications',
-    method: 'POST',
-    data,
-  })
+  return request.post<Certification>('/profile/certifications', data)
 }
 
 export const getCertificationDetail = (id: number) => {
-  return request<Certification>({
-    url: `/profile/certifications/${id}`,
-    method: 'GET',
-  })
+  return request.get<Certification>(`/profile/certifications/${id}`)
 }

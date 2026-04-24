@@ -155,6 +155,54 @@
       "style": {
         "navigationBarTitleText": "测试结果"
       }
+    },
+    {
+      "path": "pages/profile/edit",
+      "style": {
+        "navigationBarTitleText": "编辑资料"
+      }
+    },
+    {
+      "path": "pages/profile/edit-section",
+      "style": {
+        "navigationBarTitleText": "编辑资料"
+      }
+    },
+    {
+      "path": "pages/profile/interests",
+      "style": {
+        "navigationBarTitleText": "兴趣管理"
+      }
+    },
+    {
+      "path": "pages/profile/photos",
+      "style": {
+        "navigationBarTitleText": "照片管理"
+      }
+    },
+    {
+      "path": "pages/profile/mate-preferences",
+      "style": {
+        "navigationBarTitleText": "择偶要求"
+      }
+    },
+    {
+      "path": "pages/profile/privacy",
+      "style": {
+        "navigationBarTitleText": "隐私设置"
+      }
+    },
+    {
+      "path": "pages/profile/values",
+      "style": {
+        "navigationBarTitleText": "价值观问答"
+      }
+    },
+    {
+      "path": "pages/profile/certification",
+      "style": {
+        "navigationBarTitleText": "认证申请"
+      }
     }
   ],
   "tabBar": {

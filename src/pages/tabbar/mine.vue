@@ -71,6 +71,39 @@
     </view>
 
     <view class="menu-list">
+      <view class="menu-item" @click="goToProfileEdit">
+        <text class="menu-icon">📝</text>
+        <text class="menu-text">完善资料</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" @click="goToInterests">
+        <text class="menu-icon">🎯</text>
+        <text class="menu-text">兴趣管理</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" @click="goToPhotos">
+        <text class="menu-icon">📷</text>
+        <text class="menu-text">照片管理</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" @click="goToMatePreferences">
+        <text class="menu-icon">💝</text>
+        <text class="menu-text">择偶要求</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" @click="goToPrivacy">
+        <text class="menu-icon">🔒</text>
+        <text class="menu-text">隐私设置</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" @click="goToValues">
+        <text class="menu-icon">💭</text>
+        <text class="menu-text">价值观问答</text>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="menu-list">
       <view class="menu-item" @click="goToMbti">
         <text class="menu-icon">🧠</text>
         <text class="menu-text">MBTI测试</text>
@@ -146,6 +179,42 @@ onShow(() => {
 const goToProfile = () => {
   uni.navigateTo({
     url: '/pages/user/profile',
+  });
+};
+
+const goToProfileEdit = () => {
+  uni.navigateTo({
+    url: '/pages/profile/edit',
+  });
+};
+
+const goToInterests = () => {
+  uni.navigateTo({
+    url: '/pages/profile/interests',
+  });
+};
+
+const goToPhotos = () => {
+  uni.navigateTo({
+    url: '/pages/profile/photos',
+  });
+};
+
+const goToMatePreferences = () => {
+  uni.navigateTo({
+    url: '/pages/profile/mate-preferences',
+  });
+};
+
+const goToPrivacy = () => {
+  uni.navigateTo({
+    url: '/pages/profile/privacy',
+  });
+};
+
+const goToValues = () => {
+  uni.navigateTo({
+    url: '/pages/profile/values',
   });
 };
 

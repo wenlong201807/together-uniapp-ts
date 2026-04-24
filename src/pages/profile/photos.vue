@@ -99,6 +99,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { getPhotos, addPhoto, deletePhoto, setAvatar } from '@/api/profile'
+import { uploadFile } from '@/api/modules/file'
 import type { UserPhoto } from '@/api/profile'
 
 // 照片列表
@@ -145,20 +146,20 @@ const handleUpload = () => {
 
       try {
         for (const filePath of tempFilePaths) {
-          // 上传到服务器
-          const uploadRes = await uploadImage(filePath)
+          // 上传到七牛云
+          const uploadRes = await uploadFile(filePath, { type: 'album' })
 
           // 添加照片记录
           await addPhoto({
             photoUrl: uploadRes.url,
-            photoPath: uploadRes.path,
+            photoPath: uploadRes.filePath,
             category: '生活照',
             isPublic: true,
           })
         }
 
         uni.hideLoading()
-i.showToast({
+        uni.showToast({
           title: '上传成功',
           icon: 'success',
         })
@@ -174,31 +175,6 @@ i.showToast({
         })
       }
     },
-  })
-}
-
-// 上传图片到服务器
-const uploadImage = (filePath: string): Promise<{ url: string; path: string }> => {
-  return new Promise((resolve, reject) => {
-    uni.uploadFile({
-      url: import.meta.env.VITE_API_BASE_URL + '/file/upload',
-      filePath,
-      name: 'file',
-      header: {
-        Authorization: 'Bearer ' + uni.getStorageSync('accessToken'),
-      },
-      success: (res) => {
-        const data = JSON.parse(res.data)
-        if (data.code === 200) {
-          resolve(data.data)
-        } else {
-          reject(new Error(data.message || '上传失败'))
-        }
-      },
-      fail: (err) => {
-        reject(err)
-      },
-    })
   })
 }
 
