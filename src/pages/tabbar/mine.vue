@@ -155,6 +155,7 @@ import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore, usePointsStore } from '@/stores';
 import { getAvatarDisplay } from '@/utils/avatar';
+import { APP_CONFIG } from '@/config';
 import '@/assets/styles/avatar.scss';
 
 const authStore = useAuthStore();
@@ -315,7 +316,7 @@ const copyInviteLink = () => {
   }
 
   // 构建邀请链接
-  const inviteLink = `http://23.94.103.190:8107/#/pages/auth/register?inviteCode=${authStore.userInfo.inviteCode}`;
+  const inviteLink = `${APP_CONFIG.baseURL}/#/pages/auth/register?inviteCode=${authStore.userInfo.inviteCode}`;
 
   // 复制到剪贴板
   uni.setClipboardData({

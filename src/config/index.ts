@@ -6,5 +6,6 @@ export const API_CONFIG = {
 
 export const APP_CONFIG = {
   appName: 'WeTogether',
-  version: '1.0.0'
+  version: '1.0.0',
+  baseURL: import.meta.env.VITE_APP_BASE_URL || 'http://localhost:8107'
 }
