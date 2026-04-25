@@ -199,7 +199,9 @@ export async function uploadFile(
             });
 
             // 返回完整的 URL
-            const fullUrl = `${domain}/${key}`;
+            // 移除 key 开头的斜杠（如果有）避免双斜杠
+            const cleanKey = key.startsWith('/') ? key.substring(1) : key;
+            const fullUrl = `${domain}/${cleanKey}`;
             resolve({
               id: saveRes.id,
               fileName: key,

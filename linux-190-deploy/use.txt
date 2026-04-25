@@ -3,6 +3,20 @@ cd /home/zwl/together-uniapp-ts/linux-190-deploy
 AUTO_CONFIRM=true ./deploy-staging.sh
 
 
-要完成 HTTPS 部署，请在终端中执行
-cd ~/together-uniapp-ts/linux-190-deploy
-sudo ./setup-https.sh
+要完成 HTTPS 部署，需要执行以下步骤：
+  1. 停止宿主机 nginx（如果占用了 80/443 端口）
+  sudo systemctl stop nginx
+  2. 重新部署容器
+  cd ~/together-uniapp-ts/linux-190-deploy
+  docker-compose down
+  ./deploy-staging.sh
+  3. 初始化 SSL 证书
+  ./init-letsencrypt.sh
+  如果是首次部署 HTTPS，请运行: ./init-letsencrypt.sh
+  查看证书状态: docker-compose run --rm certbot certificates
+
+  如需手动续期：
+  docker-compose run --rm certbot renew
+  docker exec together-frontend-staging nginx -s reload
+
+  配置完成后，就可以通过 https://app.wenlong.life 访问应用了。

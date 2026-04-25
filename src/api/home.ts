@@ -71,7 +71,7 @@ export function getRecommendationFeed(params: {
   types?: string[];
   cursor?: string;
 }): Promise<ApiResponse<RecommendationFeedResponse>> {
-  return request.get('/api/home/feed', params);
+  return request.get('/home/feed', params);
 }
 
 /**
@@ -79,7 +79,7 @@ export function getRecommendationFeed(params: {
  * @returns Banner 列表
  */
 export function getBanners(): Promise<ApiResponse<Banner[]>> {
-  return request.get('/api/home/banners');
+  return request.get('/home/banners');
 }
 
 /**
@@ -91,7 +91,7 @@ export function getTopics(params: {
   page: number;
   pageSize: number;
 }): Promise<ApiResponse<{ data: Topic[]; hasMore: boolean }>> {
-  return request.get('/api/home/topics', params);
+  return request.get('/home/topics', params);
 }
 
 /**
@@ -100,7 +100,7 @@ export function getTopics(params: {
  * @returns 上报结果
  */
 export function trackUserAction(data: UserActionTrack): Promise<ApiResponse<void>> {
-  return request.post('/api/home/track', data);
+  return request.post('/home/track', data);
 }
 
 /**
@@ -109,7 +109,7 @@ export function trackUserAction(data: UserActionTrack): Promise<ApiResponse<void
  * @returns 上报结果
  */
 export function batchTrackUserActions(actions: UserActionTrack[]): Promise<ApiResponse<void>> {
-  return request.post('/api/home/track/batch', { actions });
+  return request.post('/home/track/batch', { actions });
 }
 
 /**
@@ -121,7 +121,7 @@ export function getUserInterests(): Promise<
     tags: Array<{ tag: string; weight: number }>;
   }>
 > {
-  return request.get('/api/home/user/interests');
+  return request.get('/home/user/interests');
 }
 
 /**
@@ -130,7 +130,7 @@ export function getUserInterests(): Promise<
  * @returns 更新结果
  */
 export function updateUserInterests(tags: Array<{ tag: string; weight: number }>): Promise<ApiResponse<void>> {
-  return request.post('/api/home/user/interests', { tags });
+  return request.post('/home/user/interests', { tags });
 }
 
 /**
@@ -145,7 +145,7 @@ export function getUserLocation(): Promise<
     updateTime: number;
   }>
 > {
-  return request.get('/api/home/user/location');
+  return request.get('/home/user/location');
 }
 
 /**
@@ -158,7 +158,7 @@ export function updateUserLocation(location: {
   longitude: number;
   city?: string;
 }): Promise<ApiResponse<void>> {
-  return request.post('/api/home/user/location', location);
+  return request.post('/home/user/location', location);
 }
 
 /**
@@ -177,7 +177,7 @@ export function getRecommendationConfig(): Promise<
     pageSize: number;
   }>
 > {
-  return request.get('/api/home/config');
+  return request.get('/home/config');
 }
 
 /**
@@ -190,5 +190,5 @@ export function feedbackRecommendation(feedback: {
   rating: number; // 1-5星
   reason?: string;
 }): Promise<ApiResponse<void>> {
-  return request.post('/api/home/feedback', feedback);
+  return request.post('/home/feedback', feedback);
 }

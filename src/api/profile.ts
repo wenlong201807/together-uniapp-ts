@@ -239,19 +239,23 @@ export interface BlacklistUser {
 }
 
 export const getPrivacySettings = () => {
-  return request.get<PrivacySettings>('/profile/privacy-settings')
+  return request.get<PrivacySettings>('/profile/privacy')
 }
 
 export const updatePrivacySettings = (data: Partial<PrivacySettings>) => {
-  return request.put<PrivacySettings>('/profile/privacy-settings', data)
+  return request.put<PrivacySettings>('/profile/privacy', data)
 }
 
 export const getBlacklist = () => {
-  return request.get<BlacklistUser[]>('/profile/blacklist')
+  return request.get<BlacklistUser[]>('/profile/privacy/block')
+}
+
+export const addToBlacklist = (blockedUserId: number, reason?: string) => {
+  return request.post(`/profile/privacy/block/${blockedUserId}`, { reason })
 }
 
 export const removeFromBlacklist = (blockedUserId: number) => {
-  return request.delete(`/profile/blacklist/${blockedUserId}`)
+  return request.delete(`/profile/privacy/block/${blockedUserId}`)
 }
 
 // 价值观管理

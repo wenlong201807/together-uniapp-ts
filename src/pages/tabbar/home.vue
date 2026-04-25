@@ -249,7 +249,7 @@ const loadBanners = async () => {
 
     // 缓存未命中，调用API
     const response = await getBanners();
-    if (response.code === 200 && response.data) {
+    if (response.code === 0 && response.data) {
       banners.value = response.data;
       // 缓存数据
       memoryCache.set(CACHE_KEYS.BANNERS, response.data, CACHE_EXPIRE_TIME.BANNERS);
