@@ -22,21 +22,21 @@ export interface NearbyUser {
 
 /**
  * 附近的人筛选参数
+ * 后端 NearbyUsersDto: distance, gender, minAge, maxAge, page, pageSize
+ * 注意：需要先通过 POST /location/update 更新位置，才能获取附近的人
  */
 export interface NearbyFilterParams {
-  latitude: number;
-  longitude: number;
-  maxDistance?: number; // 最大距离（米），默认5000
+  distance?: number; // 距离范围（米），默认5000
   gender?: number; // 性别筛选：0-不限，1-男，2-女
   minAge?: number; // 最小年龄
   maxAge?: number; // 最大年龄
-  page: number;
-  pageSize: number;
-  sortBy?: 'distance' | 'active'; // 排序方式：距离或活跃度
+  page?: number;
+  pageSize?: number;
 }
 
 /**
  * 获取附近的人列表
+ * 后端路由: GET /nearby/users，参数通过 Query 传递
  */
 export function getNearbyUsers(params: NearbyFilterParams): Promise<
   ApiResponse<{
@@ -49,31 +49,8 @@ export function getNearbyUsers(params: NearbyFilterParams): Promise<
 }
 
 /**
- * 更新用户位置
- */
-export function updateUserLocation(params: {
-  latitude: number;
-  longitude: number;
-}): Promise<ApiResponse<void>> {
-  return request.post('/nearby/location', params);
-}
-
-/**
- * 获取用户当前位置
- */
-export function getUserCurrentLocation(): Promise<
-  ApiResponse<{
-    latitude: number;
-    longitude: number;
-    city: string;
-    updateTime: number;
-  }>
-> {
-  return request.get('/nearby/location');
-}
-
-/**
  * 打招呼
+ * 后端路由: POST /nearby/users/:id/hello
  */
 export function sayHello(userId: number, content?: string): Promise<ApiResponse<void>> {
   return request.post(`/nearby/users/${userId}/hello`, {
@@ -82,14 +59,23 @@ export function sayHello(userId: number, content?: string): Promise<ApiResponse<
 }
 
 /**
- * 获取附近统计
+ * 记录访问
+ * 后端路由: POST /nearby/visit
  */
-export function getNearbyStats(): Promise<
+export function recordVisit(visitedUserId: number, distance: number): Promise<ApiResponse<void>> {
+  return request.post('/nearby/visit', { visitedUserId, distance });
+}
+
+/**
+ * 获取附近统计（访问统计）
+ * 后端路由: GET /nearby/stats
+ */
+export function getNearbyStats(days?: number): Promise<
   ApiResponse<{
-    totalCount: number; // 附近总人数
-    onlineCount: number; // 在线人数
-    newCount: number; // 新用户数
+    visitedCount: number;
+    visitorCount: number;
+    days: number;
   }>
 > {
-  return request.get('/nearby/stats');
+  return request.get('/nearby/stats', days ? { days } : undefined);
 }

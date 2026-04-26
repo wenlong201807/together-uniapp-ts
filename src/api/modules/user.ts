@@ -38,6 +38,7 @@ export const userApi = {
 
   /**
    * 更新用户资料
+   * 后端路由: PUT /user/profile（仅 PUT，后端没有 GET）
    * @param data 更新数据，支持昵称、手机号、头像ID或头像URL
    * @returns 更新后的用户信息
    */
@@ -72,6 +73,7 @@ export const userApi = {
 
   /**
    * 更换手机号
+   * 后端路由: PUT /user/mobile（仅 PUT，后端没有 GET）
    * @param data 新手机号和验证码
    * @returns 更换结果
    */
@@ -88,9 +90,11 @@ export const userApi = {
 
   /**
    * 拉黑用户
-   * @param userId 用户ID
+   * 后端路由: POST /friend/block（在 friend 模块，不在 user 模块）
+   * @param blockedUserId 被拉黑用户ID
+   * @param reason 拉黑原因
    * @returns 拉黑结果
    */
-  blockUser: (userId: number) =>
-    request.post<{ message: string }>(`/user/block/${userId}`),
+  blockUser: (blockedUserId: number, reason?: string) =>
+    request.post<{ message: string }>('/friend/block', { friendId: blockedUserId, reason }),
 };

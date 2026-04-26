@@ -9,17 +9,17 @@ export interface SendMessageDto {
   msgType?: MsgType;
 }
 
-export interface GetHistoryParams {
+export interface GetMessagesParams {
+  friendId: number;
   page?: number;
-  pageSize?: number;
-  beforeId?: number;
+  limit?: number;
 }
 
 export const chatApi = {
   sendMessage: (data: SendMessageDto) =>
     request.post<{ id: number }>('/chat/send', data),
 
-  getHistory: (userId: number, params?: GetHistoryParams) =>
+  getHistory: (userId: number, params?: { page?: number; pageSize?: number; beforeId?: number }) =>
     request.get<{ data: Message[]; total: number }>(
       `/chat/history/${userId}`,
       params,
@@ -30,7 +30,11 @@ export const chatApi = {
       '/chat/conversations',
     ),
 
-  getMessages: (params?: { page?: number; pageSize?: number }) =>
+  /**
+   * 获取消息列表（与某好友的消息）
+   * 后端路由: GET /chat/messages?friendId=X&page=X&limit=X
+   */
+  getMessages: (params: GetMessagesParams) =>
     request.get<{ data: Message[]; total: number }>(
       '/chat/messages',
       params,

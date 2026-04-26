@@ -247,15 +247,15 @@ export const updatePrivacySettings = (data: Partial<PrivacySettings>) => {
 }
 
 export const getBlacklist = () => {
-  return request.get<BlacklistUser[]>('/profile/privacy/block')
+  return request.get<BlacklistUser[]>('/friend/blocklist')
 }
 
 export const addToBlacklist = (blockedUserId: number, reason?: string) => {
-  return request.post(`/profile/privacy/block/${blockedUserId}`, { reason })
+  return request.post(`/friend/block`, { friendId: blockedUserId, reason })
 }
 
 export const removeFromBlacklist = (blockedUserId: number) => {
-  return request.delete(`/profile/privacy/block/${blockedUserId}`)
+  return request.post(`/friend/unblock`, { friendId: blockedUserId })
 }
 
 // 价值观管理
@@ -294,7 +294,7 @@ export interface Certification {
 }
 
 export const getCertifications = () => {
-  return request.get<Certification[]>('/profile/certifications/list')
+  return request.get<Certification[]>('/certification/list')
 }
 
 export const applyCertification = (data: {
@@ -302,9 +302,9 @@ export const applyCertification = (data: {
   images: string[]
   remark?: string
 }) => {
-  return request.post<Certification>('/profile/certifications', data)
+  return request.post<Certification>('/certification', data)
 }
 
 export const getCertificationDetail = (id: number) => {
-  return request.get<Certification>(`/profile/certifications/${id}`)
+  return request.get<Certification>(`/certification/${id}`)
 }

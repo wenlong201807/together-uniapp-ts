@@ -10,17 +10,14 @@
         <text class="filter-text">{{ currentGenderText }}</text>
         <text class="filter-arrow">▼</text>
       </view>
-      <view class="filter-item" @click="showSortFilter = true">
-        <text class="filter-text">{{ currentSortText }}</text>
-        <text class="filter-arrow">▼</text>
       </view>
     </view>
 
     <!-- 统计信息 -->
     <view class="stats-bar">
-      <text class="stats-text">附近 {{ stats.totalCount }} 人</text>
+      <text class="stats-text">访问 {{ stats.visitedCount }} 人</text>
       <text class="stats-dot">·</text>
-      <text class="stats-text">{{ stats.onlineCount }} 人在线</text>
+      <text class="stats-text">被访问 {{ stats.visitorCount }} 人</text>
     </view>
 
     <!-- 用户列表 -->
@@ -105,11 +102,11 @@
           <view
             v-for="option in distanceOptions"
             :key="option.value"
-            :class="['filter-option', { active: filters.maxDistance === option.value }]"
+            :class="['filter-option', { active: filters.distance === option.value }]"
             @click="selectDistance(option.value)"
           >
             <text>{{ option.label }}</text>
-            <text v-if="filters.maxDistance === option.value" class="check-icon">✓</text>
+            <text v-if="filters.distance === option.value" class="check-icon">✓</text>
           </view>
         </view>
       </view>
@@ -136,32 +133,14 @@
       </view>
     </view>
 
-    <!-- 排序筛选弹窗 -->
-    <view v-if="showSortFilter" class="filter-modal">
-      <view class="modal-overlay" @click="showSortFilter = false" />
-      <view class="modal-content">
-        <view class="modal-header">
-          <text class="modal-title">排序方式</text>
-        </view>
-        <view class="filter-options">
-          <view
-            v-for="option in sortOptions"
-            :key="option.value"
-            :class="['filter-option', { active: filters.sortBy === option.value }]"
-            @click="selectSort(option.value)"
-          >
-            <text>{{ option.label }}</text>
-            <text v-if="filters.sortBy === option.value" class="check-icon">✓</text>
-          </view>
-        </view>
-      </view>
-    </view>
+<!-- 排序筛选弹窗已移除（后端不支持排序参数） -->
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { getNearbyUsers, updateUserLocation, getNearbyStats, sayHello } from '@/api/modules/nearby';
+import { getNearbyUsers, getNearbyStats, sayHello } from '@/api/modules/nearby';
+import { updateLocation } from '@/api/modules/location';
 import type { NearbyUser } from '@/api/modules/nearby';
 
 // 状态
@@ -175,24 +154,22 @@ const pageSize = 20;
 
 // 统计信息
 const stats = ref({
-  totalCount: 0,
-  onlineCount: 0,
-  newCount: 0
+  visitedCount: 0,
+  visitorCount: 0,
+  days: 7
 });
 
 // 筛选条件
 const filters = ref({
-  latitude: 0,
-  longitude: 0,
-  maxDistance: 5000, // 默认5km
-  gender: 0, // 0-不限
-  sortBy: 'distance' as 'distance' | 'active'
+  distance: 5000, // 默认5km
+  gender: 0 as number, // 0-不限
+  minAge: undefined as number | undefined,
+  maxAge: undefined as number | undefined
 });
 
 // 筛选弹窗显示状态
 const showDistanceFilter = ref(false);
 const showGenderFilter = ref(false);
-const showSortFilter = ref(false);
 
 // 距离选项
 const distanceOptions = [
@@ -211,15 +188,9 @@ const genderOptions = [
   { label: '女生', value: 2 }
 ];
 
-// 排序选项
-const sortOptions = [
-  { label: '距离最近', value: 'distance' },
-  { label: '最近活跃', value: 'active' }
-];
-
 // 当前筛选文本
 const currentDistanceText = computed(() => {
-  const option = distanceOptions.find(o => o.value === filters.value.maxDistance);
+  const option = distanceOptions.find(o => o.value === filters.value.distance);
   return option?.label || '5公里内';
 });
 
@@ -228,22 +199,15 @@ const currentGenderText = computed(() => {
   return option?.label || '不限';
 });
 
-const currentSortText = computed(() => {
-  const option = sortOptions.find(o => o.value === filters.value.sortBy);
-  return option?.label || '距离最近';
-});
-
 onMounted(async () => {
   // 初始化定位
   await initLocation();
 
-  // 定位成功后才加载数据
-  if (filters.value.latitude !== 0 && filters.value.longitude !== 0) {
-    await Promise.all([
-      loadStats(),
-      loadUsers()
-    ]);
-  }
+  // 定位成功后加载数据
+  await Promise.all([
+    loadStats(),
+    loadUsers()
+  ]);
 });
 
 // 初始化位置
@@ -253,11 +217,8 @@ const initLocation = async () => {
       type: 'gcj02'
     });
 
-    filters.value.latitude = res.latitude;
-    filters.value.longitude = res.longitude;
-
-    // 更新用户位置到服务器
-    await updateUserLocation({
+    // 更新用户位置到服务器（使用 location 模块）
+    await updateLocation({
       latitude: res.latitude,
       longitude: res.longitude
     });
@@ -275,8 +236,10 @@ const initLocation = async () => {
     });
 
     // 定位失败，使用默认坐标（北京）
-    filters.value.latitude = 39.9042;
-    filters.value.longitude = 116.4074;
+    await updateLocation({
+      latitude: 39.9042,
+      longitude: 116.4074
+    });
   }
 };
 
@@ -358,7 +321,7 @@ const handleLoadMore = () => {
 
 // 选择距离
 const selectDistance = (value: number) => {
-  filters.value.maxDistance = value;
+  filters.value.distance = value;
   showDistanceFilter.value = false;
 
   // 重新加载
@@ -382,26 +345,13 @@ const selectGender = (value: number) => {
   users.value = [];
   hasMore.value = true;
 
-  Promise.all([
-    loadStats(),
-    loadUsers()
-  ]);
+  loadUsers();
 };
 
-// 选择排序
-const selectSort = (value: 'distance' | 'active') => {
-  filters.value.sortBy = value;
-  showSortFilter.value = false;
-
-  // 重新加载
-  page.value = 1;
-  users.value = [];
-  hasMore.value = true;
-
-  Promise.all([
-    loadStats(),
-    loadUsers()
-  ]);
+// 选择排序 (保留函数但不再发送到后端)
+const selectSort = (_value: 'distance' | 'active') => {
+  // 后端暂不支持排序参数，保留函数以避免模板报错
+};
 };
 
 // 点击用户

@@ -1,5 +1,8 @@
 /**
  * 首页推荐相关 API
+ *
+ * ⚠️ 注意：后端尚未实现 Home 模块，以下接口均返回 404
+ * 等待后端开发完成后启用
  */
 import request from './request';
 import type { ApiResponse } from '@/types';

@@ -48,7 +48,7 @@
             v-for="city in searchResults"
             :key="city.code"
             class="city-item"
-            @click="selectCity(city.name)"
+            @click="selectCity(city)"
           >
             <text class="city-name">{{ city.name }}</text>
           </view>
@@ -70,7 +70,7 @@
               v-for="city in hotCities"
               :key="city.code"
               class="hot-city-item"
-              @click="selectCity(city.name)"
+              @click="selectCity(city)"
             >
               <text>{{ city.name }}</text>
             </view>
@@ -92,7 +92,7 @@
               v-for="city in allCities[initial]"
               :key="city.code"
               class="city-item"
-              @click="selectCity(city.name)"
+              @click="selectCity(city)"
             >
               <text class="city-name">{{ city.name }}</text>
             </view>
@@ -201,10 +201,16 @@ const handleLocate = async () => {
 };
 
 // 选择城市
-const selectCity = async (cityName: string) => {
+const selectCity = async (city: City | string) => {
   try {
-    // 保存用户选择的城市
-    await saveUserCity(cityName);
+    const cityName = typeof city === 'string' ? city : city.name;
+    const cityCode = typeof city === 'string' ? '0' : city.code;
+
+    // 保存用户选择的城市（使用城市代码转数字作为 cityId）
+    const cityId = parseInt(cityCode, 10) || 0;
+    if (cityId > 0) {
+      await saveUserCity(cityId);
+    }
 
     emit('select', cityName);
     handleClose();

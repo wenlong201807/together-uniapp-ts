@@ -12,7 +12,7 @@
           <input
             v-model="formData.mobile"
             class="input"
-            type="number"
+            type="tel"
             placeholder="请输入手机号"
             maxlength="11"
           />
