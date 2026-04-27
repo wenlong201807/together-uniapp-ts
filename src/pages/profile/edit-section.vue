@@ -596,7 +596,73 @@ const handleSave = async () => {
   try {
     uni.showLoading({ title: '保存中...' })
 
-    await updateProfile(formData.value)
+    // 根据不同的 section 提取允许的字段
+    let submitData: any = {}
+
+    if (section.value === 'basic') {
+      // 基础信息：只提交后端 DTO 允许的字段
+      submitData = {
+        realName: formData.value.realName,
+        birthDate: formData.value.birthDate ? new Date(formData.value.birthDate).toISOString() : undefined,
+        residence: formData.value.residence,
+        height: formData.value.height,
+        weight: formData.value.weight,
+        occupation: formData.value.occupation,
+        education: formData.value.education,
+        bio: formData.value.bio,
+      }
+    } else if (section.value === 'appearance') {
+      // 外貌体征：这些字段后端不支持，暂时跳过
+      uni.showToast({
+        title: '该功能暂未开放',
+        icon: 'none',
+      })
+      uni.hideLoading()
+      return
+    } else if (section.value === 'education') {
+      // 教育职业：只提交 income（年收入转月收入）
+      submitData = {
+        income: formData.value.income ? Math.round(formData.value.income / 12) : undefined,
+      }
+    } else if (section.value === 'lifestyle') {
+      // 生活方式：后端不支持，暂时跳过
+      uni.showToast({
+        title: '该功能暂未开放',
+        icon: 'none',
+      })
+      uni.hideLoading()
+      return
+    } else if (section.value === 'personality') {
+      // 性格兴趣：后端不支持，暂时跳过
+      uni.showToast({
+        title: '该功能暂未开放',
+        icon: 'none',
+      })
+      uni.hideLoading()
+      return
+    } else if (section.value === 'family') {
+      // 家庭背景：只提交 hometown（籍贯）
+      submitData = {
+        hometown: formData.value.nativePlace,
+      }
+    } else if (section.value === 'marital') {
+      // 婚恋状况：后端不支持，暂时跳过
+      uni.showToast({
+        title: '该功能暂未开放',
+        icon: 'none',
+      })
+      uni.hideLoading()
+      return
+    }
+
+    // 过滤掉 undefined 的字段
+    Object.keys(submitData).forEach(key => {
+      if (submitData[key] === undefined) {
+        delete submitData[key]
+      }
+    })
+
+    await updateProfile(submitData)
 
     uni.hideLoading()
 
@@ -685,7 +751,8 @@ onMounted(() => {
 
 .form-input {
   width: 100%;
-  padding: 24rpx;
+  height: 68rpx;
+  padding: 0 24rpx;
   background: #f5f5f5;
   border-radius: 16rpx;
   font-size: 28rpx;

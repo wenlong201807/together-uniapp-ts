@@ -467,12 +467,13 @@ const handleSetAvatar = async () => {
 }
 
 .btn-action {
-  padding: 24rpx 48rpx;
+  padding: 16rpx 32rpx;
   background: rgba(255, 255, 255, 0.9);
   color: #333;
-  font-size: 28rpx;
-  border-radius: 48rpx;
+  font-size: 26rpx;
+  border-radius: 32rpx;
   border: none;
+  min-width: 160rpx;
 
   &.danger {
     background: rgba(255, 59, 48, 0.9);

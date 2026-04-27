@@ -215,7 +215,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { getCompletenessDetails, getInterests, getPhotos, getMatePreferences } from '@/api/profile'
 
 // 信息完整度数据
@@ -230,8 +231,8 @@ const interestCount = ref(0)
 const photoCount = ref(0)
 const hasMatePreference = ref(false)
 
-// 加载数据
-onMounted(async () => {
+// 使用 onShow 替代 onMounted，确保每次显示页面时都刷新数据
+onShow(async () => {
   await loadCompletenessData()
   await loadStatistics()
 })

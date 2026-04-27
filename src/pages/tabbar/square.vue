@@ -163,20 +163,21 @@ const handleLike = async (post: any) => {
   const originalIsLiked = post.isLiked;
   const originalLikeCount = post.likeCount || 0;
 
-  // 乐观更新 UI
-  post.isLiked = !originalIsLiked;
-  post.likeCount = originalIsLiked ? originalLikeCount - 1 : originalLikeCount + 1;
-
   try {
+    // 先调用接口
     await squareStore.toggleLike({
       targetId: post.id,
       targetType: 1,
     });
+
+    // 接口成功后更新 UI
+    const index = squareStore.posts.findIndex((p: any) => p.id === post.id);
+    if (index !== -1) {
+      squareStore.posts[index].isLiked = !originalIsLiked;
+      squareStore.posts[index].likeCount = originalIsLiked ? originalLikeCount - 1 : originalLikeCount + 1;
+    }
   } catch (error) {
     console.error('Like error:', error);
-    // 失败时回滚
-    post.isLiked = originalIsLiked;
-    post.likeCount = originalLikeCount;
     uni.showToast({
       title: '操作失败',
       icon: 'none',

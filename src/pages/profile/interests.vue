@@ -586,7 +586,8 @@ const handleDelete = async (id: number) => {
 
 .form-input {
   width: 100%;
-  padding: 24rpx;
+  height: 68rpx;
+  padding-left: 24rpx;
   background: #f5f5f5;
   border-radius: 16rpx;
   font-size: 28rpx;

@@ -21,17 +21,19 @@
           <text class="form-label">年龄范围</text>
           <view class="range-input">
             <input
-              v-model.number="formData.ageMin"
+              v-model="ageMinStr"
               type="number"
               class="range-value"
               placeholder="最小"
+              maxlength="3"
             />
             <text class="range-separator">-</text>
             <input
-              v-model.number="formData.ageMax"
+              v-model="ageMaxStr"
               type="number"
               class="range-value"
               placeholder="最大"
+              maxlength="3"
             />
             <text class="range-unit">岁</text>
           </view>
@@ -41,17 +43,19 @@
           <text class="form-label">身高范围</text>
           <view class="range-input">
             <input
-              v-model.number="formData.heightMin"
+              v-model="heightMinStr"
               type="number"
               class="range-value"
               placeholder="最小"
+              maxlength="3"
             />
             <text class="range-separator">-</text>
             <input
-              v-model.number="formData.heightMax"
+              v-model="heightMaxStr"
               type="number"
               class="range-value"
               placeholder="最大"
+              maxlength="3"
             />
             <text class="range-unit">cm</text>
           </view>
@@ -94,8 +98,10 @@
           <text class="form-label">期望城市</text>
           <input
             v-model="formData.locationRequirement"
+            type="text"
             class="form-input"
             placeholder="例如：北京、上海"
+            cursor-spacing="20"
           />
         </view>
 
@@ -269,6 +275,12 @@ const formData = ref<Partial<UserMatePreference>>({
   idealTypeDescription: '',
 })
 
+// 字符串形式的输入值（用于输入框绑定）
+const ageMinStr = ref('')
+const ageMaxStr = ref('')
+const heightMinStr = ref('')
+const heightMaxStr = ref('')
+
 // 加载状态
 const loading = ref(false)
 
@@ -300,6 +312,11 @@ const loadData = async () => {
     const res = await getMatePreferences()
     if (res.data) {
       formData.value = res.data
+      // 将数字转换为字符串用于输入框显示
+      ageMinStr.value = res.data.ageMin ? String(res.data.ageMin) : ''
+      ageMaxStr.value = res.data.ageMax ? String(res.data.ageMax) : ''
+      heightMinStr.value = res.data.heightMin ? String(res.data.heightMin) : ''
+      heightMaxStr.value = res.data.heightMax ? String(res.data.heightMax) : ''
     }
   } catch (error: any) {
     console.error('[MatePreferences] 加载失败:', error)
@@ -337,6 +354,12 @@ const handleDrinkingChange = (e: any) => {
 
 // 保存
 const handleSave = async () => {
+  // 将字符串转换为数字
+  formData.value.ageMin = ageMinStr.value ? parseInt(ageMinStr.value) : undefined
+  formData.value.ageMax = ageMaxStr.value ? parseInt(ageMaxStr.value) : undefined
+  formData.value.heightMin = heightMinStr.value ? parseInt(heightMinStr.value) : undefined
+  formData.value.heightMax = heightMaxStr.value ? parseInt(heightMaxStr.value) : undefined
+
   // 验证年龄范围
   if (formData.value.ageMin && formData.value.ageMax) {
     if (formData.value.ageMin > formData.value.ageMax) {
@@ -346,6 +369,23 @@ const handleSave = async () => {
       })
       return
     }
+  }
+
+  // 验证年龄合理性
+  if (formData.value.ageMin && formData.value.ageMin < 18) {
+    uni.showToast({
+      title: '年龄最小值不能小于18岁',
+      icon: 'none',
+    })
+    return
+  }
+
+  if (formData.value.ageMax && formData.value.ageMax > 100) {
+    uni.showToast({
+      title: '年龄最大值不能超过100岁',
+      icon: 'none',
+    })
+    return
   }
 
   // 验证身高范围
@@ -359,10 +399,47 @@ const handleSave = async () => {
     }
   }
 
+  // 验证身高合理性
+  if (formData.value.heightMin && formData.value.heightMin < 140) {
+    uni.showToast({
+      title: '身高最小值不能小于140cm',
+      icon: 'none',
+    })
+    return
+  }
+
+  if (formData.value.heightMax && formData.value.heightMax > 220) {
+    uni.showToast({
+      title: '身高最大值不能超过220cm',
+      icon: 'none',
+    })
+    return
+  }
+
   loading.value = true
 
   try {
-    await updateMatePreferences(formData.value)
+    // 只提交需要更新的字段，过滤掉 id、userId、createdAt、updatedAt
+    const updateData = {
+      ageMin: formData.value.ageMin,
+      ageMax: formData.value.ageMax,
+      heightMin: formData.value.heightMin,
+      heightMax: formData.value.heightMax,
+      educationRequirement: formData.value.educationRequirement,
+      incomeRequirement: formData.value.incomeRequirement,
+      locationRequirement: formData.value.locationRequirement,
+      acceptLongDistance: formData.value.acceptLongDistance,
+      maritalStatusRequirement: formData.value.maritalStatusRequirement,
+      acceptChildren: formData.value.acceptChildren,
+      housingRequirement: formData.value.housingRequirement,
+      carRequirement: formData.value.carRequirement,
+      smokingRequirement: formData.value.smokingRequirement,
+      drinkingRequirement: formData.value.drinkingRequirement,
+      otherRequirements: formData.value.otherRequirements,
+      idealTypeDescription: formData.value.idealTypeDescription,
+    }
+
+    await updateMatePreferences(updateData)
 
     uni.showToast({
       title: '保存成功',
@@ -478,12 +555,23 @@ const handleSave = async () => {
 
 .range-value {
   flex: 1;
-  padding: 24rpx;
+  height: 68rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // padding: 24rpx;
   background: #f5f5f5;
   border-radius: 16rpx;
   font-size: 28rpx;
   color: #333;
   text-align: center;
+  border: 2rpx solid transparent;
+  transition: all 0.3s;
+
+  &:focus {
+    background: #fff;
+    border-color: #667eea;
+  }
 }
 
 .range-separator {
@@ -506,11 +594,19 @@ const handleSave = async () => {
 
 .form-input {
   width: 100%;
-  padding: 24rpx;
+  height: 68rpx;
+  padding-left: 24rpx;
   background: #f5f5f5;
   border-radius: 16rpx;
   font-size: 28rpx;
   color: #333;
+  border: 2rpx solid transparent;
+  transition: all 0.3s;
+
+  &:focus {
+    background: #fff;
+    border-color: #667eea;
+  }
 }
 
 .form-textarea {
