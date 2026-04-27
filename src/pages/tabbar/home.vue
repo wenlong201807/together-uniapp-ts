@@ -169,7 +169,7 @@ const {
   loadMore,
   refresh,
   trackAction,
-} = useRecommendation({ useMockData: true });
+} = useRecommendation({ useMockData: false });
 
 // 无限滚动
 const { refreshing, handleScroll } = useInfiniteScroll({

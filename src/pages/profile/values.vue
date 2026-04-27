@@ -70,13 +70,15 @@
           <view class="privacy-toggle">
             <text class="privacy-label">公开</text>
             <switch
-              :checked="privacy[currentCategory][index]"
+              :checked="privacy[currentCategory][index] || false"
               color="#667eea"
               @change="handlePrivacyChange(currentCategory, question, index, $event)"
             />
           </view>
-          <view v-if="saveStatus[currentCategory][index]" class="save-status">
-            <text class="status-text">{{ saveStatus[currentCategory][index] }}</text>
+          <view class="save-status">
+            <text v-if="saveStatus[currentCategory][index]" class="status-text">
+              {{ saveStatus[currentCategory][index] }}
+            </text>
           </view>
         </view>
       </view>
@@ -531,19 +533,21 @@ const handleDelete = async (category: string, question: string, index: number) =
 .question-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16rpx;
+  flex-wrap: wrap;
 }
 
 .char-count {
   font-size: 24rpx;
   color: #999;
+  flex-shrink: 0;
 }
 
 .privacy-toggle {
   display: flex;
   align-items: center;
   gap: 12rpx;
+  flex-shrink: 0;
 }
 
 .privacy-label {
@@ -552,12 +556,16 @@ const handleDelete = async (category: string, question: string, index: number) =
 }
 
 .save-status {
-  margin-left: auto;
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 120rpx;
 }
 
 .status-text {
   font-size: 24rpx;
   color: #667eea;
+  font-weight: 500;
 }
 
 // ========== 加载状态 ==========

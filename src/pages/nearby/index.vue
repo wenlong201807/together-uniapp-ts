@@ -264,11 +264,21 @@ const loadUsers = async () => {
       loadingMore.value = true;
     }
 
-    const res = await getNearbyUsers({
-      ...filters.value,
+    // 过滤掉 undefined 值
+    const params: any = {
+      distance: filters.value.distance,
+      gender: filters.value.gender,
       page: page.value,
       pageSize
-    });
+    };
+    if (filters.value.minAge !== undefined) {
+      params.minAge = filters.value.minAge;
+    }
+    if (filters.value.maxAge !== undefined) {
+      params.maxAge = filters.value.maxAge;
+    }
+
+    const res = await getNearbyUsers(params);
 
     if (page.value === 1) {
       users.value = res.data.list;

@@ -415,13 +415,17 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { updateProfile } from '@/api/profile'
+import { updateProfile, getProfile } from '@/api/profile'
+import { useAuthStore } from '@/stores/auth'
 import type { UserProfile } from '@/api/profile'
 
 // 获取URL参数
 const pages = getCurrentPages()
 const currentPage = pages[pages.length - 1] as any
 const section = ref(currentPage.options?.section || 'basic')
+
+// 用户信息
+const authStore = useAuthStore()
 
 // 表单数据
 const formData = ref<Partial<UserProfile>>({
@@ -596,14 +600,14 @@ const handleSave = async () => {
   try {
     uni.showLoading({ title: '保存中...' })
 
-    // 根据不同的 section 提取允许的字段
+    // 根据不同的 section 提取对应的字段
     let submitData: any = {}
 
     if (section.value === 'basic') {
-      // 基础信息：只提交后端 DTO 允许的字段
+      // 基础信息
       submitData = {
         realName: formData.value.realName,
-        birthDate: formData.value.birthDate ? new Date(formData.value.birthDate).toISOString() : undefined,
+        birthDate: formData.value.birthDate ? `${formData.value.birthDate}T00:00:00.000Z` : undefined,
         residence: formData.value.residence,
         height: formData.value.height,
         weight: formData.value.weight,
@@ -612,47 +616,65 @@ const handleSave = async () => {
         bio: formData.value.bio,
       }
     } else if (section.value === 'appearance') {
-      // 外貌体征：这些字段后端不支持，暂时跳过
-      uni.showToast({
-        title: '该功能暂未开放',
-        icon: 'none',
-      })
-      uni.hideLoading()
-      return
-    } else if (section.value === 'education') {
-      // 教育职业：只提交 income（年收入转月收入）
+      // 外貌体征
       submitData = {
-        income: formData.value.income ? Math.round(formData.value.income / 12) : undefined,
+        bodyType: formData.value.bodyType,
+        zodiacSign: formData.value.zodiacSign,
+        chineseZodiac: formData.value.chineseZodiac,
+        faceShape: formData.value.faceShape,
+        hasGlasses: formData.value.hasGlasses,
+        hasTattoo: formData.value.hasTattoo,
+      }
+    } else if (section.value === 'education') {
+      // 教育职业
+      submitData = {
+        graduateSchool: formData.value.graduateSchool,
+        major: formData.value.major,
+        industry: formData.value.industry,
+        company: formData.value.company,
+        workYears: formData.value.workYears,
+        income: formData.value.income,
       }
     } else if (section.value === 'lifestyle') {
-      // 生活方式：后端不支持，暂时跳过
-      uni.showToast({
-        title: '该功能暂未开放',
-        icon: 'none',
-      })
-      uni.hideLoading()
-      return
-    } else if (section.value === 'personality') {
-      // 性格兴趣：后端不支持，暂时跳过
-      uni.showToast({
-        title: '该功能暂未开放',
-        icon: 'none',
-      })
-      uni.hideLoading()
-      return
-    } else if (section.value === 'family') {
-      // 家庭背景：只提交 hometown（籍贯）
+      // 生活方式
       submitData = {
-        hometown: formData.value.nativePlace,
+        smokingStatus: formData.value.smokingStatus,
+        drinkingStatus: formData.value.drinkingStatus,
+        sleepSchedule: formData.value.sleepSchedule,
+        exerciseFrequency: formData.value.exerciseFrequency,
+        dietPreference: formData.value.dietPreference,
+        hasPets: formData.value.hasPets,
+        petType: formData.value.petType,
+        cookingSkill: formData.value.cookingSkill,
+      }
+    } else if (section.value === 'personality') {
+      // 性格兴趣
+      submitData = {
+        personalityTags: formData.value.personalityTags,
+        selfIntroduction: formData.value.selfIntroduction,
+        innerMonologue: formData.value.innerMonologue,
+      }
+    } else if (section.value === 'family') {
+      // 家庭背景
+      submitData = {
+        nativePlace: formData.value.nativePlace,
+        familyMembers: formData.value.familyMembers,
+        familyRanking: formData.value.familyRanking,
+        parentsOccupation: formData.value.parentsOccupation,
+        isOnlyChild: formData.value.isOnlyChild,
+        familyEconomic: formData.value.familyEconomic,
       }
     } else if (section.value === 'marital') {
-      // 婚恋状况：后端不支持，暂时跳过
-      uni.showToast({
-        title: '该功能暂未开放',
-        icon: 'none',
-      })
-      uni.hideLoading()
-      return
+      // 婚恋状况
+      submitData = {
+        maritalStatus: formData.value.maritalStatus,
+        hasChildren: formData.value.hasChildren,
+        childrenCount: formData.value.childrenCount,
+        childrenInfo: formData.value.childrenInfo,
+        marriagePlan: formData.value.marriagePlan,
+        housingStatus: formData.value.housingStatus,
+        carStatus: formData.value.carStatus,
+      }
     }
 
     // 过滤掉 undefined 的字段
@@ -685,8 +707,32 @@ const handleSave = async () => {
   }
 }
 
-onMounted(() => {
+// 加载用户资料
+const loadProfile = async () => {
+  try {
+    const userId = authStore.userInfo?.id
+    if (!userId) return
+
+    const res = await getProfile(userId)
+    const profile = res.data
+
+    // 填充表单数据
+    formData.value = {
+      ...formData.value,
+      ...profile,
+      // 处理日期格式
+      birthDate: profile.birthDate ? profile.birthDate.split('T')[0] : undefined,
+      // 确保数组类型
+      personalityTags: profile.personalityTags || [],
+    }
+  } catch (error: any) {
+    console.error('[EditSection] 加载资料失败:', error)
+  }
+}
+
+onMounted(async () => {
   console.log('[EditSection] 当前步骤:', section.value)
+  await loadProfile()
 })
 </script>
 

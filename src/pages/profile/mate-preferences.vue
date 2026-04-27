@@ -22,7 +22,7 @@
           <view class="range-input">
             <input
               v-model="ageMinStr"
-              type="number"
+              type="text"
               class="range-value"
               placeholder="最小"
               maxlength="3"
@@ -30,7 +30,7 @@
             <text class="range-separator">-</text>
             <input
               v-model="ageMaxStr"
-              type="number"
+              type="text"
               class="range-value"
               placeholder="最大"
               maxlength="3"

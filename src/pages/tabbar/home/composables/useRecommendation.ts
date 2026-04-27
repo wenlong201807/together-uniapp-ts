@@ -36,10 +36,18 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
 
       if (useMockData) {
         // 使用模拟数据
+        console.log('[useRecommendation] 使用Mock数据');
         newItems = generateMockData(pageSize);
         hasMore.value = newItems.length === pageSize;
       } else {
         // 调用后端API
+        console.log('[useRecommendation] 调用真实API:', {
+          page,
+          pageSize,
+          types,
+          cursor: page > 1 ? cursor.value : undefined,
+        });
+
         const response = await getRecommendationFeed({
           page,
           pageSize,
@@ -47,11 +55,15 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
           cursor: page > 1 ? cursor.value : undefined,
         });
 
-        if (response.code === 200 && response.data) {
+        console.log('[useRecommendation] API响应:', response);
+
+        if (response.code === 0 && response.data) {
           newItems = response.data.data;
           hasMore.value = response.data.hasMore;
           cursor.value = response.data.nextCursor;
+          console.log('[useRecommendation] 成功获取数据，数量:', newItems.length);
         } else {
+          console.error('[useRecommendation] API返回错误:', response);
           throw new Error(response.message || 'Failed to fetch recommendations');
         }
       }
@@ -64,9 +76,10 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
 
       currentPage.value = page;
     } catch (error) {
-      console.error('Fetch recommendations error:', error);
+      console.error('[useRecommendation] 获取推荐数据失败:', error);
       // 降级到模拟数据
       if (!useMockData) {
+        console.log('[useRecommendation] 降级到Mock数据');
         const mockData = generateMockData(pageSize);
         if (page === 1) {
           items.value = mockData;

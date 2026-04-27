@@ -76,21 +76,6 @@
         <text class="menu-text">完善资料</text>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" @click="goToInterests">
-        <text class="menu-icon">🎯</text>
-        <text class="menu-text">兴趣管理</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-item" @click="goToPhotos">
-        <text class="menu-icon">📷</text>
-        <text class="menu-text">照片管理</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-item" @click="goToMatePreferences">
-        <text class="menu-icon">💝</text>
-        <text class="menu-text">择偶要求</text>
-        <text class="menu-arrow">›</text>
-      </view>
       <view class="menu-item" @click="goToPrivacy">
         <text class="menu-icon">🔒</text>
         <text class="menu-text">隐私设置</text>
@@ -129,6 +114,11 @@
         <text class="menu-text">黑名单</text>
         <text class="menu-arrow">›</text>
       </view>
+      <view class="menu-item" @click="handleFeedback">
+        <text class="menu-icon">💬</text>
+        <text class="menu-text">意见反馈</text>
+        <text class="menu-arrow">›</text>
+      </view>
     </view>
 
     <view class="menu-list">
@@ -147,6 +137,15 @@
     <view class="logout-section">
       <button class="logout-btn" @click="handleLogout">退出登录</button>
     </view>
+
+    <!-- NPS反馈弹窗 -->
+    <NPSModal
+      :visible="npsVisible"
+      :trigger-type="npsTriggerType"
+      :trigger-scene="npsTriggerScene"
+      @close="closeNPS"
+      @success="onNPSSuccess"
+    />
   </view>
 </template>
 
@@ -156,11 +155,14 @@ import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore, usePointsStore } from '@/stores';
 import { getAvatarDisplay } from '@/utils/avatar';
 import { APP_CONFIG } from '@/config';
+import { useNPS } from '@/composables/useNPS';
+import NPSModal from '@/components/business/NPSModal.vue';
 import '@/assets/styles/avatar.scss';
 
 const authStore = useAuthStore();
 const pointsStore = usePointsStore();
 const isSigning = ref(false);
+const { npsVisible, npsTriggerType, npsTriggerScene, manualTrigger, closeNPS, onNPSSuccess } = useNPS();
 
 // 计算头像显示信息
 const avatarDisplay = computed(() => {
@@ -186,24 +188,6 @@ const goToProfile = () => {
 const goToProfileEdit = () => {
   uni.navigateTo({
     url: '/pages/profile/edit',
-  });
-};
-
-const goToInterests = () => {
-  uni.navigateTo({
-    url: '/pages/profile/interests',
-  });
-};
-
-const goToPhotos = () => {
-  uni.navigateTo({
-    url: '/pages/profile/photos',
-  });
-};
-
-const goToMatePreferences = () => {
-  uni.navigateTo({
-    url: '/pages/profile/mate-preferences',
   });
 };
 
@@ -259,6 +243,10 @@ const goToSettings = () => {
   uni.navigateTo({
     url: '/pages/user/settings',
   });
+};
+
+const handleFeedback = () => {
+  manualTrigger();
 };
 
 const handleSign = async () => {
