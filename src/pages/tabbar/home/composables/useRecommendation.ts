@@ -9,16 +9,18 @@ export interface UseRecommendationOptions {
   pageSize?: number;
   types?: RecommendationType[];
   useMockData?: boolean; // 是否使用模拟数据
+  city?: string; // 城市筛选
 }
 
 export function useRecommendation(options: UseRecommendationOptions = {}) {
-  const { pageSize = 20, types = ['personalized', 'hot', 'nearby', 'topic', 'new'], useMockData = true } = options;
+  const { pageSize = 20, types = ['personalized', 'hot', 'nearby', 'topic', 'new'], useMockData = true, city } = options;
 
   const items = ref<RecommendationItem[]>([]);
   const loading = ref(false);
   const currentPage = ref(1);
   const hasMore = ref(true);
   const cursor = ref<string | undefined>(undefined);
+  const currentCity = ref(city || '全国');
 
   // 推荐比例配置
   const typeRatios = {
@@ -29,10 +31,15 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
     new: 0.1,
   };
 
-  const fetchRecommendations = async (page: number = 1) => {
+  const fetchRecommendations = async (page: number = 1, cityFilter?: string) => {
     loading.value = true;
     try {
       let newItems: RecommendationItem[] = [];
+
+      // 更新当前城市
+      if (cityFilter !== undefined) {
+        currentCity.value = cityFilter;
+      }
 
       if (useMockData) {
         // 使用模拟数据
@@ -45,6 +52,7 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
           page,
           pageSize,
           types,
+          city: currentCity.value,
           cursor: page > 1 ? cursor.value : undefined,
         });
 
@@ -52,6 +60,7 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
           page,
           pageSize,
           types,
+          city: currentCity.value !== '全国' ? currentCity.value : undefined,
           cursor: page > 1 ? cursor.value : undefined,
         });
 
@@ -99,11 +108,16 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
     await fetchRecommendations(currentPage.value + 1);
   };
 
-  const refresh = async () => {
+  const refresh = async (cityFilter?: string) => {
     currentPage.value = 1;
     hasMore.value = true;
     cursor.value = undefined;
-    await fetchRecommendations(1);
+    await fetchRecommendations(1, cityFilter);
+  };
+
+  // 更新城市筛选
+  const updateCity = (newCity: string) => {
+    currentCity.value = newCity;
   };
 
   /**
@@ -206,9 +220,11 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
     loading,
     hasMore,
     currentPage,
+    currentCity,
     fetchRecommendations,
     loadMore,
     refresh,
+    updateCity,
     trackAction,
   };
 }

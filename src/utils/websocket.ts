@@ -11,6 +11,7 @@ class WebSocketManager {
   private reconnectDelay = 3000
   private isConnecting = false
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  private manualDisconnect = false // 标记是否为手动断开连接
 
   connect() {
     if (this.isConnecting || (this.socket && this.socket.connected)) {
@@ -19,6 +20,7 @@ class WebSocketManager {
     }
 
     this.isConnecting = true
+    this.manualDisconnect = false // 重置手动断开标记
 
     const authStore = useAuthStore()
     const token = authStore.token || uni.getStorageSync('token')
@@ -126,6 +128,12 @@ class WebSocketManager {
   }
 
   private handleReconnect() {
+    // 如果是手动断开连接，不进行重连
+    if (this.manualDisconnect) {
+      console.log('WebSocket: Manual disconnect, skip reconnection')
+      return
+    }
+
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error('WebSocket: Max reconnect attempts reached')
       return
@@ -150,6 +158,8 @@ class WebSocketManager {
   }
 
   disconnect() {
+    console.log('WebSocket: Manual disconnect initiated')
+    this.manualDisconnect = true // 标记为手动断开
     this.stopHeartbeat()
 
     if (this.reconnectTimer) {
@@ -158,6 +168,8 @@ class WebSocketManager {
     }
 
     if (this.socket) {
+      // 移除所有事件监听器，防止内存泄漏
+      this.socket.removeAllListeners()
       this.socket.disconnect()
       this.socket = null
     }

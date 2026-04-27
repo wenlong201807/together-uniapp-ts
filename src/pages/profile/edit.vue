@@ -217,13 +217,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getCompletenessDetails, getInterests, getPhotos, getMatePreferences } from '@/api/profile'
+import { getCompletenessDetails, getInterests, getPhotos, getMatePreferences, getProfile } from '@/api/profile'
 
 // 信息完整度数据
 const completenessData = ref({
   score: 0,
   level: '基础级',
   missingFields: [] as string[],
+  completedSections: [] as string[], // 已完成的章节列表
 })
 
 // 统计数据
@@ -235,14 +236,33 @@ const hasMatePreference = ref(false)
 onShow(async () => {
   await loadCompletenessData()
   await loadStatistics()
+  await loadProfile() // 加载用户资料，获取已完成的章节
 })
 
 const loadCompletenessData = async () => {
   try {
     const res = await getCompletenessDetails()
-    completenessData.value = res.data
+    completenessData.value = {
+      ...res.data,
+      completedSections: res.data.completedSections || [],
+    }
   } catch (error: any) {
     console.error('[ProfileEdit] 加载完整度失败:', error)
+  }
+}
+
+// 加载用户资料
+const loadProfile = async () => {
+  try {
+    const userId = uni.getStorageSync('userInfo')?.id
+    if (!userId) return
+
+    const res = await getProfile(userId)
+    if (res.data?.completedSections) {
+      completenessData.value.completedSections = res.data.completedSections
+    }
+  } catch (error: any) {
+    console.error('[ProfileEdit] 加载用户资料失败:', error)
   }
 }
 
@@ -277,14 +297,12 @@ const loadStatistics = async () => {
 
 // 获取章节状态
 const getSectionStatus = (section: string) => {
-  // TODO: 根据实际数据判断章节完成状态
-  return '未完成'
+  return completenessData.value.completedSections.includes(section) ? '已完成' : '未完成'
 }
 
 // 判断章节是否完成
 const isSectionComplete = (section: string) => {
-  // TODO: 根据实际数据判断
-  return false
+  return completenessData.value.completedSections.includes(section)
 }
 
 // 编辑章节

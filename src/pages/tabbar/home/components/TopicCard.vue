@@ -12,9 +12,9 @@
       <text class="description-text">{{ topic.description }}</text>
     </view>
 
-    <view v-if="topic.coverImages && topic.coverImages.length" class="cover-images">
+    <view v-if="coverImageList.length" class="cover-images">
       <image
-        v-for="(image, index) in topic.coverImages.slice(0, 3)"
+        v-for="(image, index) in coverImageList.slice(0, 3)"
         :key="index"
         class="cover-image"
         :src="image"
@@ -35,12 +35,15 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+
 export interface Topic {
   id: number;
   title: string;
   description?: string;
   participantCount: number;
   postCount: number;
+  coverImage?: string;
   coverImages?: string[];
 }
 
@@ -56,7 +59,21 @@ const emit = defineEmits<{
   join: [topic: Topic];
 }>();
 
-const formatCount = (count: number): string => {
+// 处理封面图片列表
+const coverImageList = computed(() => {
+  if (props.topic.coverImages && props.topic.coverImages.length > 0) {
+    return props.topic.coverImages;
+  }
+  if (props.topic.coverImage) {
+    return [props.topic.coverImage];
+  }
+  return [];
+});
+
+const formatCount = (count?: number): string => {
+  if (!count && count !== 0) {
+    return '0';
+  }
   if (count >= 10000) {
     return `${(count / 10000).toFixed(1)}w`;
   }

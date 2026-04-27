@@ -91,11 +91,12 @@ class Request {
             if (response.code === 0) {
               resolve(response);
             } else {
+              const errorMsg = typeof response.message === 'string' ? response.message : '请求失败';
               uni.showToast({
-                title: response.message || '请求失败',
+                title: errorMsg,
                 icon: 'none',
               });
-              reject(new Error(response.message || '请求失败'));
+              reject(new Error(errorMsg));
             }
           } else if (res.statusCode === 401) {
             // Token 过期，尝试刷新
@@ -173,11 +174,12 @@ class Request {
               });
             }
           } else {
+            const errorMsg = typeof response.message === 'string' ? response.message : '请求失败';
             uni.showToast({
-              title: response.message || '请求失败',
+              title: errorMsg,
               icon: 'none',
             });
-            reject(new Error(response.message || '请求失败'));
+            reject(new Error(errorMsg));
           }
         },
         fail: (err) => {

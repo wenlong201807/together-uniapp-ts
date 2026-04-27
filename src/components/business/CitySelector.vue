@@ -60,6 +60,17 @@
 
       <!-- 城市列表 -->
       <scroll-view v-else class="city-list" scroll-y :scroll-into-view="scrollIntoView">
+        <!-- 全国选项 -->
+        <view class="nationwide-section">
+          <view class="section-title">
+            <text>全部</text>
+          </view>
+          <view class="nationwide-item" @click="selectNationwide">
+            <text class="city-name">全国</text>
+            <text v-if="currentCity === '全国'" class="selected-icon">✓</text>
+          </view>
+        </view>
+
         <!-- 热门城市 -->
         <view class="hot-cities-section">
           <view class="section-title">
@@ -70,6 +81,7 @@
               v-for="city in hotCities"
               :key="city.code"
               class="hot-city-item"
+              :class="{ selected: currentCity === city.name }"
               @click="selectCity(city)"
             >
               <text>{{ city.name }}</text>
@@ -197,6 +209,26 @@ const handleLocate = async () => {
     currentLocation.value = '';
   } finally {
     locating.value = false;
+  }
+};
+
+// 选择全国
+const selectNationwide = async () => {
+  try {
+    await saveUserCity('全国');
+    emit('select', '全国');
+    handleClose();
+
+    uni.showToast({
+      title: '已切换到全国',
+      icon: 'success'
+    });
+  } catch (error) {
+    console.error('Save city error:', error);
+    uni.showToast({
+      title: '切换失败',
+      icon: 'none'
+    });
   }
 };
 
@@ -435,6 +467,43 @@ defineExpose({
       }
     }
 
+    .nationwide-section {
+      padding: $padding-md $padding-xl;
+      border-bottom: 1rpx solid $divider-color;
+
+      .section-title {
+        font-size: $font-size-sm;
+        color: $text-tertiary;
+        margin-bottom: $margin-sm;
+      }
+
+      .nationwide-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: $padding-md;
+        background: $bg-secondary;
+        border-radius: $radius-base;
+        @include transition(all);
+
+        &:active {
+          background: $bg-tertiary;
+        }
+
+        .city-name {
+          font-size: $font-size-base;
+          color: $text-primary;
+          font-weight: $font-weight-medium;
+        }
+
+        .selected-icon {
+          font-size: $font-size-lg;
+          color: $primary-color;
+          font-weight: $font-weight-bold;
+        }
+      }
+    }
+
     .hot-cities-section {
       padding: $padding-md $padding-xl;
 
@@ -460,6 +529,11 @@ defineExpose({
 
           &:active {
             background: $bg-tertiary;
+          }
+
+          &.selected {
+            background: $primary-color;
+            color: $bg-primary;
           }
         }
       }

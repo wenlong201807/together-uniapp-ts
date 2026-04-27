@@ -49,6 +49,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { onHide, onShow } from '@dcloudio/uni-app';
 import { useChatStore, useAuthStore } from '@/stores';
 import { useNetworkStatus } from '@/composables/useNetworkStatus';
 import { useAvatarSync } from '@/composables/useAvatarSync';
@@ -102,9 +103,26 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  // 先断开WebSocket连接，防止在清理store时收到消息
+  wsManager.disconnect();
+
+  // 然后清理store和其他资源
   chatStore.clearMessages();
   chatStore.setCurrentChat(null);
   uni.offKeyboardHeightChange(() => {});
+});
+
+// 页面隐藏时断开连接（节省资源）
+onHide(() => {
+  wsManager.disconnect();
+});
+
+// 页面显示时重新连接
+onShow(() => {
+  // 只有在当前有聊天对象时才重连
+  if (targetUserId.value) {
+    wsManager.connect();
+  }
 });
 
 // 监听消息变化，自动滚动到底部

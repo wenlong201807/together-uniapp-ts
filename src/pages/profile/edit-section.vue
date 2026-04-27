@@ -684,12 +684,16 @@ const handleSave = async () => {
       }
     })
 
-    await updateProfile(submitData)
+    const response = await updateProfile(submitData)
 
     uni.hideLoading()
 
+    // 根据后端返回的 isFirstTimeComplete 显示不同的提示
+    const isFirstTimeComplete = response?.data?.isFirstTimeComplete ?? false
+    const toastTitle = isFirstTimeComplete ? '保存成功，+20积分' : '保存成功'
+
     uni.showToast({
-      title: '保存成功，+20积分',
+      title: toastTitle,
       icon: 'success',
       duration: 2000,
     })

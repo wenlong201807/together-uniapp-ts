@@ -77,7 +77,7 @@
           <!-- 话题卡片 -->
           <TopicCard
             v-else-if="item.type === 'topic'"
-            :topic="item.data"
+            :topic="item.data.topic"
             @card-click="handleTopicClick"
             @view="handleTopicView"
             @join="handleTopicJoin"
@@ -169,6 +169,7 @@ const {
   loadMore,
   refresh,
   trackAction,
+  updateCity,
 } = useRecommendation({ useMockData: false });
 
 // 无限滚动
@@ -300,14 +301,15 @@ const handleMessageClick = () => {
 };
 
 // 城市选择
-const handleCitySelect = (city: string) => {
+const handleCitySelect = async (city: string) => {
   currentCity.value = city;
 
-  // 刷新推荐内容
-  page.value = 1;
-  recommendationItems.value = [];
-  hasMore.value = true;
-  loadRecommendations();
+  // 保存到本地存储
+  uni.setStorageSync('selectedCity', city);
+
+  // 更新推荐流的城市筛选并刷新数据
+  updateCity(city);
+  await refresh(city);
 };
 
 // Banner事件
@@ -398,8 +400,9 @@ const preloadNextPageImages = async () => {
 
 // 初始化
 onMounted(async () => {
-  // 获取定位
-  currentCity.value = '北京';
+  // 获取保存的城市或使用默认值"全国"
+  const savedCity = uni.getStorageSync('selectedCity');
+  currentCity.value = savedCity || '全国';
 
   // 并行加载数据
   const results = await Promise.allSettled([
