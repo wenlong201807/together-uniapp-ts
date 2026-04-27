@@ -55,10 +55,9 @@ export function getCityByCoordinates(params: {
 /**
  * 保存用户选择的城市
  * 后端路由: POST /location/save-city
- * 后端 DTO: { cityId: number }
  */
-export function saveUserCity(cityId: number): Promise<ApiResponse<void>> {
-  return request.post('/location/save-city', { cityId });
+export function saveUserCity(cityName: string): Promise<ApiResponse<void>> {
+  return request.post('/location/save-city', { cityName });
 }
 
 /**

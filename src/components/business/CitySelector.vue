@@ -204,13 +204,8 @@ const handleLocate = async () => {
 const selectCity = async (city: City | string) => {
   try {
     const cityName = typeof city === 'string' ? city : city.name;
-    const cityCode = typeof city === 'string' ? '0' : city.code;
 
-    // 保存用户选择的城市（使用城市代码转数字作为 cityId）
-    const cityId = parseInt(cityCode, 10) || 0;
-    if (cityId > 0) {
-      await saveUserCity(cityId);
-    }
+    await saveUserCity(cityName);
 
     emit('select', cityName);
     handleClose();

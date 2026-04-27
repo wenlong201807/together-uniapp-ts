@@ -255,7 +255,19 @@ const loadResult = async () => {
     report.value = reportRes.data;
 
     console.log('报告数据:', report.value);
-    console.log('avatarUrl:', report.value?.avatarUrl);
+    console.log('原始 avatarUrl:', report.value?.avatarUrl);
+
+    // 处理头像 URL：如果是相对路径，需要特殊处理
+    if (report.value.avatarUrl) {
+      if (report.value.avatarUrl.startsWith('/static/')) {
+        // 本地静态资源路径，移除开头的斜杠
+        report.value.avatarUrl = report.value.avatarUrl.substring(1);
+        console.log('处理后的本地路径:', report.value.avatarUrl);
+      } else if (report.value.avatarUrl.startsWith('http')) {
+        // 外部 URL，保持不变
+        console.log('外部 URL:', report.value.avatarUrl);
+      }
+    }
 
     // 如果有当前结果，尝试获取分数数据
     if (!result.value && typeToLoad) {

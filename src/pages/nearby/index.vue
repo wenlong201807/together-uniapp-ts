@@ -10,7 +10,6 @@
         <text class="filter-text">{{ currentGenderText }}</text>
         <text class="filter-arrow">▼</text>
       </view>
-      </view>
     </view>
 
     <!-- 统计信息 -->
@@ -351,7 +350,6 @@ const selectGender = (value: number) => {
 // 选择排序 (保留函数但不再发送到后端)
 const selectSort = (_value: 'distance' | 'active') => {
   // 后端暂不支持排序参数，保留函数以避免模板报错
-};
 };
 
 // 点击用户
