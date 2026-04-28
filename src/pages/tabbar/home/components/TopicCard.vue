@@ -13,15 +13,13 @@
     </view>
 
     <view v-if="coverImageList.length" class="cover-images">
-      <LazyImage
+      <image
         v-for="(image, imageIndex) in coverImageList.slice(0, 3)"
         :key="imageIndex"
         class="cover-image"
         :src="image"
-        :width="400"
-        :height="300"
-        :priority="imagePriority"
         mode="aspectFill"
+        style="width: 6.25rem; height: 6.25rem;"
       />
     </view>
 
@@ -38,7 +36,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import LazyImage from '@/components/LazyImage.vue'
 
 export interface Topic {
   id: number;
@@ -56,12 +53,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const imagePriority = computed(() => {
-  if (props.index === undefined) return 'low';
-  if (props.index < 3) return 'high';
-  return 'low';
-});
 
 const emit = defineEmits<{
   cardClick: [topic: Topic];

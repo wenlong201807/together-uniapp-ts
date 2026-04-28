@@ -64,8 +64,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import LazyImage from '@/components/LazyImage.vue'
 import type { RecommendUser } from './RecommendationCard.vue';
 
 export interface HotScore {
@@ -81,12 +79,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const imagePriority = computed(() => {
-  if (props.index === undefined) return 'high';
-  if (props.index < 3) return 'critical';
-  return 'high';
-});
 
 const emit = defineEmits<{
   cardClick: [user: RecommendUser];

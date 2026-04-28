@@ -56,8 +56,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import LazyImage from '@/components/LazyImage.vue'
 export interface RecommendUser {
   id: number;
   nickname: string;
@@ -75,13 +73,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-// 动态计算图片优先级
-const imagePriority = computed(() => {
-  if (props.index === undefined) return 'high';
-  if (props.index < 3) return 'critical';  // 前3项为关键优先级
-  return 'high';  // 可见项为高优先级
-});
 
 const emit = defineEmits<{
   cardClick: [user: RecommendUser];

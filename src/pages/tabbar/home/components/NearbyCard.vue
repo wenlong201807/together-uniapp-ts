@@ -7,13 +7,9 @@
 
     <view class="card-header">
       <view class="user-info">
-        <LazyImage
+        <image
           class="avatar"
           :src="user.avatar"
-          :width="100"
-          :height="100"
-          :priority="imagePriority"
-          :is-avatar="true"
           mode="aspectFill"
         />
         <view class="user-details">
@@ -31,15 +27,13 @@
     </view>
 
     <view v-if="user.photos && user.photos.length" class="photo-grid">
-      <LazyImage
+      <image
         v-for="(photo, photoIndex) in user.photos.slice(0, 3)"
         :key="photoIndex"
         class="photo"
         :src="photo"
-        :width="400"
-        :height="400"
-        :priority="imagePriority"
         mode="aspectFill"
+        style="width: 6.25rem; height: 6.25rem;"
       />
     </view>
 
@@ -55,8 +49,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import LazyImage from '@/components/LazyImage.vue'
 import type { RecommendUser } from './RecommendationCard.vue';
 
 interface Props {
@@ -66,12 +58,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const imagePriority = computed(() => {
-  if (props.index === undefined) return 'high';
-  if (props.index < 3) return 'critical';
-  return 'high';
-});
 
 const emit = defineEmits<{
   cardClick: [user: RecommendUser];
