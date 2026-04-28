@@ -2,7 +2,11 @@
   <view class="recommendation-card" @click="handleCardClick">
     <view class="card-header">
       <view class="user-info">
-        <image class="avatar" :src="user.avatar" mode="aspectFill" />
+        <image
+          class="avatar"
+          :src="user.avatar"
+          mode="aspectFill"
+        />
         <view class="user-details">
           <view class="user-name-row">
             <text class="username">{{ user.nickname }}</text>
@@ -25,12 +29,12 @@
 
     <view v-if="user.photos && user.photos.length" class="photo-grid">
       <image
-        v-for="(photo, index) in user.photos.slice(0, 3)"
-        :key="index"
+        v-for="(photo, photoIndex) in user.photos.slice(0, 3)"
+        :key="photoIndex"
         class="photo"
         :src="photo"
         mode="aspectFill"
-        :lazy-load="true"
+        style="width: 6.25rem; height: 6.25rem;"
       />
     </view>
 
@@ -52,6 +56,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import LazyImage from '@/components/LazyImage.vue'
 export interface RecommendUser {
   id: number;
   nickname: string;
@@ -65,9 +71,17 @@ export interface RecommendUser {
 
 interface Props {
   user: RecommendUser;
+  index?: number;  // 虚拟列表中的索引，用于动态优先级
 }
 
 const props = defineProps<Props>();
+
+// 动态计算图片优先级
+const imagePriority = computed(() => {
+  if (props.index === undefined) return 'high';
+  if (props.index < 3) return 'critical';  // 前3项为关键优先级
+  return 'high';  // 可见项为高优先级
+});
 
 const emit = defineEmits<{
   cardClick: [user: RecommendUser];
@@ -190,16 +204,17 @@ const handleDetail = () => {
   }
 
   .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: $spacing-sm;
     margin-bottom: $margin-md;
 
     .photo {
-      width: 100%;
-      height: 200rpx;
+      display: block;
+      width: 6.25rem;
+      height: 6.25rem;
       border-radius: $radius-md;
-      background: $bg-secondary;
+      overflow: hidden;
+      flex-shrink: 0;
     }
   }
 

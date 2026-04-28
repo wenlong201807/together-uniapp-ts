@@ -72,6 +72,7 @@ export function getRecommendationFeed(params: {
   pageSize: number;
   types?: string[];
   cursor?: string;
+  city?: string;  // 添加城市筛选参数
 }): Promise<ApiResponse<RecommendationFeedResponse>> {
   return request.get('/home/feed', params);
 }

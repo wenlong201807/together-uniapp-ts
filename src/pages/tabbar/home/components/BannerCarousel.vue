@@ -13,11 +13,12 @@
     >
       <swiper-item v-for="(banner, index) in banners" :key="index">
         <view class="banner-item" @click="handleBannerClick(banner)">
-          <image
+          <LazyImage
             class="banner-image"
             :src="banner.imageUrl"
-            mode="aspectFill"
-            :lazy-load="true"
+            :priority="index === 0 ? 'critical' : 'high'"
+            :lazy="false"
+            mode="aspectFit"
           />
           <view class="banner-content">
             <text class="banner-title">{{ banner.title }}</text>
@@ -31,6 +32,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import LazyImage from '@/components/LazyImage.vue';
 
 export interface Banner {
   id: number;
@@ -86,9 +88,9 @@ const handleBannerClick = (banner: Banner) => {
       overflow: hidden;
 
       .banner-image {
+        display: block;
         width: 100%;
-        height: 100%;
-        object-fit: cover;
+        height: 320rpx;
       }
 
       .banner-content {

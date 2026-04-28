@@ -7,7 +7,11 @@
 
     <view class="card-header">
       <view class="user-info">
-        <image class="avatar" :src="user.avatar" mode="aspectFill" />
+        <image
+          class="avatar"
+          :src="user.avatar"
+          mode="aspectFill"
+        />
         <view class="user-details">
           <view class="user-name-row">
             <text class="username">{{ user.nickname }}</text>
@@ -24,12 +28,12 @@
 
     <view v-if="user.photos && user.photos.length" class="photo-grid">
       <image
-        v-for="(photo, index) in user.photos.slice(0, 3)"
-        :key="index"
+        v-for="(photo, photoIndex) in user.photos.slice(0, 3)"
+        :key="photoIndex"
         class="photo"
         :src="photo"
         mode="aspectFill"
-        :lazy-load="true"
+        style="width: 6.25rem; height: 6.25rem;"
       />
     </view>
 
@@ -60,6 +64,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import LazyImage from '@/components/LazyImage.vue'
 import type { RecommendUser } from './RecommendationCard.vue';
 
 export interface HotScore {
@@ -71,9 +77,16 @@ export interface HotScore {
 interface Props {
   user: RecommendUser;
   hotScore: HotScore;
+  index?: number;
 }
 
 const props = defineProps<Props>();
+
+const imagePriority = computed(() => {
+  if (props.index === undefined) return 'high';
+  if (props.index < 3) return 'critical';
+  return 'high';
+});
 
 const emit = defineEmits<{
   cardClick: [user: RecommendUser];
@@ -81,7 +94,11 @@ const emit = defineEmits<{
   skip: [user: RecommendUser];
 }>();
 
-const formatCount = (count: number): string => {
+const formatCount = (count?: number): string => {
+  // 处理 undefined、null 或 0 的情况
+  if (!count && count !== 0) {
+    return '0';
+  }
   if (count >= 10000) {
     return `${(count / 10000).toFixed(1)}w`;
   }
@@ -207,16 +224,17 @@ const handleSkip = () => {
   }
 
   .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: $spacing-sm;
     margin-bottom: $margin-md;
 
     .photo {
-      width: 100%;
-      height: 200rpx;
+      display: block;
+      width: 6.25rem;
+      height: 6.25rem;
       border-radius: $radius-md;
-      background: $bg-secondary;
+      overflow: hidden;
+      flex-shrink: 0;
     }
   }
 

@@ -103,16 +103,16 @@ withDefaults(defineProps<Props>(), {
   }
 
   .skeleton-photos {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: $spacing-sm;
     margin-bottom: $margin-md;
 
     .skeleton-photo {
-      width: 100%;
-      height: 200rpx;
+      width: 6.25rem;
+      height: 6.25rem;
       border-radius: $radius-md;
       background: $bg-secondary;
+      flex-shrink: 0;
     }
   }
 

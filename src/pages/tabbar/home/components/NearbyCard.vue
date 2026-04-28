@@ -7,7 +7,15 @@
 
     <view class="card-header">
       <view class="user-info">
-        <image class="avatar" :src="user.avatar" mode="aspectFill" />
+        <LazyImage
+          class="avatar"
+          :src="user.avatar"
+          :width="100"
+          :height="100"
+          :priority="imagePriority"
+          :is-avatar="true"
+          mode="aspectFill"
+        />
         <view class="user-details">
           <view class="user-name-row">
             <text class="username">{{ user.nickname }}</text>
@@ -23,13 +31,15 @@
     </view>
 
     <view v-if="user.photos && user.photos.length" class="photo-grid">
-      <image
-        v-for="(photo, index) in user.photos.slice(0, 3)"
-        :key="index"
+      <LazyImage
+        v-for="(photo, photoIndex) in user.photos.slice(0, 3)"
+        :key="photoIndex"
         class="photo"
         :src="photo"
+        :width="400"
+        :height="400"
+        :priority="imagePriority"
         mode="aspectFill"
-        :lazy-load="true"
       />
     </view>
 
@@ -45,14 +55,23 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import LazyImage from '@/components/LazyImage.vue'
 import type { RecommendUser } from './RecommendationCard.vue';
 
 interface Props {
   user: RecommendUser;
   distance: string;
+  index?: number;
 }
 
 const props = defineProps<Props>();
+
+const imagePriority = computed(() => {
+  if (props.index === undefined) return 'high';
+  if (props.index < 3) return 'critical';
+  return 'high';
+});
 
 const emit = defineEmits<{
   cardClick: [user: RecommendUser];
@@ -179,16 +198,16 @@ const handleSkip = () => {
   }
 
   .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: $spacing-sm;
     margin-bottom: $margin-md;
 
     .photo {
-      width: 100%;
-      height: 200rpx;
+      width: 6.25rem;
+      height: 6.25rem;
       border-radius: $radius-md;
       background: $bg-secondary;
+      flex-shrink: 0;
     }
   }
 

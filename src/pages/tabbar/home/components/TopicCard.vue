@@ -13,13 +13,15 @@
     </view>
 
     <view v-if="coverImageList.length" class="cover-images">
-      <image
-        v-for="(image, index) in coverImageList.slice(0, 3)"
-        :key="index"
+      <LazyImage
+        v-for="(image, imageIndex) in coverImageList.slice(0, 3)"
+        :key="imageIndex"
         class="cover-image"
         :src="image"
+        :width="400"
+        :height="300"
+        :priority="imagePriority"
         mode="aspectFill"
-        :lazy-load="true"
       />
     </view>
 
@@ -36,6 +38,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import LazyImage from '@/components/LazyImage.vue'
 
 export interface Topic {
   id: number;
@@ -49,9 +52,16 @@ export interface Topic {
 
 interface Props {
   topic: Topic;
+  index?: number;
 }
 
 const props = defineProps<Props>();
+
+const imagePriority = computed(() => {
+  if (props.index === undefined) return 'low';
+  if (props.index < 3) return 'high';
+  return 'low';
+});
 
 const emit = defineEmits<{
   cardClick: [topic: Topic];
@@ -152,16 +162,16 @@ const handleJoin = () => {
   }
 
   .cover-images {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: $spacing-sm;
     margin-bottom: $margin-md;
 
     .cover-image {
-      width: 100%;
-      height: 160rpx;
+      width: 6.25rem;
+      height: 6.25rem;
       border-radius: $radius-md;
       background: $bg-secondary;
+      flex-shrink: 0;
     }
   }
 

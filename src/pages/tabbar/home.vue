@@ -2,6 +2,7 @@
   <view class="home-container">
     <!-- 顶部导航 -->
     <TopNavigation
+      ref="topNavRef"
       :city="currentCity"
       :unread-count="unreadCount"
       @location-click="handleLocationClick"
@@ -41,13 +42,24 @@
           <SkeletonCard v-for="i in 3" :key="i" />
         </template>
 
-        <!-- 推荐内容 -->
-        <template v-else>
-          <template v-for="item in recommendationItems" :key="item.id">
+        <!-- 虚拟列表 -->
+        <VirtualList
+          v-else
+          :items="recommendationItems"
+          :estimated-item-height="400"
+          :buffer-size="3"
+          :scroll-throttle="16"
+          :container-height="virtualListHeight"
+          @load-more="loadMore"
+          @visible-range-change="handleVisibleRangeChange"
+        >
+          <template #default="{ item, index }">
+            <view class="recommendation-item">
           <!-- 个性化推荐卡片 -->
           <RecommendationCard
             v-if="item.type === 'personalized'"
             :user="item.data.user"
+            :index="index"
             @card-click="handleUserClick"
             @like="handleUserLike"
             @skip="handleUserSkip"
@@ -59,6 +71,7 @@
             v-else-if="item.type === 'hot'"
             :user="item.data.user"
             :hot-score="item.data.hotScore"
+            :index="index"
             @card-click="handleUserClick"
             @like="handleUserLike"
             @skip="handleUserSkip"
@@ -69,6 +82,7 @@
             v-else-if="item.type === 'nearby'"
             :user="item.data.user"
             :distance="item.data.distance"
+            :index="index"
             @card-click="handleUserClick"
             @like="handleUserLike"
             @skip="handleUserSkip"
@@ -78,6 +92,7 @@
           <TopicCard
             v-else-if="item.type === 'topic'"
             :topic="item.data.topic"
+            :index="index"
             @card-click="handleTopicClick"
             @view="handleTopicView"
             @join="handleTopicJoin"
@@ -88,11 +103,14 @@
             v-else-if="item.type === 'new'"
             :user="item.data.user"
             :join-days="item.data.joinDays"
+            :index="index"
             @card-click="handleUserClick"
             @like="handleUserLike"
             @skip="handleUserSkip"
           />
-        </template>
+            </view>
+          </template>
+        </VirtualList>
 
         <!-- 加载状态 -->
         <view v-if="loading && recommendationItems.length > 0" class="loading-state">
@@ -103,7 +121,6 @@
         <view v-if="!hasMore && recommendationItems.length > 0" class="no-more">
           <text class="no-more-text">没有更多内容了</text>
         </view>
-        </template>
       </view>
     </scroll-view>
 
@@ -138,12 +155,13 @@ import NearbyCard from './home/components/NearbyCard.vue';
 import TopicCard from './home/components/TopicCard.vue';
 import NewUserCard from './home/components/NewUserCard.vue';
 import SkeletonCard from './home/components/SkeletonCard.vue';
+import VirtualList from '@/components/VirtualList.vue';
 import NPSModal from '@/components/business/NPSModal.vue';
 import CitySelector from '@/components/business/CitySelector.vue';
 import { useNPS, NPSScene } from '@/composables/useNPS';
 import { useRecommendation } from './home/composables/useRecommendation';
 import { useInfiniteScroll } from './home/composables/useInfiniteScroll';
-import { useImageLazyLoad, ImagePreloadStrategy } from '@/utils/imageLoader';
+import { initImageLoader, cleanupImageLoader, getGlobalPerformanceMonitor } from '@/utils/imageLoader/index';
 import { CacheManager, CACHE_KEYS, CACHE_EXPIRE_TIME } from '@/utils/cache';
 import { getBanners } from '@/api/home';
 import type { Banner } from './home/components/BannerCarousel.vue';
@@ -152,13 +170,31 @@ import type { QuickAction } from './home/components/QuickActions.vue';
 const authStore = useAuthStore();
 const { npsVisible, npsTriggerType, npsTriggerScene, checkAndTrigger, closeNPS, onNPSSuccess } = useNPS();
 
-// 图片懒加载
-const { preloadImages } = useImageLazyLoad({
-  placeholder: 'https://via.placeholder.com/400',
+// 初始化图片加载器（副作用初始化，启动内存监控和性能统计）
+// 注意：initImageLoader 现在是异步的，需要在 onMounted 中 await
+let imageLoaderInitialized = false;
+
+// 获取性能监控器
+const performanceMonitor = getGlobalPerformanceMonitor();
+
+// 组件引用
+const topNavRef = ref();
+
+// 计算虚拟列表容器高度
+const virtualListHeight = computed(() => {
+  // TopNavigation 高度约 88rpx，加上 padding 和其他元素
+  // Banner 约 300rpx，QuickActions 约 200rpx，section-header 约 80rpx
+  // 总共需要减去约 668rpx + 安全区域
+  return 'calc(100vh - 700rpx)';
 });
 
-// 图片预加载策略
-const imagePreloadStrategy = new ImagePreloadStrategy();
+// 图片懒加载（已废弃，使用 LazyImage 组件替代）
+// const { preloadImages } = useImageLazyLoad({
+//   placeholder: 'https://via.placeholder.com/400',
+// });
+
+// 图片预加载策略（已废弃）
+// const imagePreloadStrategy = new ImagePreloadStrategy();
 
 // 推荐流
 const {
@@ -390,16 +426,40 @@ const handleRefresh = async () => {
   CacheManager.clearAllExpired();
 };
 
-// 预加载下一页图片
-const preloadNextPageImages = async () => {
-  if (recommendationItems.value.length > 0) {
-    const lastVisibleIndex = Math.min(5, recommendationItems.value.length - 1);
-    await imagePreloadStrategy.preloadNextPage(recommendationItems.value, lastVisibleIndex, 3);
-  }
+// 可视区域变化处理（用于动态优先级调整）
+const handleVisibleRangeChange = (startIndex: number, endIndex: number) => {
+  console.log('[Home] Visible range changed:', startIndex, '-', endIndex);
+  // 可视区域变化时，图片优先级已通过 index prop 自动调整
 };
 
 // 初始化
 onMounted(async () => {
+  // 清理旧的离线缓存数据（确保推荐卡片图片使用原始 URL）
+  try {
+    const cacheKeys = uni.getStorageInfoSync().keys || [];
+    const imageCacheKeys = cacheKeys.filter(key => key.startsWith('img_cache_'));
+    imageCacheKeys.forEach(key => {
+      uni.removeStorageSync(key);
+    });
+    if (imageCacheKeys.length > 0) {
+      console.log(`[Home] Cleared ${imageCacheKeys.length} offline image cache items`);
+    }
+  } catch (error) {
+    console.warn('[Home] Failed to clear offline cache:', error);
+  }
+
+  // 初始化图片加载器（异步）
+  if (!imageLoaderInitialized) {
+    await initImageLoader({
+      maxConcurrent: 3,
+      maxCacheSize: 50,
+      memoryThreshold: 30 * 1024 * 1024,
+      enableMonitoring: true,
+      enableOfflineCache: false  // 禁用离线缓存，推荐卡片图片使用原始 URL
+    });
+    imageLoaderInitialized = true;
+  }
+
   // 获取保存的城市或使用默认值"全国"
   const savedCity = uni.getStorageSync('selectedCity');
   currentCity.value = savedCity || '全国';
@@ -417,9 +477,6 @@ onMounted(async () => {
     }
   });
 
-  // 预加载图片
-  await preloadNextPageImages();
-
   // 检查并触发NPS
   checkAndTrigger({
     scene: NPSScene.PERIODIC,
@@ -430,14 +487,25 @@ onMounted(async () => {
   cleanupTimer = setInterval(() => {
     CacheManager.clearAllExpired();
   }, 10 * 60 * 1000) as unknown as number;
+
+  // 定期上报性能数据（每5分钟）
+  setInterval(() => {
+    const metrics = performanceMonitor.getMetrics();
+    console.log('[Performance] Metrics:', performanceMonitor.generateReport());
+    // TODO: 上报到后端
+    // performanceMonitor.report('https://api.example.com/metrics');
+  }, 5 * 60 * 1000);
 });
 
-// 组件卸载时清理定时器
+// 组件卸载时清理定时器和图片加载器
 onUnmounted(() => {
   if (cleanupTimer) {
     clearInterval(cleanupTimer);
     cleanupTimer = null;
   }
+
+  // 清理图片加载器资源
+  cleanupImageLoader();
 });
 </script>
 
