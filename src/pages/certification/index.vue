@@ -1,63 +1,80 @@
 <template>
   <view class="certification-container">
-    <view class="cert-types" v-if="certTypes.length > 0">
-      <view
-        class="cert-type-item"
-        v-for="type in certTypes"
-        :key="type.code"
-        @click="goToApply(type.code)"
-      >
-        <view
-          class="cert-icon"
-          :class="{ 'has-image': getCertImage(type.code) }"
-        >
-          <image
-            v-if="getCertImage(type.code)"
-            :src="getCertImage(type.code)"
-            mode="aspectFill"
-            class="cert-thumbnail"
-          />
-          <text v-else>{{ '📋' }}</text>
-        </view>
-        <view class="cert-info">
-          <view class="cert-name-row">
-            <text class="cert-name">{{ type.name }}</text>
-            <text
-              v-if="getCertStatus(type.code)"
-              class="cert-badge"
-              :style="{ color: getCertStatus(type.code)?.color }"
-            >
-              {{ getCertStatus(type.code)?.text }}
-            </text>
-          </view>
-          <text class="cert-desc">{{ type.description }}</text>
-        </view>
-        <text class="cert-arrow">›</text>
-      </view>
-    </view>
-    <view class="empty" v-else>
-      <text>暂无可用认证类型</text>
+    <!-- 加载状态 -->
+    <view v-if="loading && !hasLoadedOnce" class="loading-state">
+      <text class="loading-icon">⏳</text>
+      <text class="loading-text">加载中...</text>
     </view>
 
-    <view class="my-cert" v-if="myCerts?.length > 0">
-      <view class="section-title">我的认证</view>
-      <view class="cert-item" v-for="cert in myCerts" :key="cert.id">
-        <view class="cert-info">
-          <text class="cert-name">{{ getCertTypeName(cert.type) }}</text>
-          <text class="cert-time"
-            >申请时间: {{ formatTime(cert.createdAt) }}</text
-          >
-        </view>
-        <text class="cert-status" :class="['status-' + cert.status]">
-          {{ getStatusText(cert.status) }}
-        </text>
-      </view>
+    <!-- 错误状态 -->
+    <view v-else-if="loadError && !hasLoadedOnce" class="error-state">
+      <text class="error-icon">⚠️</text>
+      <text class="error-text">加载失败</text>
+      <button class="retry-btn" @click="retryLoad">重试</button>
     </view>
+
+    <!-- 正常内容 -->
+    <template v-else>
+      <view class="cert-types" v-if="certTypes.length > 0">
+        <view
+          class="cert-type-item"
+          v-for="type in certTypes"
+          :key="type.code"
+          @click="goToApply(type.code)"
+        >
+          <view
+            class="cert-icon"
+            :class="{ 'has-image': getCertImage(type.code) }"
+          >
+            <image
+              v-if="getCertImage(type.code)"
+              :src="getCertImage(type.code)"
+              mode="aspectFill"
+              class="cert-thumbnail"
+            />
+            <text v-else>{{ '📋' }}</text>
+          </view>
+          <view class="cert-info">
+            <view class="cert-name-row">
+              <text class="cert-name">{{ type.name }}</text>
+              <text
+                v-if="getCertStatus(type.code)"
+                class="cert-badge"
+                :style="{ color: getCertStatus(type.code)?.color }"
+              >
+                {{ getCertStatus(type.code)?.text }}
+              </text>
+            </view>
+            <text class="cert-desc">{{ type.description }}</text>
+          </view>
+          <text class="cert-arrow">›</text>
+        </view>
+      </view>
+      <view class="empty" v-else-if="!loading">
+        <text class="empty-icon">📭</text>
+        <text class="empty-text">暂无可用认证类型</text>
+      </view>
+
+      <view class="my-cert" v-if="myCerts?.length > 0">
+        <view class="section-title">我的认证</view>
+        <view class="cert-item" v-for="cert in myCerts" :key="cert.id">
+          <view class="cert-info">
+            <text class="cert-name">{{ getCertTypeName(cert.type) }}</text>
+            <text class="cert-time"
+              >申请时间: {{ formatTime(cert.createdAt) }}</text
+            >
+          </view>
+          <text class="cert-status" :class="['status-' + cert.status]">
+            {{ getStatusText(cert.status) }}
+          </text>
+        </view>
+      </view>
+    </template>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/stores';
 import {
@@ -66,10 +83,44 @@ import {
   type Certification,
 } from '@/api/modules/certification';
 
+// 常量定义
+const CERT_STATUS = {
+  PENDING: 0,
+  APPROVED: 1,
+  REJECTED: 2
+} as const;
+
+const STATUS_PRIORITY = {
+  [CERT_STATUS.APPROVED]: 3,
+  [CERT_STATUS.PENDING]: 2,
+  [CERT_STATUS.REJECTED]: 1
+} as const;
+
+const STATUS_TEXT = {
+  [CERT_STATUS.PENDING]: '待审核',
+  [CERT_STATUS.APPROVED]: '已通过',
+  [CERT_STATUS.REJECTED]: '已拒绝'
+} as const;
+
+const STATUS_COLOR = {
+  [CERT_STATUS.PENDING]: '#faad14',
+  [CERT_STATUS.APPROVED]: '#52c41a',
+  [CERT_STATUS.REJECTED]: '#ff4d4f'
+} as const;
+
+const STATUS_BADGE = {
+  [CERT_STATUS.APPROVED]: { text: '已认证', color: STATUS_COLOR[CERT_STATUS.APPROVED] },
+  [CERT_STATUS.PENDING]: { text: '审核中', color: STATUS_COLOR[CERT_STATUS.PENDING] },
+  [CERT_STATUS.REJECTED]: { text: '已拒绝', color: STATUS_COLOR[CERT_STATUS.REJECTED] }
+} as const;
+
 const authStore = useAuthStore();
 
 const certTypes = ref<CertificationType[]>([]);
 const myCerts = ref<Certification[]>([]);
+const loading = ref(false);
+const loadError = ref(false);
+const hasLoadedOnce = ref(false);
 
 onMounted(() => {
   if (!authStore.isLoggedIn) {
@@ -80,127 +131,180 @@ onMounted(() => {
   loadData();
 });
 
-// 监听页面显示，刷新数据
+// 监听页面显示，仅在首次加载后才刷新
 onShow(() => {
-  if (authStore.isLoggedIn) {
+  if (authStore.isLoggedIn && hasLoadedOnce.value) {
     loadData();
   }
 });
 
 const loadData = async () => {
-  await Promise.all([loadCertTypes(), loadMyCerts()]);
+  if (loading.value) return;
+
+  loading.value = true;
+  loadError.value = false;
+
+  try {
+    // 使用 allSettled 允许部分成功，避免一个失败导致全部失败
+    const results = await Promise.allSettled([
+      loadCertTypes(),
+      loadMyCerts()
+    ]);
+
+    // 检查是否有失败的请求
+    const failedResults = results.filter(r => r.status === 'rejected');
+
+    if (failedResults.length > 0) {
+      console.error('部分数据加载失败:', failedResults);
+
+      // 如果全部失败，显示错误状态
+      if (failedResults.length === results.length) {
+        loadError.value = true;
+      } else {
+        // 部分失败，显示提示但不阻断页面
+        uni.showToast({
+          title: '部分数据加载失败',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    }
+
+    hasLoadedOnce.value = true;
+  } finally {
+    loading.value = false;
+  }
 };
 
 const loadCertTypes = async () => {
   try {
     const res = await certificationApi.getTypes();
-    console.log('Cert types response:', res);
+    if (import.meta.env.DEV) {
+      console.log('Cert types response:', res);
+    }
     certTypes.value = res.data.list || [];
   } catch (error) {
     console.error('Failed to load cert types:', error);
-    uni.showToast({
-      title: '加载认证类型失败',
-      icon: 'none',
-    });
+    // 不再向上抛出，让 Promise.allSettled 处理
+    throw error;
   }
 };
 
 const loadMyCerts = async () => {
   try {
     const res = await certificationApi.getMyList();
-    console.log('My certs response:', res);
+    if (import.meta.env.DEV) {
+      console.log('My certs response:', res);
+    }
     myCerts.value = res.data.list || [];
   } catch (error) {
     console.error('Failed to load my certs:', error);
-    uni.showToast({
-      title: '加载我的认证失败',
-      icon: 'none',
-    });
+    // 不再向上抛出，让 Promise.allSettled 处理
+    throw error;
   }
 };
 
 const getCertTypeName = (code: string) => {
+  if (!code) return '未知类型';
   const type = certTypes.value.find((t) => t.code === code);
   return type?.name || code;
 };
 
 const getStatusText = (status: number) => {
-  const map = { 0: '待审核', 1: '已通过', 2: '已拒绝' };
-  return map[status as keyof typeof map] || '未知';
+  return STATUS_TEXT[status as keyof typeof STATUS_TEXT] || '未知';
 };
 
-const formatTime = (time: string) => {
+const formatTime = (time: string | undefined) => {
+  if (!time) return '-';
+
   const date = new Date(time);
+  if (isNaN(date.getTime())) return '-';
+
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
-/**
- * 获取认证类型对应的图片
- * 优先显示已通过的认证图片，其次是待审核的，最后是最新提交的
- */
-const getCertImage = (code: string) => {
-  if (!myCerts.value || myCerts.value.length === 0) {
-    return '';
-  }
-
-  // 查找该类型的所有认证记录
-  const typeCerts = myCerts.value.filter((c) => c.type === code);
-
-  if (typeCerts.length === 0) {
-    return '';
-  }
-
-  // 优先级：已通过 > 待审核 > 已拒绝，同优先级按时间倒序
-  const sortedCerts = typeCerts.sort((a, b) => {
-    // 状态优先级：1(已通过) > 0(待审核) > 2(已拒绝)
-    const statusPriority = { 1: 3, 0: 2, 2: 1 };
-    const priorityA = statusPriority[a.status as keyof typeof statusPriority] || 0;
-    const priorityB = statusPriority[b.status as keyof typeof statusPriority] || 0;
-
-    if (priorityA !== priorityB) {
-      return priorityB - priorityA;
+// 提取公共函数：按类型分组认证记录
+const groupCertsByType = (certs: Certification[]): Record<string, Certification[]> => {
+  const groups: Record<string, Certification[]> = {};
+  certs.forEach((cert) => {
+    if (!groups[cert.type]) {
+      groups[cert.type] = [];
     }
+    groups[cert.type].push(cert);
+  });
+  return groups;
+};
 
-    // 同优先级按时间倒序
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+// 使用 computed 缓存图片计算结果，提升性能
+const certImageMap = computed(() => {
+  const map: Record<string, string> = {};
+
+  if (!myCerts.value || myCerts.value.length === 0) {
+    return map;
+  }
+
+  // 按类型分组
+  const typeGroups = groupCertsByType(myCerts.value);
+
+  // 为每个类型找出优先级最高的图片
+  Object.keys(typeGroups).forEach((type) => {
+    const typeCerts = typeGroups[type];
+
+    // 优先级：已通过 > 待审核 > 已拒绝，同优先级按时间倒序
+    const sortedCerts = [...typeCerts].sort((a, b) => {
+      const priorityA = STATUS_PRIORITY[a.status as keyof typeof STATUS_PRIORITY] || 0;
+      const priorityB = STATUS_PRIORITY[b.status as keyof typeof STATUS_PRIORITY] || 0;
+
+      if (priorityA !== priorityB) {
+        return priorityB - priorityA;
+      }
+
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    map[type] = sortedCerts[0]?.imageUrl || '';
   });
 
-  // 返回优先级最高的认证图片
-  return sortedCerts[0]?.imageUrl || '';
+  return map;
+});
+
+const getCertImage = (code: string) => {
+  return certImageMap.value[code] || '';
 };
 
-/**
- * 判断认证类型是否有认证记录
- */
-const hasCertification = (code: string) => {
-  return myCerts.value?.some((c) => c.type === code) || false;
-};
+// 使用 computed 缓存状态计算结果
+const certStatusMap = computed(() => {
+  const map: Record<string, { status: number; text: string; color: string } | null> = {};
 
-/**
- * 获取认证类型的状态标识
- */
-const getCertStatus = (code: string) => {
   if (!myCerts.value || myCerts.value.length === 0) {
-    return null;
+    return map;
   }
 
-  const typeCerts = myCerts.value.filter((c) => c.type === code);
-  if (typeCerts.length === 0) {
-    return null;
-  }
+  // 按类型分组
+  const typeGroups = groupCertsByType(myCerts.value);
 
-  // 如果有已通过的，显示已通过
-  if (typeCerts.some((c) => c.status === 1)) {
-    return { status: 1, text: '已认证', color: '#52c41a' };
-  }
+  // 为每个类型计算状态
+  Object.keys(typeGroups).forEach((type) => {
+    const typeCerts = typeGroups[type];
 
-  // 如果有待审核的，显示待审核
-  if (typeCerts.some((c) => c.status === 0)) {
-    return { status: 0, text: '审核中', color: '#faad14' };
-  }
+    if (typeCerts.some((c) => c.status === CERT_STATUS.APPROVED)) {
+      map[type] = STATUS_BADGE[CERT_STATUS.APPROVED];
+    } else if (typeCerts.some((c) => c.status === CERT_STATUS.PENDING)) {
+      map[type] = STATUS_BADGE[CERT_STATUS.PENDING];
+    } else {
+      map[type] = STATUS_BADGE[CERT_STATUS.REJECTED];
+    }
+  });
 
-  // 如果只有已拒绝的，显示已拒绝
-  return { status: 2, text: '已拒绝', color: '#ff4d4f' };
+  return map;
+});
+
+const getCertStatus = (code: string) => {
+  return certStatusMap.value[code] || null;
+};
+
+const retryLoad = () => {
+  loadData();
 };
 
 const goToApply = (code: string) => {
@@ -214,6 +318,47 @@ const goToApply = (code: string) => {
 .certification-container {
   background: #f8f8f8;
   padding: 20rpx;
+  min-height: 100vh;
+
+  // 加载状态
+  .loading-state,
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120rpx 40rpx;
+    background: #fff;
+    border-radius: 16rpx;
+    margin-top: 40rpx;
+  }
+
+  .loading-icon,
+  .error-icon {
+    font-size: 80rpx;
+    margin-bottom: 20rpx;
+  }
+
+  .loading-text,
+  .error-text {
+    font-size: 28rpx;
+    color: #999;
+    margin-bottom: 20rpx;
+  }
+
+  .retry-btn {
+    margin-top: 20rpx;
+    padding: 16rpx 48rpx;
+    background: #007aff;
+    color: #fff;
+    border-radius: 8rpx;
+    font-size: 28rpx;
+    border: none;
+
+    &::after {
+      border: none;
+    }
+  }
 
   .cert-types {
     background: #fff;
@@ -297,10 +442,24 @@ const goToApply = (code: string) => {
   }
 
   .empty {
-    padding: 60rpx;
-    text-align: center;
-    color: #999;
-    font-size: 28rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120rpx 40rpx;
+    background: #fff;
+    border-radius: 16rpx;
+    margin-top: 40rpx;
+
+    .empty-icon {
+      font-size: 80rpx;
+      margin-bottom: 20rpx;
+    }
+
+    .empty-text {
+      font-size: 28rpx;
+      color: #999;
+    }
   }
 
   .my-cert {

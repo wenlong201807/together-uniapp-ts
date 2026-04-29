@@ -13,6 +13,11 @@ class WebSocketManager {
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
   private manualDisconnect = false // 标记是否为手动断开连接
 
+  /** 当前是否已连接 */
+  get isConnected(): boolean {
+    return !!this.socket && this.socket.connected
+  }
+
   connect() {
     if (this.isConnecting || (this.socket && this.socket.connected)) {
       console.log('WebSocket: Already connected or connecting')

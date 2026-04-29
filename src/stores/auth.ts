@@ -5,6 +5,7 @@ import type { LoginResponse, UserInfo } from '@/types';
 import type { LoginDto, RegisterDto } from '@/api/modules/auth';
 import type { UpdateProfileDto } from '@/api/modules/user';
 import { eventBus, EVENTS } from '@/utils/event-bus';
+import { wsManager } from '@/utils';
 
 export const useAuthStore = defineStore(
   'auth',
@@ -25,6 +26,9 @@ export const useAuthStore = defineStore(
       uni.setStorageSync('refreshToken', res.data.refreshToken || res.data.token);
       uni.setStorageSync('userInfo', res.data.user);
 
+      // 登录后连接 WebSocket
+      wsManager.connect();
+
       return res.data;
     };
 
@@ -38,6 +42,9 @@ export const useAuthStore = defineStore(
       uni.setStorageSync('refreshToken', res.data.refreshToken || res.data.token);
       uni.setStorageSync('userInfo', res.data.user);
 
+      // 注册后连接 WebSocket
+      wsManager.connect();
+
       return res.data;
     };
 
@@ -45,6 +52,9 @@ export const useAuthStore = defineStore(
       token.value = '';
       refreshToken.value = '';
       userInfo.value = null;
+
+      // 登出时断开 WebSocket
+      wsManager.disconnect();
 
       uni.removeStorageSync('token');
       uni.removeStorageSync('refreshToken');

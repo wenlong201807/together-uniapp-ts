@@ -2,6 +2,7 @@
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/stores';
 import { useNPS } from '@/composables/useNPS';
+import { wsManager } from '@/utils';
 import NPSModal from '@/components/business/NPSModal.vue';
 
 const { npsVisible, npsTriggerType, npsTriggerScene, closeNPS, onNPSSuccess } = useNPS();
@@ -13,11 +14,21 @@ onLaunch(() => {
   const authStore = useAuthStore();
   authStore.init();
 
+  // 应用启动时连接 WebSocket，保持全局在线
+  if (authStore.token) {
+    wsManager.connect();
+  }
+
   console.log('Auth initialized, userInfo:', authStore.userInfo);
 });
 
 onShow(() => {
   console.log('App Show');
+  // 应用回到前台时重连 WebSocket
+  const authStore = useAuthStore();
+  if (authStore.token && !wsManager.isConnected) {
+    wsManager.connect();
+  }
 });
 
 onHide(() => {

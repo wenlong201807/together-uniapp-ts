@@ -7,12 +7,23 @@
       <view class="form-item">
         <text class="label">上传证件照片</text>
         <view class="upload-area" @click="chooseImage">
-          <image v-if="formData.imageUrl" :src="formData.imageUrl" mode="aspectFit" class="preview-image" />
+          <image
+            v-if="formData.localPreviewUrl || formData.imageUrl"
+            :src="formData.localPreviewUrl || formData.imageUrl"
+            mode="aspectFit"
+            class="preview-image"
+          />
           <view v-else class="upload-placeholder">
             <text class="upload-icon">+</text>
             <text class="upload-text">点击上传</text>
           </view>
+          <!-- 上传中遮罩 -->
+          <view v-if="uploading" class="upload-mask">
+            <text class="upload-progress">上传中...</text>
+          </view>
         </view>
+        <text v-if="uploading" class="upload-tip">正在上传，请稍候</text>
+        <text v-else-if="formData.imageUrl" class="upload-tip success">✓ 上传成功</text>
       </view>
 
       <view class="form-item">
@@ -26,17 +37,34 @@
         <text class="char-count">{{ formData.description.length }}/200</text>
       </view>
 
-      <button class="submit-btn" @click="handleSubmit" :disabled="submitting">
-        {{ submitting ? '提交中...' : '提交申请' }}
+      <button class="submit-btn" @click="handleSubmit" :disabled="!canSubmit || submitting">
+        <text v-if="submitting">提交中...</text>
+        <text v-else-if="uploading">上传中，请稍候</text>
+        <text v-else-if="!formData.imageUrl">请先上传图片</text>
+        <text v-else>提交申请</text>
       </button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { certificationApi, type CertificationType } from '@/api/modules/certification'
 import { fileApi } from '@/api'
+
+// 常量定义
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const SUBMIT_SUCCESS_DELAY = 1500; // 提交成功后延迟返回时间（毫秒）
+
+// 类型定义
+interface PageOptions {
+  type?: string;
+}
+
+interface Page {
+  options?: PageOptions;
+  route?: string;
+}
 
 const certType = ref('')
 const certTypeName = ref('认证申请')
@@ -46,13 +74,19 @@ const uploading = ref(false)
 
 const formData = ref({
   imageUrl: '',
+  localPreviewUrl: '', // 本地预览URL
   description: ''
 })
 
+// 是否可以提交
+const canSubmit = computed(() => {
+  return formData.value.imageUrl && !uploading.value
+})
+
 onMounted(async () => {
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1] as any
-  certType.value = currentPage.options?.type || ''
+  const pages = getCurrentPages() as Page[]
+  const currentPage = pages[pages.length - 1]
+  certType.value = currentPage?.options?.type || ''
 
   // 从后端获取认证类型信息
   try {
@@ -73,12 +107,18 @@ const chooseImage = () => {
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
     success: (res) => {
-      // 获取临时文件路径
+      // 获取临时文件路径和文件信息
       let tempFilePath = ''
+      let fileSize = 0
+
       if (res.tempFilePaths && res.tempFilePaths.length > 0) {
         tempFilePath = res.tempFilePaths[0]
-      } else if (res.tempFiles && res.tempFiles.length > 0) {
+      }
+
+      if (res.tempFiles && res.tempFiles.length > 0) {
         const tempFile = res.tempFiles[0]
+        fileSize = tempFile.size || 0
+
         if (tempFile.path) {
           tempFilePath = tempFile.path
         } else if (tempFile.base64) {
@@ -87,9 +127,21 @@ const chooseImage = () => {
         }
       }
 
+      // 检查文件大小
+      if (fileSize > MAX_FILE_SIZE) {
+        uni.showToast({
+          title: `图片大小不能超过${Math.floor(MAX_FILE_SIZE / 1024 / 1024)}MB`,
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+
       if (tempFilePath) {
-        // 先显示预览
-        formData.value.imageUrl = tempFilePath
+        // 先显示本地预览
+        formData.value.localPreviewUrl = tempFilePath
+        // 清空之前的云端URL
+        formData.value.imageUrl = ''
         // 立即上传到七牛云
         uploadImage(tempFilePath)
       }
@@ -113,10 +165,12 @@ const uploadImage = async (localPath: string) => {
     console.error('Upload failed:', error)
     uni.hideLoading()
     uni.showToast({
-      title: '上传失败',
+      title: '上传失败，请重试',
       icon: 'none'
     })
+    // 上传失败时清空预览
     formData.value.imageUrl = ''
+    formData.value.localPreviewUrl = ''
   } finally {
     uploading.value = false
   }
@@ -143,10 +197,13 @@ const handleSubmit = async () => {
     uni.showToast({ title: '提交成功', icon: 'success' })
     setTimeout(() => {
       uni.navigateBack()
-    }, 1500)
-  } catch (error) {
+    }, SUBMIT_SUCCESS_DELAY)
+  } catch (error: any) {
     console.error('Submit failed:', error)
-    uni.showToast({ title: '提交失败', icon: 'none' })
+    uni.showToast({
+      title: error.message || '提交失败，请重试',
+      icon: 'none'
+    })
   } finally {
     submitting.value = false
   }
@@ -222,6 +279,7 @@ const handleSubmit = async () => {
         justify-content: center;
         border: 2rpx dashed #e0e0e0;
         overflow: hidden;
+        position: relative;
 
         &:active {
           background: #f0f0f0;
@@ -248,6 +306,35 @@ const handleSubmit = async () => {
             font-size: 24rpx;
             color: #999;
           }
+        }
+
+        .upload-mask {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8rpx;
+
+          .upload-progress {
+            color: #fff;
+            font-size: 28rpx;
+          }
+        }
+      }
+
+      .upload-tip {
+        display: block;
+        font-size: 24rpx;
+        color: #faad14;
+        margin-top: 12rpx;
+
+        &.success {
+          color: #52c41a;
         }
       }
     }

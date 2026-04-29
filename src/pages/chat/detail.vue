@@ -49,7 +49,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { onHide, onShow } from '@dcloudio/uni-app';
 import { useChatStore, useAuthStore } from '@/stores';
 import { useNetworkStatus } from '@/composables/useNetworkStatus';
 import { useAvatarSync } from '@/composables/useAvatarSync';
@@ -95,6 +94,7 @@ onMounted(async () => {
 
   await loadMessages();
 
+  // 确保 WebSocket 已连接（全局连接由 App.vue 管理）
   wsManager.connect();
 
   // 等待渲染完成后滚动到底部
@@ -103,27 +103,14 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  // 先断开WebSocket连接，防止在清理store时收到消息
-  wsManager.disconnect();
-
-  // 然后清理store和其他资源
+  // 清理 store 和资源，不再断开 WebSocket（全局连接由 App.vue 管理）
   chatStore.clearMessages();
   chatStore.setCurrentChat(null);
   uni.offKeyboardHeightChange(() => {});
 });
 
-// 页面隐藏时断开连接（节省资源）
-onHide(() => {
-  wsManager.disconnect();
-});
-
-// 页面显示时重新连接
-onShow(() => {
-  // 只有在当前有聊天对象时才重连
-  if (targetUserId.value) {
-    wsManager.connect();
-  }
-});
+// 页面隐藏时不再断开连接
+// 页面显示时不再重连（全局连接由 App.vue 管理）
 
 // 监听消息变化，自动滚动到底部
 watch(() => chatStore.messages.length, async () => {

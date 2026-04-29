@@ -89,12 +89,26 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  const updateMessageBadge = () => {
+    if (unreadCount.value > 0) {
+      uni.setTabBarBadge({
+        index: 2,
+        text: String(unreadCount.value > 99 ? '99+' : unreadCount.value),
+      })
+    } else {
+      uni.removeTabBarBadge({ index: 2 })
+    }
+  }
+
   const markAsRead = async (userId: number) => {
     await chatApi.markAsRead(userId)
     const conversation = conversations.value.find((c) => c.userId === userId)
     if (conversation) {
       conversation.unreadCount = 0
     }
+    // 重新计算总未读数并更新角标
+    unreadCount.value = conversations.value.reduce((sum, c) => sum + (c.unreadCount || 0), 0)
+    updateMessageBadge()
   }
 
   const addMessage = (message: Message) => {
@@ -141,6 +155,20 @@ export const useChatStore = defineStore('chat', () => {
       messages.value.push(messageWithFlag)
     } else {
       console.log('[WebSocket] 消息不属于当前聊天，更新会话列表')
+
+      // 如果是对方发来的消息（非自己发的），弹出通知
+      if (msgSenderId !== currentUserId) {
+        const sender = (message as any).sender
+        const nickname = sender?.nickname || '用户'
+        const content = message.content || ''
+        const preview = content.length > 20 ? content.substring(0, 20) + '...' : content
+
+        uni.showToast({
+          title: `${nickname}: ${preview}`,
+          icon: 'none',
+          duration: 3000,
+        })
+      }
     }
 
     // 更新会话列表
@@ -153,6 +181,7 @@ export const useChatStore = defineStore('chat', () => {
       if (!isCurrentChat) {
         conversation.unreadCount++
         unreadCount.value++
+        updateMessageBadge()
       }
     }
   }
@@ -229,6 +258,7 @@ export const useChatStore = defineStore('chat', () => {
     addMessage,
     confirmSentMessage,
     setCurrentChat,
-    clearMessages
+    clearMessages,
+    updateMessageBadge,
   }
 })

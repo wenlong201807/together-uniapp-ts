@@ -45,4 +45,5 @@ export const EVENTS = {
   COMMENT_LIKED: 'comment:liked',
   USER_FOLLOWED: 'user:followed',
   USER_UNFOLLOWED: 'user:unfollowed',
+  CHAT_NOTIFICATION: 'chat:notification',
 };
