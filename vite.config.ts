@@ -7,6 +7,7 @@ const env = loadEnv('', process.cwd());
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: './',
   plugins: [uni()],
   css: {
     preprocessorOptions: {
