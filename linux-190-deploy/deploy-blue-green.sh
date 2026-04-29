@@ -222,6 +222,12 @@ main() {
     git fetch origin
     git checkout "${GIT_BRANCH}"
 
+    # 暂存本地修改（如果有）
+    if ! git diff-index --quiet HEAD --; then
+        log_info "暂存本地修改"
+        git stash push -m "Auto-stash before deployment at $(date '+%Y-%m-%d %H:%M:%S')"
+    fi
+
     local old_commit
     old_commit=$(git rev-parse HEAD)
     git pull origin "${GIT_BRANCH}"
