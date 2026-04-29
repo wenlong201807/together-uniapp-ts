@@ -288,16 +288,17 @@ const handlePrivacyChange = async (
   index: number,
   event: any
 ) => {
-  privacy[category][index] = event.detail.value
+  const newValue = event.detail.value
+  privacy[category][index] = newValue
 
   // 如果已有答案，立即保存
   if (answers[category][index] && answers[category][index].trim().length > 0) {
-    await handleSave(category, question, index)
+    await handleSave(category, question, index, true)
   }
 }
 
 // 保存答案
-const handleSave = async (category: string, question: string, index: number) => {
+const handleSave = async (category: string, question: string, index: number, skipReload = false) => {
   const answer = answers[category][index]
   const isPublic = privacy[category][index] || false
 
@@ -320,8 +321,10 @@ const handleSave = async (category: string, question: string, index: number) => 
       saveStatus[category][index] = ''
     }, 2000)
 
-    // 重新加载数据
-    await loadValues()
+    // 只在非隐私开关触发时重新加载数据
+    if (!skipReload) {
+      await loadValues()
+    }
   } catch (error: any) {
     console.error('[Values] 保存失败:', error)
     saveStatus[category][index] = '保存失败'
