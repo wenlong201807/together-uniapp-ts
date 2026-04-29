@@ -1,22 +1,175 @@
+================================================================================
+  Together 前端 H5 - Staging 部署指南（蓝绿零停机部署）
+================================================================================
 
+【快速部署】
 cd /home/zwl/together-uniapp-ts/linux-190-deploy
-AUTO_CONFIRM=true ./deploy-staging.sh
+AUTO_CONFIRM=true ./deploy-blue-green.sh
 
+【访问信息 - 域名访问】
+前端页面:   https://app.wenlong.life
+版本信息:   https://app.wenlong.life/version.txt
+Admin 后台: https://app.wenlong.life:8108
+后端 API:   https://app.wenlong.life:8125/api/v1
+Swagger:    https://app.wenlong.life:8125/api/docs
 
-要完成 HTTPS 部署，需要执行以下步骤：
-  1. 停止宿主机 nginx（如果占用了 80/443 端口）
-  sudo systemctl stop nginx
-  2. 重新部署容器
-  cd ~/together-uniapp-ts/linux-190-deploy
-  docker-compose down
-  ./deploy-staging.sh
-  3. 初始化 SSL 证书
-  ./init-letsencrypt.sh
-  如果是首次部署 HTTPS，请运行: ./init-letsencrypt.sh
-  查看证书状态: docker-compose run --rm certbot certificates
+【服务凭证】
+MySQL:  app.wenlong.life:3307  (root / stagingK7h5PfMgl5qA0eJJW5u+eQ)
+Redis:  app.wenlong.life:6383  (stagingDhCDuV64QSG1ij6+Lrlq9g)
+Admin:  admin / admin123
 
-  如需手动续期：
-  docker-compose run --rm certbot renew
-  docker exec together-frontend-staging nginx -s reload
+【目录结构】
+linux-190-deploy/
+├── config/                        # 配置文件
+│   ├── nginx/                     # Nginx 配置
+│   │   ├── nginx.conf                 # 单容器模式（standalone）
+│   │   ├── nginx-internal.conf        # 蓝绿前端内部（:8080）
+│   │   ├── nginx-proxy.conf           # 蓝绿反向代理入口
+│   │   └── upstream.conf              # 蓝绿 upstream 切换
+│   └── VERSION                        # 部署版本号
+├── scripts/                       # 运维脚本
+│   ├── 01-stop-and-clean.sh           # 停止并清理
+│   ├── 02-start-services.sh           # 启动服务
+│   ├── 04-health-check.sh             # 健康检查
+│   └── test-config.sh                 # 配置验证
+├── docs/                          # 文档
+│   └── archive/                       # 历史文档
+├── docker-compose.yml             # 单容器模式（legacy）
+├── docker-compose.blue-green.yml  # 蓝绿部署（推荐）
+├── Dockerfile                     # 单容器模式（legacy）
+├── Dockerfile.blue-green          # 蓝绿前端镜像
+├── config.sh                      # 全局配置（路径、端口、域名）
+├── utils.sh                       # 工具函数（日志、等待）
+├── deploy-blue-green.sh           # 蓝绿部署入口（推荐）
+├── deploy-staging.sh              # 单容器部署入口（legacy）
+├── rollback.sh                    # 回滚
+├── init-letsencrypt.sh            # SSL 证书初始化
+├── feishu-notify.sh               # 飞书通知
+├── use.txt                        # 本文件
+└── README.md                      # 主文档
 
-  配置完成后，就可以通过 https://app.wenlong.life 访问应用了。
+【端口映射】
+nginx-proxy:  80:80 (HTTP) + 443:443 (HTTPS)
+frontend-blue:  内部 8080（不映射到宿主机）
+frontend-green: 内部 8080（不映射到宿主机）
+
+【HTTPS 证书】
+首次部署 HTTPS: ./init-letsencrypt.sh
+查看证书状态:   docker compose run --rm certbot certificates
+手动续期:       docker compose run --rm certbot renew
+重载 Nginx:     docker exec together-nginx-proxy nginx -s reload
+
+【版本管理】
+版本号文件:     config/VERSION
+package.json:   自动更新 version 字段
+版本端点:       https://app.wenlong.life/version.txt
+每次部署自动递增 patch 版本号（如 1.0.0 -> 1.0.1）
+
+【蓝绿环境切换】
+当前活跃环境记录在: config/nginx/upstream.conf
+查看: cat config/nginx/upstream.conf | grep "活跃环境"
+
+【回滚】
+./rollback.sh
+
+【健康检查】
+./scripts/04-health-check.sh
+
+【配置验证】
+./scripts/test-config.sh
+
+【Docker Compose V2 升级】
+旧版 docker-compose v1.29.2 有 ContainerConfig bug，需升级:
+sudo apt-get remove docker-compose
+sudo apt-get install docker-compose-v2
+# 或: sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+
+================================================================================
+  蓝绿部署流程图
+================================================================================
+
+flowchart TB
+    Start([开始部署]) --> Pull[拉取最新代码 git pull]
+    Pull --> Version[更新版本号 VERSION++ + package.json]
+    Version --> Build[构建前端 pnpm build:h5:staging]
+    Build --> Target{获取目标环境}
+    Target -->|当前=blue| Green[构建 green 镜像]
+    Target -->|当前=green| Blue[构建 blue 镜像]
+    Green --> StartTarget[启动目标容器]
+    Blue --> StartTarget
+    StartTarget --> Health{健康检查}
+    Health -->|通过| Switch[切换 config/nginx/upstream.conf]
+    Health -->|失败| Rollback[回滚: 恢复 upstream + 停止新容器]
+    Rollback --> Fail([部署失败])
+    Switch --> Reload[nginx -s reload]
+    Reload --> Verify[验证流量切换]
+    Verify --> Stop[停止旧环境容器]
+    Stop --> Notify[发送通知 + 记录日志]
+    Notify --> Success([部署成功])
+
+================================================================================
+  蓝绿部署时序图
+================================================================================
+
+sequenceDiagram
+    participant D as 部署脚本
+    participant G as Git
+    participant N as Node.js
+    participant DC as Docker Compose
+    participant NB as Nginx-Blue
+    participant NG as Nginx-Green
+    participant NP as Nginx-Proxy
+    participant UX as 用户
+
+    Note over D,UX: 初始状态: Blue 活跃, 用户访问 Blue
+    UX->>NP: HTTPS 请求
+    NP->>NB: proxy_pass -> :8080
+    NB-->>UX: 返回页面
+
+    D->>G: git pull origin test9
+    D->>D: VERSION++ (如 1.0.0 -> 1.0.1)
+    D->>N: pnpm build:h5:staging
+    D->>DC: docker compose build frontend-green
+    DC->>NG: 构建并启动 Green 容器 :8080
+    D->>DC: 健康检查 Green
+
+    Note over D,UX: 此时: Blue 仍活跃, 用户无感知
+
+    D->>NP: 修改 upstream.conf: blue->green
+    D->>NP: nginx -s reload
+
+    Note over D,UX: 流量切换瞬间 (<1s)
+
+    UX->>NP: HTTPS 请求
+    NP->>NG: proxy_pass -> :8080
+    NG-->>UX: 返回新版本页面
+
+    D->>DC: docker compose stop frontend-blue
+    D->>D: 记录部署日志
+
+================================================================================
+  回滚时序图
+================================================================================
+
+sequenceDiagram
+    participant D as 回滚脚本
+    participant DC as Docker Compose
+    participant NP as Nginx-Proxy
+    participant NB as Nginx-Blue
+    participant NG as Nginx-Green
+    participant UX as 用户
+
+    Note over D,UX: 初始状态: Green 活跃, Blue 已停止
+
+    D->>DC: docker compose up -d frontend-blue
+    D->>DC: 健康检查 Blue
+    D->>NP: 修改 upstream.conf: green->blue
+    D->>NP: nginx -s reload
+
+    Note over D,UX: 流量切回 Blue
+
+    UX->>NP: HTTPS 请求
+    NP->>NB: proxy_pass -> :8080
+    NB-->>UX: 返回旧版本页面
+
+    D->>DC: docker compose stop frontend-green

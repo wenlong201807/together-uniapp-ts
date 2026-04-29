@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  # Nginx 反向代理（始终运行）
+  # Nginx 反向代理（始终运行，蓝绿切换入口）
   nginx-proxy:
     image: nginx:alpine
     container_name: together-nginx-proxy
@@ -10,20 +8,24 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx-proxy.conf:/etc/nginx/nginx.conf:ro
-      - ./upstream.conf:/etc/nginx/conf.d/upstream.conf:ro
+      - ./config/nginx/nginx-proxy.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/upstream.conf:/etc/nginx/conf.d/upstream.conf:ro
       - certbot-conf:/etc/letsencrypt
       - certbot-www:/var/www/certbot
     networks:
       - frontend-network
-    depends_on:
-      - frontend-blue
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # 蓝色环境
   frontend-blue:
     build:
       context: ..
-      dockerfile: linux-190-deploy/Dockerfile
+      dockerfile: linux-190-deploy/Dockerfile.blue-green
     container_name: together-frontend-blue
     restart: unless-stopped
     expose:
@@ -41,7 +43,7 @@ services:
   frontend-green:
     build:
       context: ..
-      dockerfile: linux-190-deploy/Dockerfile
+      dockerfile: linux-190-deploy/Dockerfile.blue-green
     container_name: together-frontend-green
     restart: unless-stopped
     expose:
@@ -49,7 +51,7 @@ services:
     networks:
       - frontend-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", --spider", "http://localhost:8080/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -73,4 +75,6 @@ networks:
 
 volumes:
   certbot-conf:
+    external: true
   certbot-www:
+    external: true

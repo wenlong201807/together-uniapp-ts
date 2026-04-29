@@ -28,6 +28,15 @@
               mode="aspectFill"
             />
             <view v-if="conversation.unreadCount > 0" class="unread-dot" />
+
+            <!-- 气泡角标 -->
+            <view
+              v-if="notificationStore.hasNotification(conversation.userId)"
+              class="notification-badge"
+              :class="notificationStore.getNotificationRelationType(conversation.userId)"
+            >
+              <text>{{ notificationStore.getNotificationCount(conversation.userId) }}</text>
+            </view>
           </view>
           <view class="conversation-info">
             <view class="conversation-header">
@@ -58,12 +67,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useChatStore } from '@/stores';
+import { useChatStore, useNotificationStore } from '@/stores';
 import { formatTime } from '@/utils';
 import Empty from '@/components/common/Empty.vue';
 import { useAvatarSync } from '@/composables/useAvatarSync';
 
 const chatStore = useChatStore();
+const notificationStore = useNotificationStore();
 const loading = ref(false);
 
 // 头像同步 - 会话列表直接在 item 上有 userId
@@ -77,6 +87,12 @@ useAvatarSync(conversations, {
 
 onMounted(async () => {
   await loadConversations();
+
+  // 页面显示时，更新气泡展开状态
+  notificationStore.updateExpandState(true);
+
+  // 触发全局事件，通知 App.vue 更新气泡状态
+  uni.$emit('onPageShow');
 });
 
 const loadConversations = async () => {
@@ -91,6 +107,9 @@ const loadConversations = async () => {
 };
 
 const goToChat = (conversation: any) => {
+  // 清除该用户的气泡通知
+  notificationStore.clearNotification(conversation.userId);
+
   uni.navigateTo({
     url: `/pages/chat/detail?userId=${conversation.userId}&nickname=${conversation.nickname}`,
   });
@@ -207,6 +226,37 @@ const goToChat = (conversation: any) => {
           border: 2rpx solid $bg-primary;
           border-radius: $radius-circle;
           animation: dot-pulse 2s ease-in-out infinite;
+        }
+
+        .notification-badge {
+          position: absolute;
+          top: -8rpx;
+          right: -8rpx;
+          min-width: 36rpx;
+          height: 36rpx;
+          padding: 0 8rpx;
+          border-radius: 18rpx;
+          border: 2rpx solid $bg-primary;
+
+          display: flex;
+          align-items: center;
+          justify-contenter;
+
+          font-size: 20rpx;
+          color: #fff;
+          font-weight: bold;
+
+          animation: badge-bounce 0.5s ease;
+
+          &.friend {
+            background: #4CAF50;
+            box-shadow: 0 2rpx 8rpx rgba(76, 175, 80, 0.4);
+          }
+
+          &.stranger {
+            background: #FF9800;
+            box-shadow: 0 2rpx 8rpx rgba(255, 152, 0, 0.4);
+          }
         }
       }
 

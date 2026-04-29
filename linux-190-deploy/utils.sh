@@ -113,3 +113,69 @@ wait_for_port() {
     log_error "端口 ${host}:${port} 超时"
     return 1
 }
+
+# ============================================
+# 蓝绿部署函数
+# ============================================
+
+# 获取当前活跃环境
+get_active_env() {
+    if grep -q "together-frontend-blue:8080" "${UPSTREAM_CONF}" && \
+       ! grep -q "# server together-frontend-blue:8080" "${UPSTREAM_CONF}"; then
+        echo "blue"
+    elif grep -q "together-frontend-green:8080" "${UPSTREAM_CONF}" && \
+         ! grep -q "# server together-frontend-green:8080" "${UPSTREAM_CONF}"; then
+        echo "green"
+    else
+        echo "blue"
+    fi
+}
+
+# 获取目标环境（当前活跃环境的对立面）
+get_target_env() {
+    local active
+    active=$(get_active_env)
+    if [ "$active" = "blue" ]; then
+        echo "green"
+    else
+        echo "blue"
+    fi
+}
+
+# 切换 upstream 配置到目标环境
+switch_upstream() {
+    local target=$1
+    local backup="${UPSTREAM_CONF}.backup"
+
+    log_step "备份当前 upstream 配置"
+    cp "${UPSTREAM_CONF}" "${backup}"
+
+    log_step "切换 upstream 到 ${target} 环境"
+
+    if [ "$target" = "green" ]; then
+        sed -i 's/^\s*server together-frontend-blue:8080/    # server together-frontend-blue:8080/' "${UPSTREAM_CONF}"
+        sed -i 's/^\s*# server together-frontend-green:8080/    server together-frontend-green:8080/' "${UPSTREAM_CONF}"
+        sed -i 's/^# 活跃环境：blue/# 活跃环境：green/' "${UPSTREAM_CONF}"
+    else
+        sed -i 's/^\s*server together-frontend-green:8080/    # server together-frontend-green:8080/' "${UPSTREAM_CONF}"
+        sed -i 's/^\s*# server together-frontend-blue:8080/    server together-frontend-blue:8080/' "${UPSTREAM_CONF}"
+        sed -i 's/^# 活跃环境：green/# 活跃环境：blue/' "${UPSTREAM_CONF}"
+    fi
+
+    log_success "upstream 已切换到 ${target}"
+}
+
+# 重载 Nginx 配置（nginx-proxy 容器）
+reload_nginx() {
+    log_step "测试 Nginx 配置"
+    local test_output
+    test_output=$(docker exec "${NGINX_PROXY_CONTAINER}" nginx -t 2>&1) || {
+        log_error "Nginx 配置测试失败:"
+        echo "${test_output}"
+        return 1
+    }
+
+    log_step "重载 Nginx 配置"
+    docker exec "${NGINX_PROXY_CONTAINER}" nginx -s reload
+    log_success "Nginx 配置已重载"
+}

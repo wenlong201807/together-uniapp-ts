@@ -4,6 +4,7 @@ import { chatApi } from '@/api'
 import type { Message, Conversation } from '@/types'
 import type { SendMessageDto } from '@/api/modules/chat'
 import { useAuthStore } from './auth'
+import { useNotificationStore } from './notification'
 
 export const useChatStore = defineStore('chat', () => {
   const conversations = ref<Conversation[]>([])
@@ -154,20 +155,13 @@ export const useChatStore = defineStore('chat', () => {
       console.log('[WebSocket] 添加消息到当前聊天')
       messages.value.push(messageWithFlag)
     } else {
-      console.log('[WebSocket] 消息不属于当前聊天，更新会话列表')
+      console.log('[WebSocket] 消息不属于当前聊天，触发通知')
 
-      // 如果是对方发来的消息（非自己发的），弹出通知
+      // 如果是对方发来的消息（非自己发的），触发气泡通知
       if (msgSenderId !== currentUserId) {
-        const sender = (message as any).sender
-        const nickname = sender?.nickname || '用户'
-        const content = message.content || ''
-        const preview = content.length > 20 ? content.substring(0, 20) + '...' : content
-
-        uni.showToast({
-          title: `${nickname}: ${preview}`,
-          icon: 'none',
-          duration: 3000,
-        })
+        const notificationStore = useNotificationStore()
+        // 添加到通知队列
+        notificationStore.addNotification(messageWithFlag)
       }
     }
 

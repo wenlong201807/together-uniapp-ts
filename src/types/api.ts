@@ -30,7 +30,21 @@ export interface Message {
   content: string;
   msgType: MsgType;
   createdAt: string;
-  sender?: UserInfo;
+  isRead?: boolean;
+  status?: 'sending' | 'sent' | 'failed';
+  isSelf?: boolean;
+  sender?: {
+    id: number;
+    nickname: string;
+    avatarUrl?: string;
+    avatarId?: number;
+  };
+  receiver?: {
+    id: number;
+    nickname: string;
+    avatarUrl?: string;
+    avatarId?: number;
+  };
 }
 
 export interface Conversation {

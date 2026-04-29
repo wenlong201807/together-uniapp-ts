@@ -1,0 +1,25 @@
+FROM nginx:alpine
+
+# 构建参数：版本号（由 CI/CD 注入）
+ARG APP_VERSION=dev
+
+# 复制构建产物到 nginx 目录
+COPY dist/build/h5 /usr/share/nginx/html
+
+# 复制蓝绿部署专用 nginx 配置（内部端口 8080）
+COPY linux-190-deploy/config/nginx/nginx-internal.conf /etc/nginx/conf.d/default.conf
+
+# 写入版本信息
+RUN echo "${APP_VERSION}" > /usr/share/nginx/html/version.txt && \
+    chmod -R 755 /usr/share/nginx/html && \
+    chown -R nginx:nginx /usr/share/nginx/html
+
+# 蓝绿部署使用 8080 内部端口
+EXPOSE 8080
+
+# 健康检查
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:8080/ || exit 1
+
+# 启动 nginx（监听 8080）
+CMD ["nginx", "-g", "daemon off;"]

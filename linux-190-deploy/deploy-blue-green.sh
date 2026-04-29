@@ -2,109 +2,76 @@
 
 # ============================================
 # 蓝绿部署脚本 - 零停机部署
+# 使用 docker compose V2 + nginx upstream 切换
 # ============================================
 
-set -e
+set -euo pipefail
 
 # 加载配置和工具函数
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/config.sh"
 source "${SCRIPT_DIR}/utils.sh"
 
-# 部署配置
-COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.blue-green.yml"
-UPSTREAM_CONF="${DEPLOY_DIR}/upstream.conf"
+# ============================================
+# 版本管理
+# ============================================
 
-# 获取当前活跃环境
-get_active_env() {
-    if grep -q "together-frontend-blue:8080" "${UPSTREAM_CONF}" && \
-       ! grep -q "# server together-frontend-blue:8080" "${UPSTREAM_CONF}"; then
-        echo "blue"
-    elif grep -q "together-frontend-green:8080" "${UPSTREAM_CONF}" && \
-         ! grep -q "# server together-frontend-green:8080" "${UPSTREAM_CONF}"; then
-        echo "green"
+# 读取当前版本
+get_current_version() {
+    if [ -f "${VERSION_FILE}" ]; then
+        cat "${VERSION_FILE}"
     else
-        echo "blue"  # 默认蓝色
+        echo "0.0.0"
     fi
 }
 
-# 获取目标环境
-get_target_env() {
-    local active=$(get_active_env)
-    if [ "$active" = "blue" ]; then
-        echo "green"
-    else
-        echo "blue"
-    fi
+# 递增补丁版本号
+bump_patch_version() {
+    local current=$1
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "${current}"
+    patch=$((patch + 1))
+    echo "${major}.${minor}.${patch}"
 }
 
-# 切换上游配置
-switch_upstream() {
-    local target=$1
-    local backup="${UPSTREAM_CONF}.backup"
+# 更新版本：写入 VERSION 文件 + 更新 package.json
+update_version() {
+    local old_version
+    old_version=$(get_current_version)
+    local new_version
+    new_version=$(bump_patch_version "${old_version}")
 
-    log_step "备份当前配置"
-    cp "${UPSTREAM_CONF}" "${backup}"
+    # 写入 VERSION 文件
+    echo "${new_version}" > "${VERSION_FILE}"
 
-    log_step "切换到 ${target} 环境"
-
-    if [ "$target" = "green" ]; then
-        # 切换到绿色
-        sed -i 's/^\s*server together-frontend-blue:8080/    # server together-frontend-blue:8080/' "${UPSTREAM_CONF}"
-        sed -i 's/^\s*# server together-frontend-green:8080/    server together-frontend-green:8080/' "${UPSTREAM_CONF}"
-    else
-        # 切换到蓝色
-        sed -i 's/^\s*server together-frontend-green:8080/    # server together-frontend-green:8080/' "${UPSTREAM_CONF}"
-        sed -i 's/^\s*# server together-frontend-blue:8080/    server together-frontend-blue:8080/' "${UPSTREAM_CONF}"
+    # 更新 package.json version 字段
+    if [ -f "${PACKAGE_JSON}" ] && command -v node &> /dev/null; then
+        # 安全地转义路径中的单引号
+        local escaped_path
+        escaped_path=$(printf '%s' "${PACKAGE_JSON}" | sed "s/'/'\\\"'\\\"'/g")
+        node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('${escaped_path}','utf8'));p.version='${new_version}';fs.writeFileSync('${escaped_path}',JSON.stringify(p,null,2)+'\n');"
+        log_success "package.json version -> ${new_version}"
     fi
 
-    log_success "配置已切换到 ${target}"
+    echo "${new_version}"
 }
 
-# 重载 Nginx 配置
-reload_nginx() {
-    log_step "重载 Nginx 配置"
-    docker exec together-nginx-proxy nginx -t && \
-    docker exec together-nginx-proxy nginx -s reload
-    log_success "Nginx 配置已重载"
-}
-
-# 发送部署通知
-send_notification() {
-    local status=$1
-    local env=$2
-    local message=$3
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-
-    # 记录到日志文件
-    local log_file="${DEPLOY_DIR}/deployment.log"
-    echo "[${timestamp}] [${status}] 环境: ${env} - ${message}" >> "${log_file}"
-
-    # 发送桌面通知（如果支持）
-    if command -v notify-send &> /dev/null; then
-        notify-send "Together 部署通知" "${message}" -u normal
-    fi
-
-    # 输出到终端
-    if [ "$status" = "SUCCESS" ]; then
-        log_success "${message}"
-    elif [ "$status" = "ERROR" ]; then
-        log_error "${message}"
-    else
-        log_info "${message}"
-    fi
-}
-
+# ============================================
 # 健康检查
+# ============================================
+
 health_check() {
     local container=$1
     local max_attempts=30
     local attempt=0
 
-    log_step "等待 ${container} 健康检查"
+    log_step "等待 ${container} 健康检查通过..."
 
     while [ $attempt -lt $max_attempts ]; do
-        if docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/dev/null | grep -q "healthy"; then
+        local health_status
+        health_status=$(docker inspect --format='{{.State.Health.Status}}' "${container}" 2>/dev/null || echo "none")
+
+        if [ "$health_status" = "healthy" ]; then
             log_success "${container} 健康检查通过"
             return 0
         fi
@@ -115,25 +82,96 @@ health_check() {
     done
 
     echo ""
-    log_error "${container} 健康检查失败"
+    log_error "${container} 健康检查超时（${max_attempts} 次尝试）"
     return 1
 }
 
-# 回滚函数
+# 验证新版本 HTTP 可访问
+verify_new_version() {
+    local container=$1
+    local version=$2
+    local max_attempts=10
+    local attempt=0
+
+    log_step "验证 ${container} 版本 ${version} 可访问..."
+
+    while [ $attempt -lt $max_attempts ]; do
+        local http_code
+        http_code=$(docker exec "${container}" wget -q -O /dev/null --spider "http://localhost:8080/" 2>/dev/null && echo "200" || echo "000")
+
+        if [ "$http_code" = "200" ]; then
+            log_success "${container} HTTP 可访问"
+            return 0
+        fi
+
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+
+    log_error "${container} HTTP 访问验证失败"
+    return 1
+}
+
+# ============================================
+# 部署通知
+# ============================================
+
+send_notification() {
+    local status=$1
+    local env=$2
+    local message=$3
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
+    local log_file="${DEPLOY_DIR}/deployment.log"
+    echo "[${timestamp}] [${status}] 环境: ${env} - ${message}" >> "${log_file}"
+
+    if [ "$status" = "SUCCESS" ]; then
+        log_success "${message}"
+    elif [ "$status" = "ERROR" ]; then
+        log_error "${message}"
+    else
+        log_info "${message}"
+    fi
+}
+
+# ============================================
+# 回滚
+# ============================================
+
 rollback() {
     local target=$1
+    local active=$2
+
     log_warning "开始回滚..."
 
-    # 恢复配置
+    # 恢复 upstream 配置
     if [ -f "${UPSTREAM_CONF}.backup" ]; then
         cp "${UPSTREAM_CONF}.backup" "${UPSTREAM_CONF}"
-        reload_nginx
+        reload_nginx || true
     fi
 
     # 停止失败的容器
-    docker-compose -f "${COMPOSE_FILE}" stop "frontend-${target}"
+    ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" stop "frontend-${target}" 2>/dev/null || true
+    ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" rm -f "frontend-${target}" 2>/dev/null || true
 
-    send_notification "ERROR" "${target}" "部署失败，已回滚到之前版本"
+    send_notification "ERROR" "${target}" "部署失败，已回滚到 ${active} 环境"
+}
+
+# ============================================
+# 确保 Docker 外部卷存在
+# ============================================
+
+ensure_external_volumes() {
+    log_step "检查 Docker 外部卷"
+    for vol in ${DOCKER_VOLUMES}; do
+        if ! docker volume inspect "${vol}" &>/dev/null; then
+            log_info "创建外部卷: ${vol}"
+            docker volume create "${vol}"
+        else
+            log_info "外部卷已存在: ${vol}"
+        fi
+    done
 }
 
 # ============================================
@@ -144,8 +182,10 @@ main() {
     print_header "Together 前端蓝绿部署 - 零停机更新"
 
     # 获取当前和目标环境
-    local active_env=$(get_active_env)
-    local target_env=$(get_target_env)
+    local active_env
+    active_env=$(get_active_env)
+    local target_env
+    target_env=$(get_target_env)
 
     log_info "当前活跃环境: ${active_env}"
     log_info "目标部署环境: ${target_env}"
@@ -153,12 +193,13 @@ main() {
 
     log_info "此脚本将执行以下操作："
     echo "  1. 拉取最新代码（${GIT_BRANCH} 分支）"
-    echo "  2. 构建前端项目"
-    echo "  3. 在 ${target_env} 环境构建新容器"
-    echo "  4. 健康检查新容器"
-    echo "  5. 切换流量到 ${target_env} 环境"
-    echo "  6. 停止旧的 ${active_env} 环境"
-    echo "  7. 发送部署通知"
+    echo "  2. 更新版本号"
+    echo "  3. 构建前端项目"
+    echo "  4. 在 ${target_env} 环境构建新容器"
+    echo "  5. 健康检查新容器"
+    echo "  6. 切换流量到 ${target_env} 环境"
+    echo "  7. 停止旧的 ${active_env} 环境"
+    echo "  8. 发送部署通知"
     echo ""
 
     # 确认提示
@@ -174,61 +215,96 @@ main() {
     send_notification "INFO" "${target_env}" "开始部署到 ${target_env} 环境"
 
     # 步骤 1: 拉取代码
-    print_step "步骤 1/7: 拉取最新代码"
+    print_step "步骤 1/8: 拉取最新代码"
     cd "${PROJECT_ROOT}"
 
     log_step "切换到 ${GIT_BRANCH} 分支"
     git fetch origin
     git checkout "${GIT_BRANCH}"
 
-    # 获取更新信息
-    local old_commit=$(git rev-parse HEAD)
+    local old_commit
+    old_commit=$(git rev-parse HEAD)
     git pull origin "${GIT_BRANCH}"
-    local new_commit=$(git rev-parse HEAD)
+    local new_commit
+    new_commit=$(git rev-parse HEAD)
 
     if [ "$old_commit" = "$new_commit" ]; then
         log_info "代码无更新"
     else
         log_success "代码已更新: ${old_commit:0:7} -> ${new_commit:0:7}"
-        # 显示更新内容
         log_info "更新内容:"
         git log --oneline --no-merges "${old_commit}..${new_commit}" | head -5
     fi
     echo ""
 
-    # 步骤 2: 构建前端
-    print_step "步骤 2/7: 构建前端项目"
+    # 步骤 2: 更新版本号
+    print_step "步骤 2/8: 更新版本号"
+    local old_version
+    old_version=$(get_current_version)
+    local new_version
+    new_version=$(update_version)
+    log_success "版本号: ${old_version} -> ${new_version}"
+    echo ""
+
+    # 步骤 3: 构建前端
+    print_step "步骤 3/8: 构建前端项目"
     log_step "执行 pnpm build:h5:staging"
     pnpm build:h5:staging
     log_success "前端构建完成"
     echo ""
 
-    # 步骤 3: 构建目标环境容器
-    print_step "步骤 3/7: 构建 ${target_env} 环境容器"
+    # 步骤 4: 构建目标环境容器
+    print_step "步骤 4/8: 构建 ${target_env} 环境容器"
     cd "${DEPLOY_DIR}"
 
-    log_step "构建 Docker 镜像"
+    # 确保外部卷存在
+    ensure_external_volumes
+
+    # 确保 nginx-proxy 运行中
+    if ! docker ps | grep -q "${NGINX_PROXY_CONTAINER}"; then
+        log_step "启动 nginx-proxy 容器"
+        ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" up -d nginx-proxy certbot
+        sleep 3
+    fi
+
+    log_step "构建 ${target_env} Docker 镜像 (版本: ${new_version})"
+    local build_args="--build-arg APP_VERSION=${new_version}"
+
     if [ "$target_env" = "green" ]; then
-        docker-compose -f "${COMPOSE_FILE}" --profile green build frontend-green --no-cache
-        log_step "启动 ${target_env} 容器"
-        docker-compose -f "${COMPOSE_FILE}" --profile green up -d frontend-green
+        ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" --profile green build ${build_args} frontend-green --no-cache
     else
-        docker-compose -f "${COMPOSE_FILE}" build frontend-blue --no-cache
-        log_step "启动 ${target_env} 容器"
-        docker-compose -f "${COMPOSE_FILE}" up -d frontend-blue
+        ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" build ${build_args} frontend-blue --no-cache
+    fi
+    log_success "${target_env} 镜像构建完成"
+
+    log_step "启动 ${target_env} 容器"
+    if [ "$target_env" = "green" ]; then
+        ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" --profile green up -d frontend-green
+    else
+        ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" up -d frontend-blue
     fi
     log_success "${target_env} 容器已启动"
     echo ""
 
-    # 步骤 4: 健康检查
-    print_step "步骤 4/7: 健康检查"
-    if ! health_check "together-frontend-${target_env}"; then
-        rollback "${target_en   exit 1
+    # 步骤 5: 健康检查
+    print_step "步骤 5/8: 健康检查"
+    local target_container="together-frontend-${target_env}"
+    if ! health_check "${target_container}"; then
+        log_error "健康检查失败，查看日志："
+        docker logs "${target_container}" --tail 30
+        rollback "${target_env}" "${active_env}"
+        exit 1
+    fi
+
+    if ! verify_new_version "${target_container}" "${new_version}"; then
+        log_error "版本验证失败"
+        rollback "${target_env}" "${active_env}"
+        exit 1
     fi
     echo ""
 
-    # 步骤 5: 切换流量
-    print_step "步骤 5/7: 切换流量到 ${target_env}"
+    # 步骤 6: 切换流量
+    print_step "步骤 6/8: 切换流量到 ${target_env}"
     switch_upstream "${target_env}"
     reload_nginx
 
@@ -237,39 +313,41 @@ main() {
     log_success "流量已切换到 ${target_env} 环境"
     echo ""
 
-    # 步骤 6: 停止旧环境
-    print_step "步骤 6/7: 停止旧的 ${active_env} 环境"
+    # 步骤 7: 停止旧环境
+    print_step "步骤 7/8: 停止旧的 ${active_env} 环境"
     log_step "停止 ${active_env} 容器"
-    docker-compose -f "${COMPOSE_FILE}" stop "frontend-${active_env}"
+    ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" stop "frontend-${active_env}" 2>/dev/null || true
     log_success "${active_env} 环境已停止"
     echo ""
 
-    # 步骤 7: 发送通知
-    print_step "步骤 7/7: 发送部署通知"
-
-    # 获取部署信息
-    local deploy_info="部署成功！\n"
-    deploy_info+="环境: ${target_env}\n"
-    deploy_info+="提交: ${new_commit:0:7}\n"
-    deploy_info+="时间: $(date '+%Y-%m-%d %H:%M:%S')"
-
+    # 步骤 8: 发送通知
+    print_step "步骤 8/8: 发送部署通知"
+    local deploy_info="部署成功！环境: ${target_env}, 版本: ${new_version}, 提交: ${new_commit:0:7}"
     send_notification "SUCCESS" "${target_env}" "${deploy_info}"
     echo ""
 
     # 显示容器状态
     log_step "容器状态"
-    docker-compose -f "${COMPOSE_FILE}" ps
+    ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" ps
     echo ""
 
     # 部署完成
-    print_header "✅ 部署完成！"
+    print_header "部署完成！"
 
-    log_info "当前活跃环境: ${target_env}"
     log_info "访问地址："
-    echo "  - 前端页面 (HTTPS): https://app.wenlong.life"
+    echo "  - 前端页面 (HTTPS): https://${DOMAIN}"
+    echo "  - 版本信息: https://${DOMAIN}/version.txt"
+    echo "  - Admin 后台: https://${DOMAIN}:8108"
     echo "  - 后端 API: ${BACKEND_API_URL}/api/v1"
-    en
-    log_info "查看日    echo "  docker logs together-frontend-${target_env} -f"
+    echo "  - 后端 Swagger: ${BACKEND_API_URL}/api/docs"
+    echo ""
+
+    log_info "当前版本: ${new_version}"
+    log_info "活跃环境: ${target_env}"
+    echo ""
+
+    log_info "查看日志："
+    echo "  docker logs together-frontend-${target_env} -f"
     echo ""
 
     log_info "如需回滚："

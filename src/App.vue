@@ -1,11 +1,24 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useNotificationStore } from '@/stores';
 import { useNPS } from '@/composables/useNPS';
 import { wsManager } from '@/utils';
 import NPSModal from '@/components/business/NPSModal.vue';
+import MessageBubbleContainer from '@/components/business/MessageBubbleContainer.vue';
 
 const { npsVisible, npsTriggerType, npsTriggerScene, closeNPS, onNPSSuccess } = useNPS();
+const notificationStore = useNotificationStore();
+
+// 监听页面切换，更新气泡展开/折叠状态
+const updateBubbleState = () => {
+  const pages = getCurrentPages();
+  const currentPage = pages[pages.length - 1];
+  const route = (currentPage as any)?.route || '';
+
+  // 在聊天列表页展开，其他页面折叠
+  const isInChatList = route === 'pages/chat/list';
+  notificationStore.updateExpandState(isInChatList);
+};
 
 onLaunch(() => {
   console.log('App Launch');
@@ -29,10 +42,18 @@ onShow(() => {
   if (authStore.token && !wsManager.isConnected) {
     wsManager.connect();
   }
+
+  // 更新气泡状态
+  updateBubbleState();
 });
 
 onHide(() => {
   console.log('App Hide');
+});
+
+// 监听页面显示（页面切换时触发）
+uni.$on('onPageShow', () => {
+  updateBubbleState();
 });
 </script>
 
@@ -45,6 +66,9 @@ onHide(() => {
     @close="closeNPS"
     @success="onNPSSuccess"
   />
+
+  <!-- 消息气泡容器 -->
+  <MessageBubbleContainer />
 </template>
 
 <style lang="scss">

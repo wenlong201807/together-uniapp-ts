@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   frontend:
     build:
@@ -36,4 +34,6 @@ networks:
 
 volumes:
   certbot-conf:
+    external: true
   certbot-www:
+    external: true
