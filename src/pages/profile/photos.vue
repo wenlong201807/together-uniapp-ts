@@ -36,7 +36,7 @@
         class="photo-item"
         @tap="handlePhotoTap(photo)"
       >
-        <image :src="photo.photoUrl" class="photo-image" mode="aspectFill" />
+        <image :src="ensureHttps(photo.photoUrl)" class="photo-image" mode="aspectFill" />
         <view v-if="photo.isAvatar" class="avatar-badge">
           <text class="badge-text">头像</text>
         </view>
@@ -72,7 +72,7 @@
     <view v-if="showDetailModal" class="modal-overlay" @tap="showDetailModal = false">
       <view class="modal-content detail-modal" @tap.stop>
         <image
-          :src="selectedPhoto?.photoUrl"
+          :src="ensureHttps(selectedPhoto?.photoUrl)"
           class="detail-image"
           mode="aspectFit"
         />
@@ -100,6 +100,7 @@
 import { ref, onMounted } from 'vue'
 import { getPhotos, addPhoto, deletePhoto, setAvatar } from '@/api/profile'
 import { uploadFile } from '@/api/modules/file'
+import { ensureHttps } from '@/utils/image'
 import type { UserPhoto } from '@/api/profile'
 
 // 照片列表

@@ -1,5 +1,40 @@
 import { API_CONFIG } from '@/config';
 import type { ApiResponse } from '@/types';
+import { ensureHttps } from '@/utils/image';
+
+// 预编译正则表达式，避免重复创建
+const IMAGE_FIELD_PATTERN = /url|path|image|photo|avatar|picture|thumbnail/i;
+
+/**
+ * 递归转换对象中的所有图片URL为HTTPS（原地修改，避免克隆）
+ */
+function convertImageUrlsToHttps(obj: any): any {
+  if (!obj || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    obj.forEach(item => convertImageUrlsToHttps(item));
+    return obj;
+  }
+
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+
+      // 检查是否是图片URL字段
+      const isImageField = IMAGE_FIELD_PATTERN.test(key);
+
+      if (isImageField && typeof value === 'string') {
+        obj[key] = ensureHttps(value);
+      } else if (typeof value === 'object' && value !== null) {
+        convertImageUrlsToHttps(value);
+      }
+    }
+  }
+
+  return obj;
+}
 
 class Request {
   private baseURL: string;
@@ -89,6 +124,10 @@ class Request {
 
           if ([200, 201].includes(res.statusCode)) {
             if (response.code === 0) {
+              // 转换响应数据中的所有图片URL为HTTPS
+              if (response.data) {
+                response.data = convertImageUrlsToHttps(response.data);
+              }
               resolve(response);
             } else {
               const errorMsg = typeof response.message === 'string' ? response.message : '请求失败';
