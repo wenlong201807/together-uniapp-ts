@@ -19,3 +19,7 @@ dist/*
 *.njsproj
 *.sln
 *.sw?
+# 蓝绿部署运行时文件
+linux-190-deploy/config/VERSION
+linux-190-deploy/config/nginx/upstream.conf.backup
+linux-190-deploy/config/nginx/*.backup
