@@ -240,7 +240,7 @@ const goToChat = (conversation: any) => {
 
           display: flex;
           align-items: center;
-          justify-contenter;
+          justify-content: center;
 
           font-size: 20rpx;
           color: #fff;
