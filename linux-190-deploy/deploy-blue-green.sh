@@ -314,6 +314,10 @@ main() {
     switch_upstream "${target_env}"
     reload_nginx
 
+    log_step "重启 nginx-proxy 容器以确保配置生效"
+    ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" restart nginx-proxy
+    log_success "nginx-proxy 容器已重启"
+
     log_info "等待流量切换生效..."
     sleep 3
     log_success "流量已切换到 ${target_env} 环境"
