@@ -169,13 +169,48 @@ switch_upstream() {
 reload_nginx() {
     log_step "测试 Nginx 配置"
     local test_output
-    test_output=$(docker exec "${NGINX_PROXY_CONTAINER}" nginx -t 2>&1) || {
-        log_error "Nginx 配置测试失败:"
-        echo "${test_output}"
-        return 1
-    }
+    test_output=$(docker exec "${NGINX_PROXY_CONTAINER}" nginx -t 2>&1)
+
+    if [ $? -ne 0 ]; then
+        log_warning "Nginx 配置测试失败，尝试重启容器"
+        log_info "错误信息: ${test_output}"
+
+        log_step "重启 nginx-proxy 容器以加载新配置"
+        ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" restart nginx-proxy
+
+        if [ $? -eq 0 ]; then
+            log_success "Nginx 容器已重启"
+            sleep 3
+
+            # 验证重启后的状态
+            if docker ps | grep -q "${NGINX_PROXY_CONTAINER}.*Up"; then
+                log_success "Nginx 容器运行正常"
+                return 0
+            else
+                log_error "Nginx 容器重启后状态异常"
+                return 1
+            fi
+        else
+            log_error "Nginx 容器重启失败"
+            return 1
+        fi
+    fi
 
     log_step "重载 Nginx 配置"
-    docker exec "${NGINX_PROXY_CONTAINER}" nginx -s reload
-    log_success "Nginx 配置已重载"
+    if docker exec "${NGINX_PROXY_CONTAINER}" nginx -s reload 2>&1; then
+        log_success "Nginx 配置已重载"
+        return 0
+    else
+        log_warning "Nginx 重载失败，尝试重启容器"
+        ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" restart nginx-proxy
+
+        if [ $? -eq 0 ]; then
+            log_success "Nginx 容器已重启"
+            sleep 3
+            return 0
+        else
+            log_error "Nginx 容器重启失败"
+            return 1
+        fi
+    fi
 }
