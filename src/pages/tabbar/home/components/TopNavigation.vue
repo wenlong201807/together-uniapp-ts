@@ -8,7 +8,7 @@
       </view>
     </view>
 
-    <view class="nav-center">
+    <view class="nav-center guide-search-box">
       <view class="search-box" @click="handleSearchClick">
         <text class="search-icon">🔍</text>
         <text class="search-placeholder">搜索用户、话题、动态</text>

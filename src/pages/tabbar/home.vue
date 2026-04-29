@@ -33,7 +33,7 @@
 
       <!-- 推荐流 -->
       <view class="recommendation-feed">
-        <view class="section-header">
+        <view class="section-header guide-recommend-header">
           <text class="section-title">为你推荐</text>
         </view>
 
@@ -54,7 +54,7 @@
           @visible-range-change="handleVisibleRangeChange"
         >
           <template #default="{ item, index }">
-            <view class="recommendation-item">
+            <view class="recommendation-item guide-user-card">
           <!-- 个性化推荐卡片 -->
           <RecommendationCard
             v-if="item.type === 'personalized'"
@@ -140,6 +140,18 @@
       @close="showCitySelector = false"
       @select="handleCitySelect"
     />
+
+    <!-- 新手引导 -->
+    <GuideOverlay
+      v-if="currentConfig"
+      :visible="guideVisible"
+      :steps="currentConfig.steps"
+      :current-step-index="currentStepIndex"
+      @update:visible="(val) => guideVisible = val"
+      @update:current-step-index="(val) => currentStepIndex = val"
+      @complete="completeGuide"
+      @skip="skipGuide"
+    />
   </view>
 </template>
 
@@ -158,7 +170,9 @@ import SkeletonCard from './home/components/SkeletonCard.vue';
 import VirtualList from '@/components/VirtualList.vue';
 import NPSModal from '@/components/business/NPSModal.vue';
 import CitySelector from '@/components/business/CitySelector.vue';
+import GuideOverlay from '@/components/GuideOverlay.vue';
 import { useNPS, NPSScene } from '@/composables/useNPS';
+import { useGuide } from '@/composables/useGuide';
 import { useRecommendation } from './home/composables/useRecommendation';
 import { useInfiniteScroll } from './home/composables/useInfiniteScroll';
 import { initImageLoader, cleanupImageLoader, getGlobalPerformanceMonitor } from '@/utils/imageLoader/index';
@@ -166,9 +180,41 @@ import { CacheManager, CACHE_KEYS, CACHE_EXPIRE_TIME } from '@/utils/cache';
 import { getBanners } from '@/api/home';
 import type { Banner } from './home/components/BannerCarousel.vue';
 import type { QuickAction } from './home/components/QuickActions.vue';
+import type { GuideConfig } from '@/types/guide';
 
 const authStore = useAuthStore();
 const { npsVisible, npsTriggerType, npsTriggerScene, checkAndTrigger, closeNPS, onNPSSuccess } = useNPS();
+const { visible: guideVisible, currentStepIndex, currentConfig, startGuide, completeGuide, skipGuide } = useGuide();
+
+// 首页引导配置
+const homeGuideConfig: GuideConfig = {
+  id: 'home_guide',
+  version: '1.0.0',
+  showOnce: true,
+  steps: [
+    {
+      target: '.guide-recommend-header',
+      title: '推荐流',
+      content: '这里是为你精心推荐的用户，基于MBTI性格匹配算法为你找到最合适的人',
+      placement: 'bottom',
+      highlightPadding: 10,
+    },
+    {
+      target: '.guide-user-card',
+      title: '用户卡片',
+      content: '点击卡片查看用户详情，了解更多信息后可以选择关注或发送消息',
+      placement: 'top',
+      highlightPadding: 15,
+    },
+    {
+      target: '.guide-search-box',
+      title: '搜索功能',
+      content: '点击这里可以搜索用户、话题和动态内容',
+      placement: 'bottom',
+      highlightPadding: 10,
+    },
+  ],
+};
 
 // 初始化图片加载器（副作用初始化，启动内存监控和性能统计）
 // 注意：initImageLoader 现在是异步的，需要在 onMounted 中 await
@@ -482,6 +528,11 @@ onMounted(async () => {
     scene: NPSScene.PERIODIC,
     delay: 3000,
   });
+
+  // 启动首页引导（延迟1秒，确保页面渲染完成）
+  setTimeout(() => {
+    startGuide(homeGuideConfig);
+  }, 1000);
 
   // 定期清理过期缓存
   cleanupTimer = setInterval(() => {

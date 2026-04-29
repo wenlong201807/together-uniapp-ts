@@ -1,1 +1,0 @@
-import{H as t}from"./index-BlkylTa5.js";function n(n){return t.post("/location/update",n)}function o(){return t.get("/location/current")}function r(n){return t.post("/location/save-city",{cityName:n})}export{o as g,r as s,n as u};
