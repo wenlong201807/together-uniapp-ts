@@ -120,6 +120,10 @@ export interface User {
   status: UserStatus;
   /** 违规次数 */
   violationCount: number;
+  /** 最后活跃时间 */
+  lastActiveAt: string;
+  /** 活跃度等级 */
+  activityLevel: 'inactive' | 'low' | 'medium' | 'high' | 'very_high';
   /** 最后登录时间 */
   lastLoginAt: string;
   /** 创建时间 */
