@@ -97,7 +97,7 @@ verify_new_version() {
 
     while [ $attempt -lt $max_attempts ]; do
         local http_code
-        http_code=$(docker exec "${container}" wget -q -O /dev/null --spider "http://localhost:8080/" 2>/dev/null && echo "200" || echo "000")
+        http_code=$(docker exec "${container}" wget -q -O /dev/null --spider "http://127.0.0.1:8080/" 2>/dev/null && echo "200" || echo "000")
 
         if [ "$http_code" = "200" ]; then
             log_success "${container} HTTP 可访问"
