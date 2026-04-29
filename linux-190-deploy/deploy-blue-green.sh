@@ -50,7 +50,7 @@ update_version() {
         local escaped_path
         escaped_path=$(printf '%s' "${PACKAGE_JSON}" | sed "s/'/'\\\"'\\\"'/g")
         node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('${escaped_path}','utf8'));p.version='${new_version}';fs.writeFileSync('${escaped_path}',JSON.stringify(p,null,2)+'\n');"
-        log_success "package.json version -> ${new_version}"
+        log_success "package.json version -> ${new_version}" >&2
     fi
 
     echo "${new_version}"
