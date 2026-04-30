@@ -7,3 +7,4 @@ export * from './modules/certification';
 export * from './modules/config';
 export * from './modules/file';
 export * from './modules/user';
+export * from './modules/topic';

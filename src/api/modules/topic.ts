@@ -6,15 +6,21 @@ import type { ApiResponse } from '@/types';
  */
 export interface TopicDetail {
   id: number;
-  title: string;
-  description: string;
-  coverImages: string[];
-  participantCount: number;
+  name: string;
+  description?: string;
+  coverImage: string;
   postCount: number;
+  followCount: number;
   viewCount: number;
-  isJoined: boolean;
-  createTime: number;
-  updateTime: number;
+  hotScore: number;
+  isHot: boolean;
+  status: number;
+  sortOrder: number;
+  seoKeywords?: string;
+  creatorId?: number;
+  createdAt: string;
+  updatedAt: string;
+  isFollowing?: boolean;
 }
 
 /**
@@ -37,24 +43,32 @@ export interface TopicPost {
 }
 
 /**
- * 话题统计
+ * 获取话题列表
  */
-export interface TopicStats {
-  participantCount: number;
-  postCount: number;
-  viewCount: number;
-  todayPostCount: number;
+export function getTopics(params: {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+}): Promise<ApiResponse<{ list: TopicDetail[]; total: number; hasMore: boolean }>> {
+  return request.get('/topics', params);
 }
 
 /**
- * 话题参与者
+ * 获取热门话题
  */
-export interface TopicParticipant {
-  id: number;
-  nickname: string;
-  avatar: string;
-  joinTime: number;
-  postCount: number;
+export function getHotTopics(limit?: number): Promise<ApiResponse<{ list: TopicDetail[] }>> {
+  return request.get('/topics/hot', { limit });
+}
+
+/**
+ * 搜索话题
+ */
+export function searchTopics(params: {
+  keyword: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<ApiResponse<{ list: TopicDetail[]; total: number; hasMore: boolean }>> {
+  return request.get('/topics/search', params);
 }
 
 /**
@@ -65,12 +79,12 @@ export function getTopicDetail(topicId: number): Promise<ApiResponse<TopicDetail
 }
 
 /**
- * 获取话题动态列表
+ * 获取话题下的帖子
  */
 export function getTopicPosts(params: {
   topicId: number;
-  page: number;
-  pageSize: number;
+  page?: number;
+  pageSize?: number;
   sort?: 'hot' | 'latest';
 }): Promise<ApiResponse<{ list: TopicPost[]; total: number; hasMore: boolean }>> {
   return request.get(`/topics/${params.topicId}/posts`, {
@@ -81,86 +95,16 @@ export function getTopicPosts(params: {
 }
 
 /**
- * 参与话题（关注）
+ * 关注话题
  */
-export function joinTopic(topicId: number): Promise<ApiResponse<{ success: boolean }>> {
+export function followTopic(topicId: number): Promise<ApiResponse<{ success: boolean }>> {
   return request.post(`/topics/${topicId}/follow`);
 }
 
 /**
- * 退出话题（取消关注）
+ * 取消关注话题
  */
-export function leaveTopic(topicId: number): Promise<ApiResponse<{ success: boolean }>> {
+export function unfollowTopic(topicId: number): Promise<ApiResponse<{ success: boolean }>> {
   return request.delete(`/topics/${topicId}/follow`);
 }
 
-/**
- * 发布话题动态（使用 square 模块）
- */
-export function publishTopicPost(data: {
-  topicId: number;
-  content: string;
-  images?: string[];
-}): Promise<ApiResponse<{ id: number }>> {
-  return request.post('/square/posts', {
-    content: data.content,
-    images: data.images,
-    topicId: data.topicId,
-  });
-}
-
-/**
- * 获取话题统计
- */
-export function getTopicStats(topicId: number): Promise<ApiResponse<TopicStats>> {
-  return request.get(`/topics/${topicId}/stats`);
-}
-
-/**
- * 获取话题参与者列表
- */
-export function getTopicParticipants(params: {
-  topicId: number;
-  page: number;
-  pageSize: number;
-}): Promise<ApiResponse<{ list: TopicParticipant[]; total: number }>> {
-  return request.get(`/topics/${params.topicId}/participants`, {
-    page: params.page,
-    pageSize: params.pageSize,
-  });
-}
-
-/**
- * 点赞话题动态（使用 square 模块）
- */
-export function likeTopicPost(postId: number): Promise<ApiResponse<{ isLiked: boolean }>> {
-  return request.post(`/square/posts/${postId}/like`);
-}
-
-/**
- * 取消点赞话题动态（使用 square 模块）
- */
-export function unlikeTopicPost(postId: number): Promise<ApiResponse<{ isLiked: boolean }>> {
-  return request.delete(`/square/posts/${postId}/like`);
-}
-
-/**
- * 搜索话题
- */
-export function searchTopics(params: {
-  keyword: string;
-  page: number;
-  pageSize: number;
-}): Promise<ApiResponse<{ list: TopicDetail[]; total: number }>> {
-  return request.get('/topics/search', params);
-}
-
-/**
- * 获取热门话题
- */
-export function getHotTopics(params: {
-  page: number;
-  pageSize: number;
-}): Promise<ApiResponse<{ list: TopicDetail[]; total: number }>> {
-  return request.get('/topics/hot', params);
-}

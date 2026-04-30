@@ -109,6 +109,18 @@
       }
     },
     {
+      "path": "pages/topic/list",
+      "style": {
+        "navigationBarTitleText": "话题列表"
+      }
+    },
+    {
+      "path": "pages/topic/detail",
+      "style": {
+        "navigationBarTitleText": "话题详情"
+      }
+    },
+    {
       "path": "pages/user/profile",
       "style": {
         "navigationBarTitleText": "个人资料"
