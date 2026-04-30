@@ -214,11 +214,22 @@ class Request {
             }
           } else {
             const errorMsg = typeof response.message === 'string' ? response.message : '请求失败';
-            uni.showToast({
-              title: errorMsg,
-              icon: 'none',
-            });
-            reject(new Error(errorMsg));
+
+            // 对于403错误（隐私限制），不显示Toast，让业务层处理
+            const isForbidden = res.statusCode === 403;
+            if (!isForbidden) {
+              uni.showToast({
+                title: errorMsg,
+                icon: 'none',
+              });
+            }
+
+            // 创建包含完整错误信息的Error对象
+            const error: any = new Error(errorMsg);
+            error.code = response.code;
+            error.statusCode = res.statusCode;
+            error.message = errorMsg;
+            reject(error);
           }
         },
         fail: (err) => {

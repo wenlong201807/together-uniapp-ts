@@ -13,6 +13,10 @@
       </view>
 
       <view class="form-item">
+        <view class="section-label">
+          <text class="label-text">添加图片</text>
+          <text class="label-hint">最多1张</text>
+        </view>
         <view class="image-list">
           <view
             v-for="(img, index) in formData.images"
@@ -21,11 +25,14 @@
           >
             <image class="image" :src="img" mode="aspectFill" />
             <view class="delete-btn" @click="removeImage(index)">
-              <text>×</text>
+              <text class="delete-icon">✕</text>
             </view>
           </view>
           <view v-if="formData.images.length < 1" class="add-image-btn" @click="chooseImage">
-            <text>+</text>
+            <view class="add-icon-wrapper">
+              <text class="add-icon">📷</text>
+            </view>
+            <text class="add-text">添加图片</text>
           </view>
         </view>
       </view>
@@ -136,9 +143,9 @@ const handlePublish = async () => {
 
 <style scoped lang="scss">
 .publish-container {
-  
+  min-height: 100vh;
   padding: 40rpx;
-  background: #fff;
+  background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
 
   .publish-form {
     .form-item {
@@ -147,16 +154,19 @@ const handlePublish = async () => {
       .content-input {
         width: 100%;
         min-height: 300rpx;
-        padding: 20rpx;
-        border: 2rpx solid #e0e0e0;
-        border-radius: 12rpx;
-        font-size: 28rpx;
+        padding: 24rpx;
+        border: 2rpx solid #e8e8e8;
+        border-radius: 16rpx;
+        font-size: 30rpx;
         line-height: 1.6;
-        background: #f8f8f8;
+        background: #fff;
+        box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
 
         &:focus {
-          border-color: #007aff;
+          border-color: #667eea;
           background: #fff;
+          box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.15);
         }
       }
 
@@ -165,7 +175,25 @@ const handlePublish = async () => {
         text-align: right;
         font-size: 24rpx;
         color: #999;
-        margin-top: 8rpx;
+        margin-top: 12rpx;
+      }
+
+      .section-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20rpx;
+
+        .label-text {
+          font-size: 28rpx;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .label-hint {
+          font-size: 24rpx;
+          color: #999;
+        }
       }
 
       .image-list {
@@ -177,8 +205,14 @@ const handlePublish = async () => {
           position: relative;
           width: 100%;
           padding-bottom: 100%;
-          border-radius: 12rpx;
+          border-radius: 16rpx;
           overflow: hidden;
+          box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+          transition: all 0.3s ease;
+
+          &:active {
+            transform: scale(0.98);
+          }
 
           .image {
             position: absolute;
@@ -190,48 +224,126 @@ const handlePublish = async () => {
 
           .delete-btn {
             position: absolute;
-            top: 8rpx;
-            right: 8rpx;
-            width: 40rpx;
-            height: 40rpx;
-            background: rgba(0, 0, 0, 0.6);
+            top: 12rpx;
+            right: 12rpx;
+            width: 48rpx;
+            height: 48rpx;
+            background: rgba(255, 59, 48, 0.95);
             color: #fff;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32rpx;
+            box-shadow: 0 4rpx 12rpx rgba(255, 59, 48, 0.3);
+            backdrop-filter: blur(10rpx);
+            transition: all 0.3s ease;
+
+            &:active {
+              transform: scale(0.9);
+            }
+
+            .delete-icon {
+              font-size: 28rpx;
+              font-weight: 300;
+              line-height: 1;
+            }
           }
         }
 
         .add-image-btn {
+          position: relative;
           width: 100%;
           padding-bottom: 100%;
-          border: 2rpx dashed #e0e0e0;
-          border-radius: 12rpx;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 60rpx;
-          color: #999;
-          background: #f8f8f8;
+          border: 3rpx dashed #d0d7de;
+          border-radius: 16rpx;
+          background: linear-gradient(135deg, #fafbfc 0%, #f6f8fa 100%);
+          overflow: hidden;
+          transition: all 0.3s ease;
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+
+          &:active {
+            transform: scale(0.98);
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f0f2ff 0%, #f8f6ff 100%);
+
+            &::before {
+              opacity: 1;
+            }
+
+            .add-icon-wrapper {
+              transform: scale(1.1);
+            }
+          }
+
+          .add-icon-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12rpx;
+            transition: transform 0.3s ease;
+
+            .add-icon {
+              font-size: 64rpx;
+              line-height: 1;
+              filter: grayscale(0.3);
+            }
+          }
+
+          .add-text {
+            position: absolute;
+            bottom: 24rpx;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24rpx;
+            color: #667eea;
+            font-weight: 500;
+            white-space: nowrap;
+          }
         }
       }
     }
 
     .publish-btn {
       width: 100%;
-      height: 88rpx;
-      line-height: 88rpx;
-      background: #007aff;
+      height: 96rpx;
+      line-height: 96rpx;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #fff;
       font-size: 32rpx;
-      border-radius: 12rpx;
+      font-weight: 600;
+      border-radius: 48rpx;
       border: none;
-      margin-top: 40rpx;
+      margin-top: 60rpx;
+      box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.35);
+      transition: all 0.3s ease;
+
+      &:active {
+        transform: scale(0.98);
+        box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.3);
+      }
 
       &:disabled {
         opacity: 0.6;
+        transform: none;
+      }
+
+      &::after {
+        border: none;
       }
     }
   }

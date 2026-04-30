@@ -212,13 +212,13 @@ export interface PrivacySettings {
   contactVisibility: VisibilityLevel
   incomeVisibility: VisibilityLevel
   familyVisibility: VisibilityLevel
-  photoVisibility: VisibilityLevel
+  photosVisibility: VisibilityLevel  // 注意：后端是 photosVisibility，不是 photoVisibility
   locationVisibility: VisibilityLevel
   // 互动权限
   allowSearch: boolean
   allowRecommend: boolean
-  allowStrangerMessage: boolean
-  onlyCertifiedUser: boolean
+  allowMessage: boolean  // 注意：后端是 allowMessage，不是 allowStrangerMessage
+  onlyAcceptCertified: boolean  // 注意：后端是 onlyAcceptCertified，不是 onlyCertifiedUser
   createdAt: string
   updatedAt: string
 }

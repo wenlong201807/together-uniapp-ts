@@ -237,8 +237,12 @@ const handleDeleteFromDetail = async () => {
 const handleSetAvatar = async () => {
   if (!selectedPhoto.value) return
 
+  console.log('[handleSetAvatar] 开始设置头像，照片ID:', selectedPhoto.value.id)
+  console.log('[handleSetAvatar] 照片URL:', selectedPhoto.value.photoUrl)
+
   try {
-    await setAvatar(selectedPhoto.value.id)
+    const setAvatarRes = await setAvatar(selectedPhoto.value.id)
+    console.log('[handleSetAvatar] 设为头像API响应:', setAvatarRes)
 
     uni.showToast({
       title: '设置成功',
@@ -252,9 +256,19 @@ const handleSetAvatar = async () => {
 
     // 刷新用户信息，同步头像到全局状态
     try {
+      console.log('[handleSetAvatar] 开始刷新用户信息...')
       const userRes = await userApi.getCurrentUser()
+      console.log('[handleSetAvatar] 获取用户信息API响应:', userRes)
+
       if (userRes.data) {
+        console.log('[handleSetAvatar] 用户信息中的头像URL:', userRes.data.avatarUrl)
+        console.log('[handleSetAvatar] 用户信息中的头像Path:', userRes.data.avatarPath)
+        console.log('[handleSetAvatar] 更新前的authStore.userInfo:', authStore.userInfo)
+
         authStore.updateUserInfo(userRes.data)
+
+        console.log('[handleSetAvatar] 更新后的authStore.userInfo:', authStore.userInfo)
+        console.log('[handleSetAvatar] 头像更新成功')
       }
     } catch (error) {
       console.error('[Photos] 刷新用户信息失败:', error)

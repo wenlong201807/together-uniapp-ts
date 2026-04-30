@@ -133,6 +133,44 @@ const loadMessages = async () => {
   }
 };
 
+// 处理发送消息的错误
+const handleSendError = (error: any) => {
+  console.error('[Chat] 发送消息失败:', error);
+
+  // 处理 403 隐私限制错误
+  if (error.code === 403 || error.statusCode === 403) {
+    const errorMsg = error.message || error.msg || '';
+
+    // 只接受实名认证用户
+    if (errorMsg.includes('只接受实名认证用户') || errorMsg.includes('认证用户的消息')) {
+      uni.showModal({
+        title: '无法发送消息',
+        content: '对方只接受实名认证用户的消息，请先完成实名认证',
+        confirmText: '去认证',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            uni.navigateTo({ url: '/pages/certification/index' });
+          }
+        }
+      });
+      return true; // 已处理
+    }
+
+    // 不接受陌生人消息
+    if (errorMsg.includes('不接受陌生人') || errorMsg.includes('陌生人消息')) {
+      uni.showToast({
+        title: '对方不接受陌生人消息',
+        icon: 'none',
+        duration: 2000
+      });
+      return true; // 已处理
+    }
+  }
+
+  return false; // 未处理
+};
+
 const sendMessage = async () => {
   if (!inputText.value.trim()) return;
   if (!checkBeforeAction('发送消息')) return;
@@ -141,14 +179,23 @@ const sendMessage = async () => {
   inputText.value = '';
 
   await executeSend(async () => {
-    await chatStore.sendMessage({
-      receiverId: targetUserId.value,
-      content,
-      msgType: 1,
-    });
+    try {
+      await chatStore.sendMessage({
+        receiverId: targetUserId.value,
+        content,
+        msgType: 1,
+      });
 
-    await nextTick();
-    scrollToBottom();
+      await nextTick();
+      scrollToBottom();
+    } catch (error: any) {
+      // 使用统一的错误处理函数
+      const handled = handleSendError(error);
+      if (!handled) {
+        // 其他错误继续抛出，由 executeSend 处理
+        throw error;
+      }
+    }
   });
 };
 
@@ -161,8 +208,16 @@ const handleRetry = async (messageId: number) => {
         content: message.content,
         msgType: 1,
       });
-    } catch (error) {
-      console.error('Retry message error:', error);
+    } catch (error: any) {
+      // 使用统一的错误处理函数
+      const handled = handleSendError(error);
+      if (!handled) {
+        console.error('[Chat] 重试失败:', error);
+        uni.showToast({
+          title: '发送失败',
+          icon: 'none'
+        });
+      }
     }
   }
 };
