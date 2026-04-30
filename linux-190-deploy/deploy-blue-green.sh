@@ -327,11 +327,15 @@ main() {
     log_success "流量已切换到 ${target_env} 环境"
     echo ""
 
-    # 步骤 7: 停止旧环境
-    print_step "步骤 7/8: 停止旧的 ${active_env} 环境"
-    log_step "停止 ${active_env} 容器"
-    ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" stop "frontend-${active_env}" 2>/dev/null || true
-    log_success "${active_env} 环境已停止"
+    # 步骤 7: 保持旧环境待命（真·蓝绿部署）
+    print_step "步骤 7/8: 旧环境待命"
+    log_info "保持 ${active_env} 环境运行，便于快速回滚"
+    log_info "两个环境现在都在运行："
+    echo "  - ${target_env} (活跃): together-frontend-${target_env}"
+    echo "  - ${active_env} (待命): together-frontend-${active_env}"
+    echo ""
+    log_warning "如需清理旧环境以节省资源，请运行："
+    echo "  docker compose -f ${DEPLOY_COMPOSE_FILE} stop frontend-${active_env}"
     echo ""
 
     # 步骤 8: 发送通知
