@@ -13,7 +13,10 @@
       </view>
       <view class="stat-divider" />
       <view class="stat-item">
-        <text class="stat-value">{{ photos.length >= 3 ? '✓' : '✗' }}</text>
+        <view class="stat-value completion-icon" :class="{ 'completed': photos.length >= 3 }">
+          <text v-if="photos.length >= 3" class="icon-check">✓</text>
+          <text v-else class="icon-cross">✕</text>
+        </view>
         <text class="stat-label">完成度</text>
       </view>
     </view>
@@ -36,13 +39,13 @@
         class="photo-item"
         @tap="handlePhotoTap(photo)"
       >
-        <image :src="ensureHttps(photo.photoUrl)" class="photo-image" mode="aspectFill" />
+        <image :src="photo.photoUrl" class="photo-image" mode="aspectFill" />
         <view v-if="photo.isAvatar" class="avatar-badge">
           <text class="badge-text">头像</text>
         </view>
         <view v-if="editMode" class="photo-actions">
           <view class="action-btn delete" @tap.stop="handleDelete(photo.id)">
-            <text class="action-icon">🗑️</text>
+            <text class="action-icon">✕</text>
           </view>
         </view>
       </view>
@@ -72,20 +75,22 @@
     <view v-if="showDetailModal" class="modal-overlay" @tap="showDetailModal = false">
       <view class="modal-content detail-modal" @tap.stop>
         <image
-          :src="ensureHttps(selectedPhoto?.photoUrl)"
+          :src="selectedPhoto?.photoUrl"
           class="detail-image"
           mode="aspectFit"
         />
         <view class="detail-actions">
           <button
             v-if="!selectedPhoto?.isAvatar"
-            class="btn-action"
+            class="btn-action primary"
             @tap="handleSetAvatar"
           >
-            设为头像
+            <text class="btn-icon">👤</text>
+            <text class="btn-text">设为头像</text>
           </button>
           <button class="btn-action danger" @tap="handleDeleteFromDetail">
-            删除照片
+            <text class="btn-icon">✕</text>
+            <text class="btn-text">删除照片</text>
           </button>
         </view>
         <view class="detail-close" @tap="showDetailModal = false">
@@ -100,8 +105,11 @@
 import { ref, onMounted } from 'vue'
 import { getPhotos, addPhoto, deletePhoto, setAvatar } from '@/api/profile'
 import { uploadFile } from '@/api/modules/file'
-import { ensureHttps } from '@/utils/image'
+import { useAuthStore } from '@/stores'
+import { userApi } from '@/api'
 import type { UserPhoto } from '@/api/profile'
+
+const authStore = useAuthStore()
 
 // 照片列表
 const photos = ref<UserPhoto[]>([])
@@ -239,8 +247,19 @@ const handleSetAvatar = async () => {
 
     showDetailModal.value = false
 
-    // 重新加载列表
+    // 重新加载照片列表
     await loadPhotos()
+
+    // 刷新用户信息，同步头像到全局状态
+    try {
+      const userRes = await userApi.getCurrentUser()
+      if (userRes.data) {
+        authStore.updateUserInfo(userRes.data)
+      }
+    } catch (error) {
+      console.error('[Photos] 刷新用户信息失败:', error)
+      // 刷新失败不影响主流程，只记录日志
+    }
   } catch (error: any) {
     console.error('[Photos] 设置头像失败:', error)
     uni.showToast({
@@ -264,74 +283,113 @@ const handleSetAvatar = async () => {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 32rpx;
-  background: #fff;
+  padding: 40rpx 32rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 24rpx;
   margin-bottom: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.25);
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
+  gap: 12rpx;
 }
 
 .stat-value {
-  font-size: 40rpx;
-  font-weight: 600;
-  color: #667eea;
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+
+  &.completion-icon {
+    width: 64rpx;
+    height: 64rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+
+    &.completed {
+      background: rgba(82, 196, 26, 0.3);
+      box-shadow: 0 0 20rpx rgba(82, 196, 26, 0.4);
+    }
+
+    .icon-check {
+      font-size: 40rpx;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .icon-cross {
+      font-size: 36rpx;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
 }
 
 .stat-label {
-  font-size: 24rpx;
-  color: #999;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
 }
 
 .stat-divider {
-  width: 1rpx;
-  height: 60rpx;
-  background: #f0f0f0;
+  width: 2rpx;
+  height: 64rpx;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 // ========== 提示卡片 ==========
 .tips-card {
   display: flex;
-  align-items: center;
-  gap: 16rpx;
-  padding: 24rpx;
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-  border-radius: 16rpx;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 28rpx 24rpx;
+  background: #fff;
+  border-radius: 20rpx;
   margin-bottom: 24rpx;
+  border-left: 6rpx solid #ff9800;
+  box-shadow: 0 4rpx 16rpx rgba(255, 152, 0, 0.08);
 }
 
 .tips-icon {
-  font-size: 40rpx;
+  font-size: 44rpx;
+  line-height: 1;
+  margin-top: 4rpx;
 }
 
 .tips-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
+  gap: 8rpx;
 }
 
 .tips-title {
-  font-size: 28rpx;
-  font-weight: 500;
-  color: #e65100;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.4;
 }
 
 .tips-desc {
-  font-size: 24rpx;
-  color: #f57c00;
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.5;
 }
 
 // ========== 照片网格 ==========
 .photos-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16rpx;
+  gap: 12rpx;
+  margin-bottom: 140rpx; // 为底部按钮留出空间
 }
 
 .photo-item {
@@ -339,8 +397,14 @@ const handleSetAvatar = async () => {
   width: 100%;
   padding-bottom: 100%;
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 .photo-image {
@@ -353,40 +417,51 @@ const handleSetAvatar = async () => {
 
 .avatar-badge {
   position: absolute;
-  top: 8rpx;
-  right: 8rpx;
-  padding: 4rpx 12rpx;
-  background: rgba(102, 126, 234, 0.9);
-  border-radius: 8rpx;
+  top: 12rpx;
+  right: 12rpx;
+  padding: 6rpx 16rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
 }
 
 .badge-text {
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: #fff;
+  font-weight: 600;
 }
 
 .photo-actions {
   position: absolute;
-  top: 8rpx;
-  left: 8rpx;
+  top: 12rpx;
+  left: 12rpx;
 }
 
 .action-btn {
-  width: 56rpx;
-  height: 56rpx;
+  width: 64rpx;
+  height: 64rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 50%;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10rpx);
 
   &.delete {
-    background: rgba(255, 59, 48, 0.9);
+    background: rgba(255, 59, 48, 0.95);
+  }
+
+  &:active {
+    transform: scale(0.9);
   }
 }
 
 .action-icon {
-  font-size: 28rpx;
+  font-size: 36rpx;
+  color: #fff;
+  font-weight: 300;
+  line-height: 1;
 }
 
 .upload-btn {
@@ -394,38 +469,61 @@ const handleSetAvatar = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
-  border: 2rpx dashed #ddd;
+  background: #fafbfc;
+  border: 3rpx dashed #d0d7de;
+  transition: all 0.3s ease;
+
+  &:active {
+    background: #f6f8fa;
+    border-color: #667eea;
+    transform: scale(0.95);
+  }
 }
 
 .upload-icon {
-  font-size: 48rpx;
-  color: #999;
-  margin-bottom: 8rpx;
+  font-size: 56rpx;
+  color: #667eea;
+  margin-bottom: 12rpx;
+  font-weight: 300;
 }
 
 .upload-text {
-  font-size: 24rpx;
-  color: #999;
+  font-size: 26rpx;
+  color: #667eea;
+  font-weight: 500;
 }
 
 // ========== 编辑按钮 ==========
 .edit-button {
   position: fixed;
-  bottom: 40rpx;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24rpx;
+  background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 80%, rgba(255, 255, 255, 0) 100%);
+  backdrop-filter: blur(10rpx);
+  z-index: 100;
 }
 
 .btn-edit,
 .btn-done {
-  padding: 24rpx 48rpx;
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  padding: 0;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
-  font-size: 30rpx;
+  font-size: 32rpx;
+  font-weight: 600;
   border-radius: 48rpx;
   border: none;
-  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.35);
+  transition: all 0.3s ease;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.3);
+  }
 
   &::after {
     border: none;
@@ -439,11 +537,12 @@ const handleSetAvatar = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  backdrop-filter: blur(20rpx);
 }
 
 .detail-modal {
@@ -459,26 +558,60 @@ const handleSetAvatar = async () => {
 .detail-image {
   width: 100%;
   height: 80%;
+  padding: 0 40rpx;
 }
 
 .detail-actions {
   display: flex;
-  gap: 24rpx;
-  margin-top: 48rpx;
+  gap: 32rpx;
+  margin-top: 64rpx;
+  padding: 0 40rpx;
 }
 
 .btn-action {
-  padding: 16rpx 32rpx;
-  background: rgba(255, 255, 255, 0.9);
+  flex: 1;
+  height: 88rpx;
+  padding: 0 24rpx;
+  background: rgba(255, 255, 255, 0.95);
   color: #333;
-  font-size: 26rpx;
-  border-radius: 32rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 44rpx;
   border: none;
-  min-width: 160rpx;
+  backdrop-filter: blur(10rpx);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  white-space: nowrap;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+  }
 
   &.danger {
-    background: rgba(255, 59, 48, 0.9);
+    background: rgba(255, 59, 48, 0.95);
     color: #fff;
+  }
+
+  .btn-icon {
+    font-size: 32rpx;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .btn-text {
+    font-size: 30rpx;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
   }
 
   &::after {
@@ -490,17 +623,25 @@ const handleSetAvatar = async () => {
   position: absolute;
   top: 80rpx;
   right: 40rpx;
-  width: 80rpx;
-  height: 80rpx;
+  width: 88rpx;
+  height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 50%;
+  backdrop-filter: blur(10rpx);
+  transition: all 0.3s ease;
+
+  &:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.25);
+  }
 }
 
 .close-icon {
-  font-size: 48rpx;
+  font-size: 52rpx;
   color: #fff;
+  font-weight: 300;
 }
 </style>

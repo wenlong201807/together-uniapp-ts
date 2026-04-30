@@ -31,6 +31,8 @@
               :src="getCertImage(type.code)"
               mode="aspectFill"
               class="cert-thumbnail"
+              @error="handleImageError"
+              @load="handleImageLoad"
             />
             <text v-else>{{ '📋' }}</text>
           </view>
@@ -240,11 +242,22 @@ const certImageMap = computed(() => {
   const map: Record<string, string> = {};
 
   if (!myCerts.value || myCerts.value.length === 0) {
+    if (import.meta.env.DEV) {
+      console.log('[certImageMap] myCerts为空');
+    }
     return map;
+  }
+
+  if (import.meta.env.DEV) {
+    console.log('[certImageMap] myCerts数据:', JSON.stringify(myCerts.value));
   }
 
   // 按类型分组
   const typeGroups = groupCertsByType(myCerts.value);
+
+  if (import.meta.env.DEV) {
+    console.log('[certImageMap] 分组后的数据:', JSON.stringify(typeGroups));
+  }
 
   // 为每个类型找出优先级最高的图片
   Object.keys(typeGroups).forEach((type) => {
@@ -262,14 +275,27 @@ const certImageMap = computed(() => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-    map[type] = sortedCerts[0]?.imageUrl || '';
+    const imageUrl = sortedCerts[0]?.imageUrl || '';
+    map[type] = imageUrl;
+
+    if (import.meta.env.DEV) {
+      console.log(`[certImageMap] 类型 ${type} 的图片URL:`, imageUrl);
+    }
   });
+
+  if (import.meta.env.DEV) {
+    console.log('[certImageMap] 最终图片映射:', JSON.stringify(map));
+  }
 
   return map;
 });
 
 const getCertImage = (code: string) => {
-  return certImageMap.value[code] || '';
+  const imageUrl = certImageMap.value[code] || '';
+  if (import.meta.env.DEV) {
+    console.log(`[getCertImage] 获取类型 ${code} 的图片:`, imageUrl);
+  }
+  return imageUrl;
 };
 
 // 使用 computed 缓存状态计算结果
@@ -311,6 +337,15 @@ const goToApply = (code: string) => {
   uni.navigateTo({
     url: `/pages/certification/apply?type=${code}`,
   });
+};
+
+const handleImageError = (e: any) => {
+  console.error('[Image Error] 图片加载失败:', e);
+  console.error('[Image Error] 事件详情:', JSON.stringify(e));
+};
+
+const handleImageLoad = (e: any) => {
+  console.log('[Image Load] 图片加载成功:', e);
 };
 </script>
 

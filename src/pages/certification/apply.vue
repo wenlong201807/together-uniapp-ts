@@ -99,7 +99,55 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load cert type:', error)
   }
+
+  // 加载该类型的历史认证记录，用于反显
+  await loadExistingCertification()
 })
+
+// 加载已有的认证记录并反显
+const loadExistingCertification = async () => {
+  try {
+    const res = await certificationApi.getMyList()
+    if (res.data.list && res.data.list.length > 0) {
+      // 状态优先级：已通过=3, 待审核=2, 已拒绝=1
+      const STATUS_PRIORITY = {
+        1: 3,  // 已通过
+        0: 2,  // 待审核
+        2: 1   // 已拒绝
+      }
+
+      // 找到当前类型的记录，按优先级和时间排序（与列表页逻辑一致）
+      const existingCert = res.data.list
+        .filter((cert) => cert.type === certType.value)
+        .sort((a, b) => {
+          // 优先级：已通过 > 待审核 > 已拒绝
+          const priorityA = STATUS_PRIORITY[a.status as keyof typeof STATUS_PRIORITY] || 0
+          const priorityB = STATUS_PRIORITY[b.status as keyof typeof STATUS_PRIORITY] || 0
+
+          if (priorityA !== priorityB) {
+            return priorityB - priorityA  // 优先级高的排前面
+          }
+
+          // 同优先级按时间倒序
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })[0]
+
+      if (existingCert) {
+        // 反显图片和文案
+        formData.value.imageUrl = existingCert.imageUrl || ''
+        formData.value.description = existingCert.description || ''
+
+        if (import.meta.env.DEV) {
+          console.log('[loadExistingCertification] 已反显历史认证数据:', existingCert)
+          console.log('[loadExistingCertification] 状态:', existingCert.status, '优先级:', STATUS_PRIORITY[existingCert.status as keyof typeof STATUS_PRIORITY])
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load existing certification:', error)
+    // 加载失败不影响用户继续填写
+  }
+}
 
 const chooseImage = () => {
   uni.chooseImage({

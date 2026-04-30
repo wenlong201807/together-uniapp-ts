@@ -124,10 +124,10 @@ class Request {
 
           if ([200, 201].includes(res.statusCode)) {
             if (response.code === 0) {
-              // 转换响应数据中的所有图片URL为HTTPS
-              if (response.data) {
-                response.data = convertImageUrlsToHttps(response.data);
-              }
+              // 注释掉全局HTTPS转换，保持原始URL
+              // if (response.data) {
+              //   response.data = convertImageUrlsToHttps(response.data);
+              // }
               resolve(response);
             } else {
               const errorMsg = typeof response.message === 'string' ? response.message : '请求失败';

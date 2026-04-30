@@ -18,7 +18,7 @@ class WebSocketManager {
     return !!this.socket && this.socket.connected
   }
 
-  connect() {
+  async connect() {
     if (this.isConnecting || (this.socket && this.socket.connected)) {
       console.log('WebSocket: Already connected or connecting')
       return
@@ -28,7 +28,7 @@ class WebSocketManager {
     this.manualDisconnect = false // 重置手动断开标记
 
     const authStore = useAuthStore()
-    const token = authStore.token || uni.getStorageSync('token')
+    let token = authStore.token || uni.getStorageSync('token')
 
     console.log('WebSocket: Token:', token ? 'present' : 'missing')
 
@@ -36,6 +36,32 @@ class WebSocketManager {
       console.error('WebSocket: No token available')
       this.isConnecting = false
       return
+    }
+
+    // 检查token是否即将过期或已过期，如果是则先刷新
+    try {
+      const tokenPayload = this.parseJwt(token)
+      if (tokenPayload && tokenPayload.exp) {
+        const expiresAt = tokenPayload.exp * 1000 // 转换为毫秒
+        const now = Date.now()
+        const timeUntilExpiry = expiresAt - now
+
+        // 如果tok或已过期，先刷新
+        if (timeUntilExpiry < 5 * 60 * 1000) {
+          console.log('WebSocket: Token expiring soon or expired, refreshing...')
+          try {
+            await authStore.refreshAccessToken()
+            token = authStore.token || uni.getStorageSync('token')
+            console.log('WebSocket: Token refreshed successfully')
+          } catch (error) {
+            console.error('WebSocket: Failed to refresh token:', error)
+            this.isConnecting = false
+            return
+          }
+        }
+      }
+    } catch (error) {
+      console.error('WebSocket: Failed to parse token:', error)
     }
 
     // 使用 Socket.IO 客户端连接
@@ -57,6 +83,24 @@ class WebSocketManager {
     })
 
     this.setupEventListeners()
+  }
+
+  // 解析JWT token
+  private parseJwt(token: string): any {
+    try {
+      const base64Url = token.split('.')[1]
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      )
+      return JSON.parse(jsonPayload)
+    } catch (error) {
+      console.error('Failed to parse JWT:', error)
+      return null
+    }
   }
 
   private setupEventListeners() {
