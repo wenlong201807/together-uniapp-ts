@@ -11,7 +11,7 @@
     <view class="nav-center guide-search-box">
       <view class="search-box" @click="handleSearchClick">
         <text class="search-icon">🔍</text>
-        <text class="search-placeholder">搜索用户、话题、动态</text>
+        <text class="search-placeholder">搜索话题</text>
       </view>
     </view>
 
@@ -64,12 +64,16 @@ const handleMessageClick = () => {
 @use '@/assets/styles/design-tokens.scss' as *;
 
 .top-navigation {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: $padding-md $padding-lg;
   background: $bg-primary;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
 
   .nav-left {
     flex-shrink: 0;

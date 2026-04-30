@@ -173,6 +173,18 @@ export const useUserProfileStore = defineStore('userProfile', () => {
     targetUserId.value = 0
   }
 
+  /**
+   * 更新用户头像
+   * @param avatarId 头像ID（预设头像）
+   * @param avatarUrl 头像URL（自定义头像）
+   */
+  const updateAvatar = (avatarId: number | null, avatarUrl: string | null) => {
+    if (profile.value) {
+      profile.value.avatarId = avatarId
+      profile.value.avatarUrl = avatarUrl
+    }
+  }
+
   return {
     // state
     profile,
@@ -195,5 +207,6 @@ export const useUserProfileStore = defineStore('userProfile', () => {
     fetchProfile,
     refreshProfile,
     reset,
+    updateAvatar,
   }
 })

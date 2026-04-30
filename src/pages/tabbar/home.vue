@@ -209,7 +209,7 @@ const homeGuideConfig: GuideConfig = {
     {
       target: '.guide-search-box',
       title: '搜索功能',
-      content: '点击这里可以搜索用户、话题和动态内容',
+      content: '点击这里可以搜索感兴趣的话题',
       placement: 'bottom',
       highlightPadding: 10,
     },
@@ -374,7 +374,7 @@ const handleLocationClick = () => {
 
 const handleSearchClick = () => {
   console.log('Search clicked');
-  uni.showToast({ title: '搜索功能开发中', icon: 'none' });
+  uni.navigateTo({ url: '/pages/search/topic' });
 };
 
 const handleMessageClick = () => {

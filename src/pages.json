@@ -109,6 +109,13 @@
       }
     },
     {
+      "path": "pages/search/topic",
+      "style": {
+        "navigationBarTitleText": "搜索话题",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/topic/list",
       "style": {
         "navigationBarTitleText": "话题列表"

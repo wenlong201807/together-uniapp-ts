@@ -27,22 +27,24 @@
     </view>
 
     <view class="tabs">
-      <view class="tab" :class="{ active: activeTab === 0 }" @click="activeTab = 0">
+      <view class="tab" :class="{ active: activeTab === 0 }" @click="switchTab(0)">
         <text>全部</text>
       </view>
-      <view class="tab" :class="{ active: activeTab === 1 }" @click="activeTab = 1">
+      <view class="tab" :class="{ active: activeTab === 1 }" @click="switchTab(1)">
         <text>收入</text>
       </view>
-      <view class="tab" :class="{ active: activeTab === 2 }" @click="activeTab = 2">
+      <view class="tab" :class="{ active: activeTab === 2 }" @click="switchTab(2)">
         <text>支出</text>
       </view>
     </view>
 
     <scroll-view
       class="logs-list"
+      :class="{ 'transitioning': isTransitioning }"
       scroll-y
+      :scroll-top="scrollTop"
+      :scroll-with-animation="true"
       @scrolltolower="loadMore"
-      :style="{ height: 'calc(100vh - 500rpx)' }"
     >
       <view class="log-item" v-for="log in pointsStore.logs" :key="log.id">
         <view class="log-info">
@@ -80,6 +82,9 @@ const activeTab = ref(0)
 const currentPage = ref(1)
 const loading = ref(false)
 const hasMore = ref(true)
+const scrollTop = ref(0)
+const oldScrollTop = ref(0)
+const isTransitioning = ref(false)
 
 onMounted(() => {
   if (!authStore.isLoggedIn) {
@@ -120,9 +125,30 @@ const loadMore = () => {
   loadLogs()
 }
 
-watch(activeTab, () => {
-  loadLogs(true)
-})
+const switchTab = (tab: number) => {
+  if (activeTab.value === tab) return
+
+  isTransitioning.value = true
+  activeTab.value = tab
+
+  scrollToTop()
+
+  setTimeout(() => {
+    loadLogs(true)
+    setTimeout(() => {
+      isTransitioning.value = false
+    }, 100)
+  }, 300)
+}
+
+const scrollToTop = () => {
+  oldScrollTop.value = scrollTop.value
+  scrollTop.value = oldScrollTop.value + 1
+
+  setTimeout(() => {
+    scrollTop.value = 0
+  }, 50)
+}
 
 const handleSign = async () => {
   if (pointsStore.signStatus.signedToday) {
@@ -142,11 +168,19 @@ const formatTime = (time: string) => {
 </script>
 
 <style scoped lang="scss">
+page {
+  height: 100%;
+  overflow: hidden;
+}
+
 .points-container {
-  
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background: #f8f8f8;
 
   .points-header {
+    flex-shrink: 0;
     padding: 60rpx 40rpx;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     text-align: center;
@@ -189,6 +223,7 @@ const formatTime = (time: string) => {
   }
 
   .sign-section {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -249,6 +284,7 @@ const formatTime = (time: string) => {
   }
 
   .tabs {
+    flex-shrink: 0;
     display: flex;
     background: #fff;
     padding: 0 40rpx;
@@ -284,6 +320,11 @@ const formatTime = (time: string) => {
   .logs-list {
     flex: 1;
     overflow-y: auto;
+    transition: opacity 0.3s ease-in-out;
+
+    &.transitioning {
+      opacity: 0.3;
+    }
 
     .log-item {
       display: flex;

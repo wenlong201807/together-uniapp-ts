@@ -9,8 +9,10 @@ export interface TopicDetail {
   name: string;
   description?: string;
   coverImage: string;
+  coverImages?: string[];
   postCount: number;
   followCount: number;
+  participantCount: number;
   viewCount: number;
   hotScore: number;
   isHot: boolean;
@@ -21,6 +23,7 @@ export interface TopicDetail {
   createdAt: string;
   updatedAt: string;
   isFollowing?: boolean;
+  isJoined?: boolean;
 }
 
 /**

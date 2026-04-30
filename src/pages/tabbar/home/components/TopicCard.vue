@@ -3,7 +3,7 @@
     <view class="card-header">
       <text class="topic-icon">💬</text>
       <view class="topic-info">
-        <text class="topic-title">{{ topic.title }}</text>
+        <text class="topic-title">{{ topic.name }}</text>
         <text class="topic-stats">{{ formatCount(topic.participantCount) }}人参与 · {{ formatCount(topic.postCount) }}条动态</text>
       </view>
     </view>
@@ -39,7 +39,7 @@ import { computed } from 'vue'
 
 export interface Topic {
   id: number;
-  title: string;
+  name: string;
   description?: string;
   participantCount: number;
   postCount: number;

@@ -1,5 +1,11 @@
 <template>
   <view class="publish-container">
+    <!-- 话题标签 -->
+    <view v-if="topicTitle" class="topic-tag">
+      <text class="tag-icon">#</text>
+      <text class="tag-text">{{ topicTitle }}</text>
+    </view>
+
     <view class="publish-form">
       <view class="form-item">
         <textarea
@@ -45,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useSquareStore } from '@/stores'
 import { fileApi } from '@/api'
 import { triggerAfterFirstPost } from '@/composables/useNPS'
@@ -54,10 +60,26 @@ const squareStore = useSquareStore()
 
 const formData = ref({
   content: '',
-  images: [] as string[]
+  images: [] as string[],
+  topicId: undefined as number | undefined
 })
 
+const topicTitle = ref('')
 const loading = ref(false)
+
+onMounted(() => {
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1] as any
+  const options = currentPage.options
+
+  if (options.topicId) {
+    const parsedId = parseInt(options.topicId)
+    if (!isNaN(parsedId) && parsedId > 0) {
+      formData.value.topicId = parsedId
+      topicTitle.value = decodeURIComponent(options.topicTitle || '')
+    }
+  }
+})
 
 const chooseImage = () => {
   uni.chooseImage({
@@ -115,7 +137,8 @@ const handlePublish = async () => {
 
     await squareStore.createPost({
       content: formData.value.content,
-      images: uploadedUrls
+      images: uploadedUrls,
+      topicId: formData.value.topicId
     })
     uni.showToast({
       title: '发布成功',
@@ -126,7 +149,13 @@ const handlePublish = async () => {
     triggerAfterFirstPost()
 
     setTimeout(() => {
-      uni.switchTab({ url: '/pages/tabbar/square' })
+      if (formData.value.topicId) {
+        // 如果是从话题页发布，返回话题详情页
+        uni.navigateBack()
+      } else {
+        // 否则跳转到广场页
+        uni.switchTab({ url: '/pages/tabbar/square' })
+      }
     }, 1500)
   } catch (error) {
     console.error('Publish error:', error)
@@ -146,6 +175,29 @@ const handlePublish = async () => {
   min-height: 100vh;
   padding: 40rpx;
   background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+
+  .topic-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 12rpx 24rpx;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 32rpx;
+    margin-bottom: 24rpx;
+    box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.2);
+
+    .tag-icon {
+      font-size: 28rpx;
+      color: #fff;
+      font-weight: bold;
+      margin-right: 8rpx;
+    }
+
+    .tag-text {
+      font-size: 26rpx;
+      color: #fff;
+      font-weight: 500;
+    }
+  }
 
   .publish-form {
     .form-item {

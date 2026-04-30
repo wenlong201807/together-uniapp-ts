@@ -7,15 +7,10 @@
       <view class="user-header">
         <view class="avatar-wrapper" :class="{ 'avatar-blur': profileStore.profile.avatarBlur }">
           <Avatar
-            v-if="profileStore.profile.avatarUrl"
-            :avatar-id="profileStore.profile.avatarId ?? undefined"
-            :avatar-url="profileStore.profile.avatarUrl"
+            :avatar-id="profileStore.profile?.avatarId"
+            :avatar-url="profileStore.profile?.avatarUrl"
             size="large"
-            class="avatar"
           />
-          <view v-else class="avatar-placeholder">
-            <text class="placeholder-icon">👤</text>
-          </view>
           <!-- 头像隐私遮罩 -->
           <view v-if="profileStore.profile.avatarBlur" class="avatar-overlay">
             <text class="lock-icon">🔒</text>
@@ -200,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useUserProfileStore } from '@/stores/userProfile'
 import { useAuthStore } from '@/stores'
 import { userApi } from '@/api/modules/user'
@@ -210,12 +205,31 @@ import PostCard from '@/components/business/PostCard.vue'
 import Avatar from '@/components/common/Avatar.vue'
 import Empty from '@/components/common/Empty.vue'
 import UserDetailSkeleton from './components/UserDetailSkeleton.vue'
+import { useAvatarSync } from '@/composables/useAvatarSync'
+import { eventBus, EVENTS } from '@/utils/event-bus'
 
 const profileStore = useUserProfileStore()
 const authStore = useAuthStore()
 
 const posts = ref<any[]>([])
 const chatLoading = ref(false)
+
+// 头像同步 - 仅为动态列表中的头像
+// 顶部用户头像通过事件监听手动更新
+const postsData = computed(() => ({ list: posts.value }))
+useAvatarSync(postsData, { nestedUserField: 'user' })
+
+// 监听全局头像更新事件，更新顶部用户头像
+const handleAvatarUpdate = (payload: {
+  userId: number
+  avatarId?: number
+  avatarUrl?: string
+}) => {
+  // 如果当前查看的用户头像更新了，同步更新
+  if (profileStore.profile && profileStore.profile.id === payload.userId) {
+    profileStore.updateAvatar(payload.avatarId ?? null, payload.avatarUrl ?? null)
+  }
+}
 
 // 在线状态文本
 const onlineStatusText = computed(() => {
@@ -288,6 +302,14 @@ onMounted(async () => {
   } catch (error) {
     console.error('Load user detail error:', error)
   }
+
+  // 注册头像更新事件监听
+  eventBus.on(EVENTS.AVATAR_UPDATED, handleAvatarUpdate)
+})
+
+onUnmounted(() => {
+  // 清理事件监听
+  eventBus.off(EVENTS.AVATAR_UPDATED, handleAvatarUpdate)
 })
 
 const loadUserPosts = async () => {

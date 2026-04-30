@@ -3,81 +3,88 @@
     <TopicDetailSkeleton v-if="loading" />
 
     <view v-else-if="topicDetail" class="topic-detail">
-      <!-- 话题头部 -->
-      <view class="topic-header">
-        <swiper
-          v-if="topicDetail.coverImages && topicDetail.coverImages.length > 0"
-          class="cover-swiper"
-          :indicator-dots="topicDetail.coverImages.length > 1"
-          :autoplay="true"
-          :interval="3000"
-          :circular="true"
-        >
-          <swiper-item v-for="(img, index) in topicDetail.coverImages" :key="index">
-            <image :src="img" mode="aspectFill" class="cover-image" />
-          </swiper-item>
-        </swiper>
+      <!-- 固定头部区域 -->
+      <view class="fixed-header">
+        <!-- 话题头部 -->
+        <view class="topic-header" id="topic-header">
+          <swiper
+            v-if="topicDetail.coverImages && topicDetail.coverImages.length > 0"
+            class="cover-swiper"
+            :indicator-dots="topicDetail.coverImages.length > 1"
+            :autoplay="true"
+            :interval="3000"
+            :circular="true"
+          >
+            <swiper-item v-for="(img, index) in topicDetail.coverImages" :key="index">
+              <image :src="img" mode="aspectFill" class="cover-image" />
+            </swiper-item>
+          </swiper>
 
-        <view class="topic-info">
-          <text class="topic-title">{{ topicDetail.title }}</text>
-          <text class="topic-desc">{{ topicDetail.description }}</text>
+          <view class="topic-info">
+            <text class="topic-title">{{ displayTitle }}</text>
+            <text class="topic-desc">{{ topicDetail.description }}</text>
 
-          <view class="topic-stats">
-            <view class="stat-item">
-              <text class="stat-value">{{ formatCount(topicDetail.participantCount) }}</text>
-              <text class="stat-label">参与</text>
+            <view class="topic-stats">
+              <view class="stat-item">
+                <text class="stat-value">{{ formatCount(topicDetail.participantCount) }}</text>
+                <text class="stat-label">参与</text>
+              </view>
+              <view class="stat-item">
+                <text class="stat-value">{{ formatCount(topicDetail.postCount) }}</text>
+                <text class="stat-label">动态</text>
+              </view>
+              <view class="stat-item">
+                <text class="stat-value">{{ formatCount(topicDetail.viewCount) }}</text>
+                <text class="stat-label">浏览</text>
+              </view>
             </view>
-            <view class="stat-item">
-              <text class="stat-value">{{ formatCount(topicDetail.postCount) }}</text>
-              <text class="stat-label">动态</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-value">{{ formatCount(topicDetail.viewCount) }}</text>
-              <text class="stat-label">浏览</text>
-            </view>
+          </view>
+        </view>
+
+        <!-- 操作按钮 -->
+        <view class="action-buttons" id="action-buttons">
+          <button
+            :class="['action-btn', 'join-btn', { joined: isFollowed }]"
+            @click="handleJoinToggle"
+          >
+            <text>{{ isFollowed ? '✓ 已关注' : '+ 关注话题' }}</text>
+          </button>
+          <button class="action-btn publish-btn" @click="handlePublish">
+            <text>✏️ 发布动态</text>
+          </button>
+        </view>
+      </view>
+
+      <!-- 固定 Tab 栏 -->
+      <view class="tabs-fixed">
+        <view class="tabs">
+          <view
+            :class="['tab-item', { active: activeTab === 'latest' }]"
+            @click="handleTabChange('latest')"
+          >
+            最新
+          </view>
+          <view
+            :class="['tab-item', { active: activeTab === 'hot' }]"
+            @click="handleTabChange('hot')"
+          >
+            最热
           </view>
         </view>
       </view>
 
-      <!-- 操作按钮 -->
-      <view class="action-buttons">
-        <button
-          :class="['action-btn', 'join-btn', { joined: topicDetail.isJoined }]"
-          @click="handleJoinToggle"
-        >
-          <text>{{ topicDetail.isJoined ? '✓ 已参与' : '+ 参与话题' }}</text>
-        </button>
-        <button class="action-btn publish-btn" @click="handlePublish">
-          <text>✏️ 发布动态</text>
-        </button>
-      </view>
-
-      <!-- Tab 切换 -->
-      <view class="tabs">
-        <view
-          :class="['tab-item', { active: activeTab === 'latest' }]"
-          @click="handleTabChange('latest')"
-        >
-          最新
-        </view>
-        <view
-          :class="['tab-item', { active: activeTab === 'hot' }]"
-          @click="handleTabChange('hot')"
-        >
-          最热
-        </view>
-      </view>
-
-      <!-- 动态列表 -->
+      <!-- 动态列表滚动区域 -->
       <scroll-view
         class="posts-scroll"
         scroll-y
+        :scroll-top="postsScrollTop"
+        :scroll-with-animation="true"
         :refresher-enabled="true"
         :refresher-triggered="refreshing"
         @refresherrefresh="handleRefresh"
         @scrolltolower="handleLoadMore"
       >
-        <view class="posts-list">
+        <view :class="['posts-list', { transitioning: isTransitioning }]">
           <view v-if="posts.length > 0">
             <view
               v-for="post in posts"
@@ -87,7 +94,11 @@
             >
               <!-- 用户信息 -->
               <view class="post-header">
-                <image :src="post.user.avatar" mode="aspectFill" class="user-avatar" />
+                <Avatar
+                  :avatar-id="post.user?.avatarId"
+                  :avatar-url="post.user?.avatarUrl"
+                  size="small"
+                />
                 <view class="user-info">
                   <text class="user-nickname">{{ post.user.nickname }}</text>
                   <text class="post-time">{{ formatTime(post.createTime) }}</text>
@@ -100,7 +111,7 @@
               <!-- 图片 -->
               <view v-if="post.images && post.images.length > 0" class="post-images">
                 <image
-                  v-for="(img, index) in post.images.slice(0, 9)"
+                  v-for="(img, index) in post.images.slice(0, 3)"
                   :key="index"
                   :src="img"
                   mode="aspectFill"
@@ -147,11 +158,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { getTopicDetail, getTopicPosts, joinTopic, leaveTopic, likeTopicPost, unlikeTopicPost } from '@/api/modules/topic';
 import type { TopicDetail, TopicPost } from '@/api/modules/topic';
 import TopicDetailSkeleton from './components/TopicDetailSkeleton.vue';
 import Empty from '@/components/common/Empty.vue';
+import Avatar from '@/components/common/Avatar.vue';
 
 const topicId = ref<number>(0);
 const topicDetail = ref<TopicDetail | null>(null);
@@ -163,6 +175,15 @@ const hasMore = ref(true);
 const activeTab = ref<'latest' | 'hot'>('latest');
 const page = ref(1);
 const pageSize = 20;
+const postsScrollTop = ref(0); // 动态列表滚动位置
+const isTransitioning = ref(false);
+
+// 计算属性：统一字段访问
+const displayTitle = computed(() => topicDetail.value?.name || '');
+
+const isFollowed = computed(() =>
+  topicDetail.value?.isJoined || topicDetail.value?.isFollowing || false
+);
 
 // 请求取消控制器
 let loadPostsAbortController: AbortController | null = null;
@@ -191,6 +212,8 @@ onMounted(async () => {
 const handleTabChange = (tab: 'latest' | 'hot') => {
   if (activeTab.value === tab) return;
 
+  // 开始过渡动画
+  isTransitioning.value = true;
   activeTab.value = tab;
   page.value = 1;
   posts.value = [];
@@ -202,7 +225,21 @@ const handleTabChange = (tab: 'latest' | 'hot') => {
     loadPostsAbortController = null;
   }
 
-  loadPosts();
+  // 重置动态列表滚动位置到顶部
+  // 先设置一个不同的值，确保触发滚动
+  postsScrollTop.value = postsScrollTop.value === 0 ? 1 : 0;
+
+  nextTick(() => {
+    postsScrollTop.value = 0;
+  });
+
+  // 加载新数据
+  setTimeout(() => {
+    loadPosts();
+    setTimeout(() => {
+      isTransitioning.value = false;
+    }, 100);
+  }, 100);
 };
 
 // 加载话题详情
@@ -314,24 +351,25 @@ const loadPosts = async () => {
 const handleJoinToggle = async () => {
   if (!topicDetail.value) return;
 
-  const originalStatus = topicDetail.value.isJoined;
+  const originalStatus = isFollowed.value;
   const originalCount = topicDetail.value.participantCount;
 
   // 乐观更新
   topicDetail.value.isJoined = !originalStatus;
+  topicDetail.value.isFollowing = !originalStatus;
   topicDetail.value.participantCount = originalStatus ? originalCount - 1 : originalCount + 1;
 
   try {
     if (originalStatus) {
       await leaveTopic(topicId.value);
       uni.showToast({
-        title: '已退出话题',
+        title: '已取消关注',
         icon: 'success'
       });
     } else {
       await joinTopic(topicId.value);
       uni.showToast({
-        title: '参与成功',
+        title: '关注成功',
         icon: 'success'
       });
     }
@@ -339,6 +377,7 @@ const handleJoinToggle = async () => {
     console.error('Join/Leave topic error:', error);
     // 回滚
     topicDetail.value.isJoined = originalStatus;
+    topicDetail.value.isFollowing = originalStatus;
     topicDetail.value.participantCount = originalCount;
 
     uni.showToast({
@@ -350,16 +389,16 @@ const handleJoinToggle = async () => {
 
 // 发布动态
 const handlePublish = () => {
-  if (!topicDetail.value?.isJoined) {
+  if (!isFollowed.value) {
     uni.showToast({
-      title: '请先参与话题',
+      title: '请先关注话题',
       icon: 'none'
     });
     return;
   }
 
   uni.navigateTo({
-    url: `/pages/square/publish?topicId=${topicId.value}&topicTitle=${encodeURIComponent(topicDetail.value.title)}`
+    url: `/pages/square/publish?topicId=${topicId.value}&topicTitle=${encodeURIComponent(displayTitle.value)}`
   });
 };
 
@@ -508,11 +547,22 @@ const handleLoadMore = () => {
   background: $bg-secondary;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 
   .topic-detail {
     flex: 1;
     display: flex;
     flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+
+    // 固定头部区域
+    .fixed-header {
+      flex-shrink: 0;
+      background: $bg-primary;
+    }
+
     .topic-header {
       background: $bg-primary;
       margin-bottom: $margin-md;
@@ -572,6 +622,7 @@ const handleLoadMore = () => {
 
     .action-buttons {
       padding: 0 $padding-xl $padding-md;
+      background: $bg-primary;
       display: flex;
       gap: $spacing-md;
 
@@ -607,10 +658,17 @@ const handleLoadMore = () => {
       }
     }
 
+    // 固定 Tab 栏
+    .tabs-fixed {
+      flex-shrink: 0;
+      background: $bg-primary;
+      z-index: 10;
+      box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+    }
+
     .tabs {
       display: flex;
       background: $bg-primary;
-      margin-bottom: $margin-md;
 
       .tab-item {
         flex: 1;
@@ -629,13 +687,20 @@ const handleLoadMore = () => {
       }
     }
 
+    // 动态列表滚动区域
     .posts-scroll {
       flex: 1;
       height: 100%;
+      overflow-y: auto;
     }
 
     .posts-list {
       padding: 0 $padding-md $padding-md;
+      transition: opacity 0.3s ease-in-out;
+
+      &.transitioning {
+        opacity: 0.5;
+      }
 
       .post-card {
         background: $bg-primary;
@@ -652,14 +717,7 @@ const handleLoadMore = () => {
           display: flex;
           align-items: center;
           margin-bottom: $margin-md;
-
-          .user-avatar {
-            width: $avatar-size-sm;
-            height: $avatar-size-sm;
-            border-radius: $radius-circle;
-            margin-right: $margin-md;
-            flex-shrink: 0;
-          }
+          gap: $margin-md;
 
           .user-info {
             flex: 1;
@@ -689,15 +747,15 @@ const handleLoadMore = () => {
         }
 
         .post-images {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          display: flex;
           gap: $spacing-sm;
           margin-bottom: $margin-md;
 
           .post-image {
-            width: 100%;
-            aspect-ratio: 1;
+            width: 200rpx;
+            height: 200rpx;
             border-radius: $radius-sm;
+            flex-shrink: 0;
           }
         }
 

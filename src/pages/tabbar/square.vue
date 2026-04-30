@@ -18,8 +18,11 @@
 
     <scroll-view
       class="posts-list"
+      :class="{ 'transitioning': isTransitioning }"
       scroll-y
       :show-scrollbar="false"
+      :scroll-top="scrollTop"
+      :scroll-with-animation="true"
       @scrolltolower="loadMore"
       refresher-enabled
       :refresher-triggered="refreshing"
@@ -97,6 +100,9 @@ const tabs = [
 const activeTab = ref('latest');
 const page = ref(1);
 const refreshing = ref(false);
+const scrollTop = ref(0);
+const oldScrollTop = ref(0);
+const isTransitioning = ref(false);
 
 onMounted(() => {
   loadPosts();
@@ -104,10 +110,36 @@ onMounted(() => {
 
 const switchTab = (tab: string) => {
   if (activeTab.value === tab) return;
+
+  // 添加淡出效果
+  isTransitioning.value = true;
+
   activeTab.value = tab;
   page.value = 1;
   squareStore.posts = [];
-  loadPosts();
+
+  // 平滑滚动到顶部
+  scrollToTop();
+
+  // 延迟加载数据，配合淡入效果
+  setTimeout(() => {
+    loadPosts();
+    // 数据加载后，延迟一点再移除过渡状态，让淡入效果更明显
+    setTimeout(() => {
+      isTransitioning.value = false;
+    }, 100);
+  }, 300);
+};
+
+const scrollToTop = () => {
+  // 使用一个技巧：先设置为旧值，再设置为0，触发滚动动画
+  oldScrollTop.value = scrollTop.value;
+  scrollTop.value = oldScrollTop.value + 1;
+
+  // 延迟更长时间，让滚动动画更平滑
+  setTimeout(() => {
+    scrollTop.value = 0;
+  }, 50);
 };
 
 const loadPosts = async () => {
@@ -362,6 +394,11 @@ page {
   .posts-list {
     flex: 1;
     padding: 20rpx;
+    transition: opacity 0.3s ease-in-out;
+
+    &.transitioning {
+      opacity: 0.3;
+    }
   }
 
   .loading-more {
