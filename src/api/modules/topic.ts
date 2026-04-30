@@ -108,3 +108,31 @@ export function unfollowTopic(topicId: number): Promise<ApiResponse<{ success: b
   return request.delete(`/topics/${topicId}/follow`);
 }
 
+/**
+ * 参与话题（别名：关注话题）
+ */
+export function joinTopic(topicId: number): Promise<ApiResponse<{ success: boolean }>> {
+  return followTopic(topicId);
+}
+
+/**
+ * 退出话题（别名：取消关注话题）
+ */
+export function leaveTopic(topicId: number): Promise<ApiResponse<{ success: boolean }>> {
+  return unfollowTopic(topicId);
+}
+
+/**
+ * 点赞话题动态
+ */
+export function likeTopicPost(postId: number): Promise<ApiResponse<{ success: boolean }>> {
+  return request.post(`/square/posts/${postId}/like`);
+}
+
+/**
+ * 取消点赞话题动态
+ */
+export function unlikeTopicPost(postId: number): Promise<ApiResponse<{ success: boolean }>> {
+  return request.delete(`/square/posts/${postId}/like`);
+}
+
