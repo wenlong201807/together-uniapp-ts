@@ -219,10 +219,10 @@
             v-model="formData.otherRequirements"
             class="form-textarea"
             placeholder="例如：性格开朗、有责任心..."
-            maxlength="200"
+            maxlength="180"
           />
           <view class="char-count">
-            <text>{{ formData.otherRequirements?.length || 0 }}/200</text>
+            <text>{{ formData.otherRequirements?.length || 0 }}/180</text>
           </view>
         </view>
 
@@ -232,10 +232,10 @@
             v-model="formData.idealTypeDescription"
             class="form-textarea"
             placeholder="描述一下你的理想型..."
-            maxlength="500"
+            maxlength="180"
           />
           <view class="char-count">
-            <text>{{ formData.idealTypeDescription?.length || 0 }}/500</text>
+            <text>{{ formData.idealTypeDescription?.length || 0 }}/180</text>
           </view>
         </view>
       </view>

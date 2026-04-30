@@ -55,7 +55,10 @@
 
         <view class="form-item">
           <text class="form-label">个人简介</text>
-          <textarea v-model="formData.bio" class="form-textarea" placeholder="介绍一下自己吧" maxlength="200" />
+          <textarea v-model="formData.bio" class="form-textarea" placeholder="介绍一下自己吧" maxlength="180" />
+          <view class="char-count">
+            <text>{{ (formData.bio || '').length }}/180</text>
+          </view>
         </view>
       </template>
 
@@ -275,12 +278,18 @@
 
         <view class="form-item">
           <text class="form-label">自我介绍</text>
-          <textarea v-model="formData.selfIntroduction" class="form-textarea" placeholder="介绍一下自己的性格和特点" maxlength="500" />
+          <textarea v-model="formData.selfIntroduction" class="form-textarea" placeholder="介绍一下自己的性格和特点" maxlength="180" />
+          <view class="char-count">
+            <text>{{ (formData.selfIntroduction || '').length }}/180</text>
+          </view>
         </view>
 
         <view class="form-item">
           <text class="form-label">内心独白</text>
-          <textarea v-model="formData.innerMonologue" class="form-textarea" placeholder="分享你的内心想法" maxlength="500" />
+          <textarea v-model="formData.innerMonologue" class="form-textarea" placeholder="分享你的内心想法" maxlength="180" />
+          <view class="char-count">
+            <text>{{ (formData.innerMonologue || '').length }}/180</text>
+          </view>
         </view>
       </template>
 

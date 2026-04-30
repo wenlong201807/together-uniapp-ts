@@ -7,13 +7,13 @@
           v-model="content"
           class="comment-textarea"
           :placeholder="placeholder"
-          :maxlength="500"
+          :maxlength="180"
           :focus="isFocused"
           @focus="handleFocus"
           @blur="handleBlur"
         />
         <view class="input-actions">
-          <text class="char-count">{{ content.length }}/500</text>
+          <text class="char-count">{{ content.length }}/180</text>
           <button
             class="send-btn"
             :class="{ disabled: !canSend }"

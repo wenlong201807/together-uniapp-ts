@@ -58,14 +58,14 @@
           v-model="answers[currentCategory][index]"
           class="answer-input"
           placeholder="请输入你的想法..."
-          maxlength="500"
+          maxlength="180"
           auto-height
           @blur="handleAnswerChange(currentCategory, question, index)"
         />
 
         <view class="question-footer">
           <view class="char-count">
-            <text>{{ (answers[currentCategory][index] || '').length }}/500</text>
+            <text>{{ (answers[currentCategory][index] || '').length }}/180</text>
           </view>
           <view class="privacy-toggle">
             <text class="privacy-label">公开</text>

@@ -12,10 +12,10 @@
           v-model="formData.content"
           class="content-input"
           placeholder="分享你的想法..."
-          maxlength="500"
+          maxlength="180"
           :show-confirm-bar="false"
         />
-        <text class="char-count">{{ formData.content.length }}/500</text>
+        <text class="char-count">{{ formData.content.length }}/180</text>
       </view>
 
       <view class="form-item">

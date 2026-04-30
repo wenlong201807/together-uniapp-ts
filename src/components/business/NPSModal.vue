@@ -50,12 +50,12 @@
             v-model="reason"
             class="feedback-textarea"
             :placeholder="reasonPlaceholder"
-            :maxlength="500"
+            :maxlength="180"
             auto-height
           />
           <view class="char-count">
             <text :class="{ 'text-warning': reason.length < 10 }">
-              {{ reason.length }}/500
+              {{ reason.length }}/180
               <text v-if="reason.length < 10" class="min-tip">（至少10字）</text>
             </text>
           </view>
