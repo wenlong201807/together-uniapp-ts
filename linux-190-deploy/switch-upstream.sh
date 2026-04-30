@@ -22,18 +22,16 @@ NGINX_CONTAINER="together-nginx-proxy"
 # ============================================
 
 get_current_env() {
-    if grep -q "server together-frontend-blue:8080" "${UPSTREAM_CONF}" | grep -v "^[[:space:]]*#"; then
-        if grep -q "^[[:space:]]*server together-frontend-blue:8080" "${UPSTREAM_CONF}"; then
-            echo "blue"
-            return
-        fi
+    # 检查未被注释的 blue 配置
+    if grep "server together-frontend-blue:8080" "${UPSTREAM_CONF}" | grep -v "^[[:space:]]*#" | grep -q "server"; then
+        echo "blue"
+        return
     fi
 
-    if grep -q "server together-frontend-green:8080" "${UPSTREAM_CONF}" | grep -v "^[[:space:]]*#"; then
-        if grep -q "^[[:space:]]*server together-frontend-green:8080" "${UPSTREAM_CONF}"; then
-            echo "green"
-            return
-        fi
+    # 检查未被注释的 green 配置
+    if grep "server together-frontend-green:8080" "${UPSTREAM_CONF}" | grep -v "^[[:space:]]*#" | grep -q "server"; then
+        echo "green"
+        return
     fi
 
     echo "unknown"
@@ -142,15 +140,25 @@ switch_upstream_config() {
     log_step "修改 upstream 配置..."
 
     if [ "$target_env" = "blue" ]; then
-        # 切换到 blue
+        # 切换到 blue：取消注释 blue，注释 green
         sed -i 's/^# 活跃环境：.*/# 活跃环境：blue（默认）/' "${UPSTREAM_CONF}"
-        sed -i 's/^[[:space:]]*server together-frontend-blue:8080/    server together-frontend-blue:8080/' "${UPSTREAM_CONF}"
-        sed -i 's/^[[:space:]]*server together-frontend-green:8080/    # server together-frontend-green:8080/' "${UPSTREAM_CONF}"
+        sed -i '/server together-frontend-blue:8080/s/^[[:space:]]*#[[:space:]]*/    /' "${UPSTREAM_CONF}"
+        sed -i '/server together-frontend-green:8080/s/^[[:space:]]*\(server\)/    # \1/' "${UPSTREAM_CONF}"
     else
-        # 切换到 green
+        # 切换到 green：取消注释 green，注释 blue
         sed -i 's/^# 活跃环境：.*/# 活跃环境：green（默认）/' "${UPSTREAM_CONF}"
-        sed -i 's/^[[:space:]]*server together-frontend-blue:8080/    # server together-frontend-blue:8080/' "${UPSTREAM_CONF}"
-        sed -i 's/^[[:space:]]*server together-frontend-green:8080/    server together-frontend-green:8080/' "${UPSTREAM_CONF}"
+        sed -i '/server together-frontend-blue:8080/s/^[[:space:]]*\(server\)/    # \1/' "${UPSTREAM_CONF}"
+        sed -i '/server together-frontend-green:8080/s/^[[:space:]]*#[[:space:]]*/    /' "${UPSTREAM_CONF}"
+    fi
+
+    # 验证 Nginx 配置语法
+    log_step "验证 Nginx 配置语法..."
+    if docker exec "${NGINX_CONTAINER}" nginx -t >/dev/null 2>&1; then
+        log_success "Nginx 配置语法正确"
+    else
+        log_error "Nginx 配置语法错误，查看详细信息："
+        docker exec "${NGINX_CONTAINER}" nginx -t 2>&1
+        return 1
     fi
 
     log_success "配置已更新为: ${target_env}"
@@ -219,8 +227,22 @@ rollback_config() {
 
     if [ -f "${UPSTREAM_BACKUP}" ]; then
         cp "${UPSTREAM_BACKUP}" "${UPSTREAM_CONF}"
-        docker restart "${NGINX_CONTAINER}" >/dev/null 2>&1
-        log_success "配置已回滚"
+        log_success "配置文件已恢复"
+
+        log_step "重启 Nginx..."
+        if docker restart "${NGINX_CONTAINER}" >/dev/null 2>&1; then
+            sleep 3
+
+            # 验证回滚后的配置
+            log_step "验证回滚结果..."
+            if verify_switch; then
+                log_success "配置已回滚并验证通过"
+            else
+                log_error "配置已回滚但验证失败，请手动检查"
+            fi
+        else
+            log_error "Nginx 重启失败，请手动检查"
+        fi
     else
         log_error "备份文件不存在，无法回滚"
     fi
@@ -352,7 +374,7 @@ main() {
     echo ""
 
     log_info "如需回滚:"
-    echoSTREAM_BACKUP} ${UPSTREAM_CONF}"
+    echo "  cp ${UPSTREAM_BACKUP} ${UPSTREAM_CONF}"
     echo "  docker restart ${NGINX_CONTAINER}"
     echo ""
 }
