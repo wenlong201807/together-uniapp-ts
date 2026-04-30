@@ -283,6 +283,10 @@ main() {
     fi
     log_success "${target_env} 镜像构建完成"
 
+    log_step "清理旧的 ${target_env} 容器（如果存在）"
+    ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" stop "frontend-${target_env}" 2>/dev/null || true
+    ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" rm -f "frontend-${target_env}" 2>/dev/null || true
+
     log_step "启动 ${target_env} 容器"
     if [ "$target_env" = "green" ]; then
         ${COMPOSE_CMD} -f "${DEPLOY_COMPOSE_FILE}" --profile green up -d frontend-green
