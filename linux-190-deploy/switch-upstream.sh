@@ -139,27 +139,38 @@ switch_upstream_config() {
 
     log_step "修改 upstream 配置..."
 
-    if [ "$target_env" = "blue" ]; then
-        # 切换到 blue：取消注释 blue，注释 green
-        sed -i 's/^# 活跃环境：.*/# 活跃环境：blue（默认）/' "${UPSTREAM_CONF}"
-        sed -i '/server together-frontend-blue:8080/s/^[[:space:]]*#[[:space:]]*/    /' "${UPSTREAM_CONF}"
-        sed -i '/server together-frontend-green:8080/s/^[[:space:]]*\(server\)/    # \1/' "${UPSTREAM_CONF}"
-    else
-        # 切换到 green：取消注释 green，注释 blue
-        sed -i 's/^# 活跃环境：.*/# 活跃环境：green（默认）/' "${UPSTREAM_CONF}"
-        sed -i '/server together-frontend-blue:8080/s/^[[:space:]]*\(server\)/    # \1/' "${UPSTREAM_CONF}"
-        sed -i '/server together-frontend-green:8080/s/^[[:space:]]*#[[:space:]]*/    /' "${UPSTREAM_CONF}"
-    fi
+    # 创建临时文件
+    local temp_conf="${UPSTREAM_CONF}.tmp"
 
-    # 验证 Nginx 配置语法
-    log_step "验证 Nginx 配置语法..."
-    if docker exec "${NGINX_CONTAINER}" nginx -t >/dev/null 2>&1; then
-        log_success "Nginx 配置语法正确"
-    else
-        log_error "Nginx 配置语法错误，查看详细信息："
-        docker exec "${NGINX_CONTAINER}" nginx -t 2>&1
-        return 1
-    fi
+    # 读取配置文件，重新生成 upstream 块
+    awk -v target="${target_env}" '
+    /^upstream frontend_backend/ {
+        print "upstream frontend_backend {"
+        if (target == "blue") {
+            print "    server together-frontend-blue:8080 max_fails=3 fail_timeout=30s;"
+            print "    # server together-frontend-green:8080 max_fails=3 fail_timeout=30s;"
+        } else {
+            print "    # server together-frontend-blue:8080 max_fails=3 fail_timeout=30s;"
+            print "    server together-frontend-green:8080 max_fails=3 fail_timeout=30s;"
+        }
+        # 跳过原来的 upstream 块内容
+        while (getline && !/^}/) {}
+        print "}"
+        next
+    }
+    /^# 活跃环境：/ {
+        if (target == "blue") {
+            print "# 活跃环境：blue（默认）"
+        } else {
+            print "# 活跃环境：green（默认）"
+        }
+        next
+    }
+    { print }
+    ' "${UPSTREAM_CONF}" > "${temp_conf}"
+
+    # 替换原文件
+    mv "${temp_conf}" "${UPSTREAM_CONF}"
 
     log_success "配置已更新为: ${target_env}"
 }
