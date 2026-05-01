@@ -21,7 +21,7 @@ export CERTBOT_CONTAINER="together-certbot-staging"
 # 端口配置
 export FRONTEND_PORT="80"
 export FRONTEND_HTTPS_PORT="443"
-export BACKEND_API_URL="http://app.wenlong.life:8125"
+export BACKEND_API_URL="https://app.wenlong.life"
 
 # Git 配置
 export GIT_BRANCH="test9"
