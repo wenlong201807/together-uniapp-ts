@@ -188,7 +188,18 @@ const handleClear = () => {
 
 // 取消搜索
 const handleCancel = () => {
-  uni.navigateBack();
+  // 获取页面栈
+  const pages = getCurrentPages();
+
+  // 如果页面栈中有上一页，则返回上一页
+  if (pages.length > 1) {
+    uni.navigateBack();
+  } else {
+    // 否则跳转到首页
+    uni.switchTab({
+      url: '/pages/tabbar/home'
+    });
+  }
 };
 
 // 点击历史记录
