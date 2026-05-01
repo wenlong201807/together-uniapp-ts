@@ -362,19 +362,7 @@ main() {
 
     log_info "当前版本: ${new_version}"
     log_info "活跃环境: ${target_env}"
-    echo ""
-
-    log_warning "⚠️  重要：需要切换 Nginx 流量"
-    echo "  容器已部署到 ${target_env} 环境，但 Nginx 流量尚未切换。"
-    echo "  执行以下命令完成流量切换："
-    echo ""
-    echo "    ./switch-upstream.sh"
-    echo ""
-    echo "  该脚本将："
-    echo "    1. 检查目标容器健康状态"
-    echo "    2. 备份当前 Nginx 配置"
-    echo "    3. 切换 upstream 到 ${target_env} 环境"
-    echo "    4. 重启 Nginx 并验证"
+    log_success "流量已自动切换到 ${target_env} 环境"
     echo ""
 
     log_info "查看日志："
