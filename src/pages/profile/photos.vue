@@ -39,7 +39,7 @@
         class="photo-item"
         @tap="handlePhotoTap(photo)"
       >
-        <image :src="photo.photoUrl" class="photo-image" mode="aspectFill" />
+        <image v-img-proxy="photo.photoUrl" class="photo-image" mode="aspectFill" />
         <view v-if="photo.isAvatar" class="avatar-badge">
           <text class="badge-text">头像</text>
         </view>
@@ -75,7 +75,7 @@
     <view v-if="showDetailModal" class="modal-overlay" @tap="showDetailModal = false">
       <view class="modal-content detail-modal" @tap.stop>
         <image
-          :src="selectedPhoto?.photoUrl"
+          v-img-proxy="selectedPhoto?.photoUrl"
           class="detail-image"
           mode="aspectFit"
         />
