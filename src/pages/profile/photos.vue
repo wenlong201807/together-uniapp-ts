@@ -51,6 +51,19 @@
       </view>
 
       <!-- 上传按钮 -->
+      <!-- #ifdef H5 -->
+      <view v-if="photos.length < 20" class="photo-item upload-wrapper">
+        <H5ImageUploader
+          ref="uploaderRef"
+          :max-count="1"
+          :max-size="10"
+          :show-tips="false"
+          @change="handleH5ImageChange"
+        />
+      </view>
+      <!-- #endif -->
+
+      <!-- #ifdef APP-PLUS -->
       <view
         v-if="photos.length < 20"
         class="photo-item upload-btn"
@@ -59,6 +72,7 @@
         <text class="upload-icon">+</text>
         <text class="upload-text">上传照片</text>
       </view>
+      <!-- #endif -->
     </view>
 
     <!-- 编辑按钮 -->
@@ -108,6 +122,9 @@ import { uploadFile } from '@/api/modules/file'
 import { useAuthStore } from '@/stores'
 import { userApi } from '@/api'
 import type { UserPhoto } from '@/api/profile'
+// #ifdef H5
+import H5ImageUploader from '@/components/business/H5ImageUploader.vue'
+// #endif
 
 const authStore = useAuthStore()
 
@@ -120,6 +137,11 @@ const editMode = ref(false)
 // 详情弹窗
 const showDetailModal = ref(false)
 const selectedPhoto = ref<UserPhoto | null>(null)
+
+// #ifdef H5
+// H5 上传组件引用
+const uploaderRef = ref<InstanceType<typeof H5ImageUploader>>()
+// #endif
 
 // 加载照片列表
 onMounted(async () => {
@@ -139,7 +161,58 @@ const loadPhotos = async () => {
   }
 }
 
-// 上传照片
+// #ifdef H5
+// H5 - 图片选择变化
+const handleH5ImageChange = async (files: File[]) => {
+  console.log('[Photos] H5 选择图片:', files.length)
+
+  if (files.length === 0) return
+
+  uni.showLoading({
+    title: '上传中...',
+    mask: true,
+  })
+
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+
+      // 上传到七牛云
+      const uploadRes = await uploadFile(file, { type: 'album' })
+
+      // 添加照片记录
+      await addPhoto({
+        photoUrl: uploadRes.url,
+        photoPath: uploadRes.filePath,
+        category: '生活照',
+        isPublic: true,
+      })
+    }
+
+    uni.hideLoading()
+    uni.showToast({
+      title: '上传成功',
+      icon: 'success',
+    })
+
+    // 清空上传组件
+    uploaderRef.value?.clear()
+
+    // 重新加载列表
+    await loadPhotos()
+  } catch (error: any) {
+    uni.hideLoading()
+    console.error('[Photos] 上传失败:', error)
+    uni.showToast({
+      title: error.message || '上传失败',
+      icon: 'none',
+    })
+  }
+}
+// #endif
+
+// #ifdef APP-PLUS
+// App - 上传照片
 const handleUpload = () => {
   uni.chooseImage({
     count: 20 - photos.value.length,
@@ -186,6 +259,7 @@ const handleUpload = () => {
     },
   })
 }
+// #endif
 
 // 点击照片
 const handlePhotoTap = (photo: UserPhoto) => {
@@ -492,6 +566,13 @@ const handleSetAvatar = async () => {
     border-color: #667eea;
     transform: scale(0.95);
   }
+}
+
+.upload-wrapper {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .upload-icon {

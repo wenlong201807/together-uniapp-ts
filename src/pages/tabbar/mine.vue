@@ -132,6 +132,13 @@
         <text class="menu-text">设置</text>
         <text class="menu-arrow">›</text>
       </view>
+      <!-- #ifdef H5 -->
+      <view class="menu-item" @click="goToImageUploadTest">
+        <text class="menu-icon">🧪</text>
+        <text class="menu-text">H5 图片上传测试</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <!-- #endif -->
     </view>
 
     <view class="logout-section">
@@ -242,6 +249,12 @@ const goToBlocklist = () => {
 const goToSettings = () => {
   uni.navigateTo({
     url: '/pages/user/settings',
+  });
+};
+
+const goToImageUploadTest = () => {
+  uni.navigateTo({
+    url: '/pages/test/image-upload',
   });
 };
 

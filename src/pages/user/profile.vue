@@ -12,8 +12,8 @@
         <!-- 自定义头像显示 -->
         <image
           v-else
+          v-img-proxy="selectedAvatar.displayUrl || '/static/images/default-avatar.png'"
           class="avatar"
-          :src="selectedAvatar.displayUrl || '/static/images/default-avatar.png'"
           mode="aspectFill"
         />
         <view class="avatar-edit">
@@ -112,7 +112,7 @@
           </view>
           <image
             v-if="previewUrl"
-            :src="previewUrl"
+            v-img-proxy="previewUrl"
             mode="aspectFill"
             class="preview-image"
           />
