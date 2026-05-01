@@ -353,11 +353,11 @@ main() {
     print_header "部署完成！"
 
     log_info "访问地址："
-    echo "  - 前端页面 (HTTP): http://${DOMAIN}"
-    echo "  - 版本信息: http://${DOMAIN}/version.txt"
-    echo "  - Admin 后台: http://${DOMAIN}:8108"
-    echo "  - 后端 API: ${BACKEND_API_URL}/api/v1"
-    echo "  - 后端 Swagger: ${BACKEND_API_URL}/api/docs"
+    echo "  - 前端页面 (HTTPS): https://${DOMAIN}"
+    echo "  - 版本信息: https://${DOMAIN}/version.txt"
+    echo "  - Admin 后台: https://${DOMAIN}/admin"
+    echo "  - 后端 API: https://${DOMAIN}/api/v1"
+    echo "  - 后端 Swagger: https://${DOMAIN}/api/docs"
     echo ""
 
     log_info "当前版本: ${new_version}"
