@@ -9,7 +9,7 @@
         <view class="upload-area" @click="chooseImage">
           <image
             v-if="formData.localPreviewUrl || formData.imageUrl"
-            :src="formData.localPreviewUrl || formData.imageUrl"
+            v-img-proxy="formData.localPreviewUrl || formData.imageUrl"
             mode="aspectFit"
             class="preview-image"
           />

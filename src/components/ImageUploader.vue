@@ -6,7 +6,7 @@
         :key="index"
         class="image-item"
       >
-        <image :src="item.url" mode="aspectFill" class="image" />
+        <image v-img-proxy="item.url" mode="aspectFill" class="image" />
         <view class="delete-btn" @click="handleDelete(index)">
           <text class="icon">×</text>
         </view>

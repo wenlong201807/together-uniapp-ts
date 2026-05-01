@@ -12,7 +12,7 @@
       <image
         v-else
         class="avatar"
-        :src="avatarDisplay.displayUrl || '/static/images/default-avatar.png'"
+        v-img-proxy="avatarDisplay.displayUrl || '/static/images/default-avatar.png'"
         mode="aspectFill"
       />
       <view class="user-info">

@@ -64,6 +64,7 @@ import { getGlobalNetworkDetector } from '@/utils/imageLoader/NetworkDetector'
 import { getGlobalWebPDetector } from '@/utils/imageLoader/WebPDetector'
 import { getGlobalOfflineCache } from '@/utils/imageLoader/OfflineCache'
 import { FALLBACK_IMAGE, PLACEHOLDER_IMAGE } from '@/constants/images'
+import { convertToHttpsUrl } from '@/utils/cloudflare-proxy'
 
 // 图片状态枚举
 enum ImageState {
@@ -144,10 +145,14 @@ const offlineCache = getGlobalOfflineCache()
 const loadStartTime = ref(0)
 
 /**
- * 处理图片 URL（WebP 支持检测）
+ * 处理图片 URL（WebP 支持检测 + HTTP 转 HTTPS）
  */
 const processImageUrl = (url: string): string => {
-  return webpDetector.convertImageUrl(url)
+  // 1. 先转换 HTTP 为 HTTPS（通过 Cloudflare Workers 代理）
+  const httpsUrl = convertToHttpsUrl(url)
+
+  // 2. 再进行 WebP 格式转换
+  return webpDetector.convertImageUrl(httpsUrl)
 }
 
 /**

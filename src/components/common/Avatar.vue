@@ -8,7 +8,7 @@
     <image
       v-else
       class="custom-avatar"
-      :src="avatarDisplay.displayUrl"
+      v-img-proxy="avatarDisplay.displayUrl"
       mode="aspectFill"
     />
   </view>

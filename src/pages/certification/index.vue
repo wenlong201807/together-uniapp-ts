@@ -28,7 +28,7 @@
           >
             <image
               v-if="getCertImage(type.code)"
-              :src="getCertImage(type.code)"
+              v-img-proxy="getCertImage(type.code)"
               mode="aspectFill"
               class="cert-thumbnail"
               @error="handleImageError"

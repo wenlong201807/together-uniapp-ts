@@ -81,7 +81,7 @@
                 :key="index"
                 class="upload-item"
               >
-                <image :src="img" class="upload-image" mode="aspectFill" />
+                <image v-img-proxy="img" class="upload-image" mode="aspectFill" />
                 <view class="upload-delete" @tap="removeImage(index)">
                   <text class="delete-icon">✕</text>
                 </view>
@@ -139,7 +139,7 @@
                 <image
                   v-for="(img, index) in currentDetail.images"
                   :key="index"
-                  :src="img"
+                  v-img-proxy="img"
                   class="detail-image"
                   mode="aspectFill"
                   @tap="previewImage(img, currentDetail.images)"
