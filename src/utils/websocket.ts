@@ -47,7 +47,7 @@ class WebSocketManager {
         const now = Date.now()
         const timeUntilExpiry = expiresAt - now
 
-        // 如果tok或已过期，先刷新
+        // 如果token即将过期或已过期，先刷新
         if (timeUntilExpiry < 5 * 60 * 1000) {
           logger.log('WebSocket: Token expiring soon or expired, refreshing...')
           try {

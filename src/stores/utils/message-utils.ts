@@ -12,7 +12,7 @@ export const normalizeUserId = (id: string | number): number => {
   if (typeof id === 'number') return id
   const parsed = parseInt(id, 10)
   if (isNaN(parsed)) {
-    console.error('[normalizeUserId] Invalid user ID:', id)
+    logger.error('[normalizeUserId] Invalid user ID:', id)
     return 0
   }
   return parsed
@@ -55,7 +55,7 @@ export const isWithinTimeWindow = (
 
   // 处理无效日期
   if (isNaN(t1) || isNaN(t2)) {
-    console.warn('[isWithinTimeWindow] Invalid date:', time1, time2)
+    logger.warn('[isWithinTimeWindow] Invalid date:', time1, time2)
     return false
   }
 
@@ -85,7 +85,7 @@ const isDev = import.meta.env.DEV
 
 interface Logger {
   log: (...args: any[]) => void
-  warn: (...args: any[]) void
+  warn: (...args: any[]) => void
   error: (...args: any[]) => void
   debug: (...args: any[]) => void
 }
