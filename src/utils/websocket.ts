@@ -145,19 +145,26 @@ class WebSocketManager {
     console.log('[WebSocket] 收到原始消息:', JSON.stringify(data))
     const chatStore = useChatStore()
 
-    // 处理不同格式的消息
-    if (data.type === 'message' && data.data) {
-      console.log('[WebSocket] 处理消息类型: message, 数据:', data.data)
-      chatStore.addMessage(data.data)
-    } else if (data.type === 'message_sent' && data.data) {
-      console.log('[WebSocket] 处理消息类型: message_sent, 数据:', data.data)
+    // 验证消息格式
+    const isValidMessage = (msg: any): boolean => {
+      return msg && typeof msg.id !== 'undefined' && msg.senderId && msg.receiverId && msg.content
+    }
+
+    // 职责分离：根据消息类型调用不同的处理方法
+    if (data.type === 'message' && isValidMessage(data.data)) {
+      // 接收到别人发来的消息
+      console.log('[WebSocket] 处理接收消息 (message):', data.data)
+      chatStore.addReceivedMessage(data.data)
+    } else if (data.type === 'message_sent' && isValidMessage(data.data)) {
+      // 我发送的消息确认（多端同步）
+      console.log('[WebSocket] 处理发送确认 (message_sent):', data.data)
       chatStore.confirmSentMessage(data.data)
-    } else if (data.id && data.senderId && data.content) {
-      // 直接是消息对象（兼容旧格式）
-      console.log('[WebSocket] 处理直接消息对象:', data)
-      chatStore.addMessage(data)
+    } else if (isValidMessage(data)) {
+      // 兼容旧格式：直接是消息对象（默认当作接收消息处理）
+      console.log('[WebSocket] 处理直接消息对象（兼容模式）:', data)
+      chatStore.addReceivedMessage(data)
     } else {
-      console.log('[WebSocket] 未知消息类型:', data)
+      console.warn('[WebSocket] 无效消息格式:', data)
     }
   }
 

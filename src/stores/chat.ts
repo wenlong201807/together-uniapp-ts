@@ -1,16 +1,30 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { chatApi } from '@/api'
 import type { Message, Conversation } from '@/types'
 import type { SendMessageDto } from '@/api/modules/chat'
 import { useAuthStore } from './auth'
 import { useNotificationStore } from './notification'
+import {
+  normalizeUserId,
+  normalizeMessage,
+  isWithinTimeWindow,
+  generateTempMessageId,
+  logger
+} from './utils/message-utils'
 
 export const useChatStore = defineStore('chat', () => {
   const conversations = ref<Conversation[]>([])
   const currentChat = ref<Conversation | null>(null)
   const messages = ref<Message[]>([])
   const unreadCount = ref(0)
+
+  // 会话列表 Map 缓存（性能优化：O(1) 查找）
+  const conversationsMap = computed(() => {
+    const map = new Map<number, Conversation>()
+    conversations.value.forEach(c => map.set(c.userId, c))
+    return map
+  })
 
   const fetchConversations = async () => {
     const res = await chatApi.getConversations()
@@ -49,19 +63,26 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const sendMessage = async (data: SendMessageDto) => {
-    // 生成临时消息 ID
-    const tempId = Date.now();
+    const authStore = useAuthStore()
+    const currentUserId = authStore.userInfo?.id
+
+    if (!currentUserId) {
+      throw new Error('用户未登录')
+    }
+
+    // 生成临时消息 ID（使用负数避免与真实 ID 冲突）
+    const tempId = -Date.now();
 
     // 立即添加到消息列表（乐观更新）
     const tempMessage: Message = {
       id: tempId,
-      senderId: 0, // 会被 isSelf 判断覆盖
+      senderId: currentUserId,
       receiverId: data.receiverId,
       content: data.content,
       msgType: data.msgType || 1,
       status: 'sending',
       createdAt: new Date().toISOString(),
-      isSelf: true, // 标记为自己发送的消息
+      isSelf: true,
     } as Message;
 
     messages.value.push(tempMessage);
@@ -70,13 +91,18 @@ export const useChatStore = defineStore('chat', () => {
       // 发送到后端
       const res = await chatApi.sendMessage(data);
 
-      // 替换临时消息为真实消息
-      const index = messages.value.findIndex(m => m.id === tempId);
+      // 替换临时消息为真实消息（使用 splice 确保响应式）
+      const index = messages.value.findIndex(m => m.id === tempId && m.status === 'sending');
       if (index !== -1) {
-        messages.value[index] = {
+        const realMessage = {
           ...res.data,
+          senderId: typeof res.data.senderId === 'string' ? parseInt(res.data.senderId) : res.data.senderId,
+          receiverId: typeof res.data.receiverId === 'string' ? parseInt(res.data.receiverId) : res.data.receiverId,
           isSelf: true,
         };
+        messages.value.splice(index, 1, realMessage);
+      } else {
+        console.warn('[sendMessage] 未找到临时消息:', tempId);
       }
 
       return res.data;
@@ -112,15 +138,15 @@ export const useChatStore = defineStore('chat', () => {
     updateMessageBadge()
   }
 
-  const addMessage = (message: Message) => {
+  const addReceivedMessage = (message: Message) => {
     const authStore = useAuthStore()
+    const currentUserId = authStore.userInfo?.id
 
     // 后端 senderId 可能是字符串类型（bigint），需要转换为数字比较
     const msgSenderId = typeof message.senderId === 'string' ? parseInt(message.senderId) : message.senderId
     const msgReceiverId = typeof message.receiverId === 'string' ? parseInt(message.receiverId) : message.receiverId
-    const currentUserId = authStore.userInfo?.id
 
-    console.log('[WebSocket] 收到消息:', {
+    console.log('[WebSocket] 收到新消息:', {
       messageId: message.id,
       senderId: msgSenderId,
       receiverId: msgReceiverId,
@@ -129,12 +155,6 @@ export const useChatStore = defineStore('chat', () => {
       content: message.content
     })
 
-    // 判断消息是否属于当前聊天
-    const isCurrentChat = currentChat.value && (
-      (msgSenderId === currentChat.value.userId && msgReceiverId === currentUserId) ||
-      (msgSenderId === currentUserId && msgReceiverId === currentChat.value.userId)
-    )
-
     // 消息去重：检查是否已存在
     const exists = messages.value.some(m => m.id === message.id)
     if (exists) {
@@ -142,43 +162,62 @@ export const useChatStore = defineStore('chat', () => {
       return
     }
 
-    // 为接收到的消息添加 isSelf 标识
+    // 判断消息是否属于当前聊天（发送者是当前聊天对象）
+    const isCurrentChat = currentChat.value && msgSenderId === currentChat.value.userId
+
+    // 构造消息对象（接收到的消息，isSelf 始终为 false）
     const messageWithFlag = {
       ...message,
       senderId: msgSenderId,
       receiverId: msgReceiverId,
-      isSelf: msgSenderId === currentUserId
+      isSelf: false
     }
 
-    // 只有当前聊天的消息才添加到消息列表
+    // 如果是当前聊天的消息，添加到消息列表
     if (isCurrentChat) {
       console.log('[WebSocket] 添加消息到当前聊天')
       messages.value.push(messageWithFlag)
     } else {
       console.log('[WebSocket] 消息不属于当前聊天，触发通知')
-
-      // 如果是对方发来的消息（非自己发的），触发气泡通知
-      if (msgSenderId !== currentUserId) {
-        const notificationStore = useNotificationStore()
-        // 添加到通知队列
-        notificationStore.addNotification(messageWithFlag)
-      }
+      const notificationStore = useNotificationStore()
+      notificationStore.addNotification(messageWithFlag)
     }
 
-    // 更新会话列表
-    const otherUserId = msgSenderId === currentUserId ? msgReceiverId : msgSenderId
-    const conversation = conversations.value.find((c) => c.userId === otherUserId)
+    // 更新或创建会话
+    let conversation = conversations.value.find((c) => c.userId === msgSenderId)
     if (conversation) {
       conversation.lastMessage = message.content
       conversation.lastMessageTime = message.createdAt
+
       // 如果不是当前聊天，增加未读数
       if (!isCurrentChat) {
-        conversation.unreadCount++
+        conversation.unreadCount = (conversation.unreadCount || 0) + 1
+        unreadCount.value++
+        updateMessageBadge()
+      }
+    } else {
+      // 新会话：创建会话项
+      conversation = {
+        userId: msgSenderId,
+        nickname: message.sender?.nickname || '未知用户',
+        avatar: message.sender?.avatarUrl || '',
+        avatarUrl: message.sender?.avatarUrl || '',
+        lastMessage: message.content,
+        lastMessageTime: message.createdAt,
+        lastTime: message.createdAt,
+        unreadCount: isCurrentChat ? 0 : 1,
+      }
+      conversations.value.unshift(conversation) // 添加到列表顶部
+
+      if (!isCurrentChat) {
         unreadCount.value++
         updateMessageBadge()
       }
     }
   }
+
+  // 兼容旧代码：addMessage 重定向到 addReceivedMessage
+  const addMessage = addReceivedMessage
 
 
   const confirmSentMessage = (message: Message) => {
@@ -189,6 +228,15 @@ export const useChatStore = defineStore('chat', () => {
     const msgSenderId = typeof message.senderId === 'string' ? parseInt(message.senderId) : message.senderId
     const msgReceiverId = typeof message.receiverId === 'string' ? parseInt(message.receiverId) : message.receiverId
 
+    console.log('[WebSocket] 收到发送确认:', {
+      messageId: message.id,
+      senderId: msgSenderId,
+      receiverId: msgReceiverId,
+      currentUserId,
+      currentChatUserId: currentChat.value?.userId,
+      content: message.content
+    })
+
     // 消息去重：检查是否已存在相同ID的消息
     const exists = messages.value.some(m => m.id === message.id)
     if (exists) {
@@ -196,13 +244,19 @@ export const useChatStore = defineStore('chat', () => {
       return
     }
 
-    // 查找是否有正在发送中的同内容临时消息，替换它
+    // 判断是否是当前聊天（接收者是当前聊天对象）
+    const isCurrentChat = currentChat.value && msgReceiverId === currentChat.value.userId
+
+    // 查找临时消息（按内容+接收者+时间窗口匹配，更精确）
+    const messageTime = new Date(message.createdAt).getTime()
     const tempIndex = messages.value.findIndex(m =>
       m.status === 'sending' &&
       m.receiverId === msgReceiverId &&
-      m.content === message.content
+      m.content === message.content &&
+      Math.abs(new Date(m.createdAt).getTime() - messageTime) < 5000 // 5秒时间窗口
     )
 
+    // 构造消息对象（我发送的消息，isSelf 始终为 true）
     const messageWithFlag = {
       ...message,
       senderId: msgSenderId,
@@ -211,20 +265,28 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     if (tempIndex !== -1) {
-      console.log('[WebSocket] 替换临时消息为确认消息:', message.id)
-      messages.value[tempIndex] = messageWithFlag
-    } else {
-      // 没有找到临时消息，直接添加（多端同步场景）
-      const isCurrentChat = currentChat.value &&
-        ((msgSenderId === currentUserId && msgReceiverId === currentChat.value.userId) ||
-         (msgSenderId === currentChat.value.userId && msgReceiverId === currentUserId))
+      // 替换临时消息为真实消息（使用 splice 确保响应式）
+      console.log('[WebSocket] 替换临时消息:', messages.value[tempIndex].id, '->', message.id)
+      messages.value.splice(tempIndex, 1, messageWithFlag)
+    } else if (isCurrentChat) {
+      // 多端同步场景：检查是否有相同内容的消息（防止重复）
+      const duplicateIndex = messages.value.findIndex(m =>
+        m.receiverId === msgReceiverId &&
+        m.content === message.content &&
+        Math.abs(new Date(m.createdAt).getTime() - messageTime) < 2000 // 2秒时间窗口
+      )
 
-      if (isCurrentChat) {
+      if (duplicateIndex === -1) {
+        console.log('[WebSocket] 多端同步：添加已发送消息到当前聊天')
         messages.value.push(messageWithFlag)
+      } else {
+        console.log('[WebSocket] 多端同步：消息已存在（按内容去重）')
       }
+    } else {
+      console.log('[WebSocket] 发送确认：不是当前聊天，仅更新会话列表')
     }
 
-    // 更新会话列表
+    // 更新会话列表（我发送的消息，不增加未读数）
     const conversation = conversations.value.find((c) => c.userId === msgReceiverId)
     if (conversation) {
       conversation.lastMessage = message.content
@@ -250,6 +312,7 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     markAsRead,
     addMessage,
+    addReceivedMessage,
     confirmSentMessage,
     setCurrentChat,
     clearMessages,
