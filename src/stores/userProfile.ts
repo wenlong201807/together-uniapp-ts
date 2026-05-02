@@ -21,6 +21,94 @@ export interface FriendshipProgress {
 }
 
 /**
+ * 基础信息（Level 0 - 所有人可见）
+ */
+export interface BasicInfo {
+  ageRange: string
+  city: string
+  heightRange: string
+  educationLevel: string
+  occupationType: string
+  tags: string[]
+  bio: string
+}
+
+/**
+ * 详细信息（Level 1 - 关注后可见）
+ */
+export interface DetailedInfo {
+  age: number | null
+  height: number | null
+  weight?: number | null
+  occupation: string | null
+  tags: string[]
+  bio: string | null
+  zodiacSign?: string | null
+  chineseZodiac?: string | null
+  bodyType?: string | null
+  lifestyle: {
+    smokingStatus?: string | null
+    drinkingStatus?: string | null
+    sleepSchedule?: string | null
+    exerciseFrequency?: string | null
+    dietPreference?: string | null
+    hasPets?: boolean | null
+    petType?: string | null
+    cookingSkill?: string | null
+  }
+}
+
+/**
+ * 好友可见信息（Level 2 - 好友可见）
+ */
+export interface FriendVisibleInfo {
+  education: {
+    school?: string | null
+    major?: string | null
+    education?: string | null
+  }
+  career: {
+    industry?: string | null
+    company?: string | null
+    workYears?: number | null
+    incomeRange?: string | null
+  }
+  family: {
+    hometown?: string | null
+    nativePlace?: string | null
+    familyMembers?: number | null
+    familyRanking?: string | null
+    isOnlyChild?: boolean | null
+    familyEconomic?: string | null
+    parentsOccupation?: string | null
+  }
+  marital: {
+    maritalStatus?: string | null
+    hasChildren?: boolean | null
+    childrenCount?: number | null
+    marriagePlan?: string | null
+  }
+  assets: {
+    housingStatus?: string | null
+    carStatus?: string | null
+  }
+  personality: {
+    personalityTags?: string[] | null
+    selfIntroduction?: string | null
+    innerMonologue?: string | null
+  }
+}
+
+/**
+ * 联系方式（Level 3 - 好友且授权）
+ */
+export interface ContactInfo {
+  wechat?: string | null
+  qq?: string | null
+  otherContact?: string | null
+}
+
+/**
  * 用户详情隐私过滤后的响应类型
  */
 export interface UserProfileDetail {
@@ -46,7 +134,13 @@ export interface UserProfileDetail {
   tags?: string[]
   tagsTruncated?: boolean
 
-  // 可见性标记
+  // 分级信息（新增）
+  basicInfo?: BasicInfo
+  detailedInfo?: DetailedInfo
+  friendVisibleInfo?: FriendVisibleInfo
+  contactInfo?: ContactInfo
+
+  // 可见性标记（向后兼容）
   photosVisible?: boolean
   locationDetail?: boolean
   locationHint?: string

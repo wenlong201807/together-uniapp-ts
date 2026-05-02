@@ -159,6 +159,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { getTopicDetail, getTopicPosts, joinTopic, leaveTopic, likeTopicPost, unlikeTopicPost } from '@/api/modules/topic';
 import type { TopicDetail, TopicPost } from '@/api/modules/topic';
 import TopicDetailSkeleton from './components/TopicDetailSkeleton.vue';
@@ -177,6 +178,7 @@ const page = ref(1);
 const pageSize = 20;
 const postsScrollTop = ref(0); // 动态列表滚动位置
 const isTransitioning = ref(false);
+const isInitialized = ref(false); // 标记是否已初始化
 
 // 计算属性：统一字段访问
 const displayTitle = computed(() => topicDetail.value?.name || '');
@@ -206,6 +208,33 @@ onMounted(async () => {
 
   await loadTopicDetail();
   await loadPosts();
+  isInitialized.value = true;
+});
+
+// 页面显示时刷新数据（从发布页返回时触发）
+onShow(() => {
+  // 只有在已初始化后才刷新（避免首次加载时重复请求）
+  if (isInitialized.value) {
+    console.log('[Topic] Page show - refreshing data');
+    // 重置分页并刷新数据
+    page.value = 1;
+    posts.value = [];
+    hasMore.value = true;
+
+    // 取消正在进行的请求
+    if (loadPostsAbortController) {
+      loadPostsAbortController.abort();
+      loadPostsAbortController = null;
+    }
+
+    // 刷新话题详情和动态列表
+    Promise.all([
+      loadTopicDetail(),
+      loadPosts()
+    ]).catch(error => {
+      console.error('[Topic] Refresh on show error:', error);
+    });
+  }
 });
 
 // Tab 切换处理
@@ -225,21 +254,13 @@ const handleTabChange = (tab: 'latest' | 'hot') => {
     loadPostsAbortController = null;
   }
 
-  // 重置动态列表滚动位置到顶部
-  // 先设置一个不同的值，确保触发滚动
-  postsScrollTop.value = postsScrollTop.value === 0 ? 1 : 0;
-
-  nextTick(() => {
-    postsScrollTop.value = 0;
-  });
-
   // 加载新数据
+  loadPosts();
+
+  // 延迟结束过渡动画
   setTimeout(() => {
-    loadPosts();
-    setTimeout(() => {
-      isTransitioning.value = false;
-    }, 100);
-  }, 100);
+    isTransitioning.value = false;
+  }, 300);
 };
 
 // 加载话题详情
@@ -248,6 +269,11 @@ const loadTopicDetail = async () => {
     loading.value = true;
     const res = await getTopicDetail(topicId.value);
     topicDetail.value = res.data;
+
+    // 处理封面图片：将单个coverImage转换为coverImages数组
+    if (topicDetail.value && topicDetail.value.coverImage && !topicDetail.value.coverImages) {
+      topicDetail.value.coverImages = [topicDetail.value.coverImage];
+    }
   } catch (error: any) {
     console.error('Load topic detail error:', error);
 

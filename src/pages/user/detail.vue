@@ -160,6 +160,225 @@
         </button>
       </view>
 
+      <!-- Level 0: 基础信息卡片（所有人可见） -->
+      <view v-if="profileStore.profile.basicInfo" class="info-card">
+        <view class="card-title">基础信息</view>
+        <view class="card-content">
+          <view class="info-row">
+            <text class="label">年龄：</text>
+            <text>{{ profileStore.profile.basicInfo.ageRange }}</text>
+          </view>
+          <view class="info-row">
+            <text class="label">城市：</text>
+            <text>{{ profileStore.profile.basicInfo.city }}</text>
+          </view>
+          <view class="info-row">
+            <text class="label">身高：</text>
+            <text>{{ profileStore.profile.basicInfo.heightRange }}</text>
+          </view>
+          <view class="info-row">
+            <text class="label">学历：</text>
+            <text>{{ profileStore.profile.basicInfo.educationLevel }}</text>
+          </view>
+          <view class="info-row">
+            <text class="label">职业：</text>
+            <text>{{ profileStore.profile.basicInfo.occupationType }}</text>
+          </view>
+          <view v-if="profileStore.profile.basicInfo.tags && profileStore.profile.basicInfo.tags.length > 0" class="info-row">
+            <text class="label">标签：</text>
+            <view class="tags">
+              <text v-for="tag in profileStore.profile.basicInfo.tags" :key="tag" class="tag">
+                {{ tag }}
+              </text>
+            </view>
+          </view>
+          <view v-if="profileStore.profile.basicInfo.bio" class="info-row">
+            <text class="label">简介：</text>
+            <text class="bio-text">{{ profileStore.profile.basicInfo.bio }}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- Level 1: 详细信息（关注后可见） -->
+      <view v-if="profileStore.profile.detailedInfo" class="info-card">
+        <view class="card-title">详细资料</view>
+        <view class="card-content">
+          <view v-if="profileStore.profile.detailedInfo.age" class="info-row">
+            <text class="label">年龄：</text>
+            <text>{{ profileStore.profile.detailedInfo.age }}岁</text>
+          </view>
+          <view v-if="profileStore.profile.detailedInfo.height" class="info-row">
+            <text class="label">身高：</text>
+            <text>{{ profileStore.profile.detailedInfo.height }}cm</text>
+          </view>
+          <view v-if="profileStore.profile.detailedInfo.weight" class="info-row">
+            <text class="label">体重：</text>
+            <text>{{ profileStore.profile.detailedInfo.weight }}kg</text>
+          </view>
+          <view v-if="profileStore.profile.detailedInfo.occupation" class="info-row">
+            <text class="label">职业：</text>
+            <text>{{ profileStore.profile.detailedInfo.occupation }}</text>
+          </view>
+
+          <!-- 生活方式 -->
+          <view v-if="profileStore.profile.detailedInfo.lifestyle" class="section-subtitle">生活方式</view>
+          <view v-if="profileStore.profile.detailedInfo.lifestyle?.smokingStatus" class="info-row">
+            <text class="label">吸烟：</text>
+            <text>{{ profileStore.profile.detailedInfo.lifestyle.smokingStatus }}</text>
+          </view>
+          <view v-if="profileStore.profile.detailedInfo.lifestyle?.drinkingStatus" class="info-row">
+            <text class="label">饮酒：</text>
+            <text>{{ profileStore.profile.detailedInfo.lifestyle.drinkingStatus }}</text>
+          </view>
+          <view v-if="profileStore.profile.detailedInfo.lifestyle?.exerciseFrequency" class="info-row">
+            <text class="label">运动：</text>
+            <text>{{ profileStore.profile.detailedInfo.lifestyle.exerciseFrequency }}</text>
+          </view>
+          <view v-if="profileStore.profile.detailedInfo.lifestyle?.dietPreference" class="info-row">
+            <text class="label">饮食：</text>
+            <text>{{ profileStore.profile.detailedInfo.lifestyle.dietPreference }}</text>
+          </view>
+          <view v-if="profileStore.profile.detailedInfo.lifestyle?.hasPets !== null" class="info-row">
+            <text class="label">宠物：</text>
+            <text>{{ profileStore.profile.detailedInfo.lifestyle.hasPets ? '有宠物' : '无宠物' }}</text>
+            <text v-if="profileStore.profile.detailedInfo.lifestyle.petType"> ({{ profileStore.profile.detailedInfo.lifestyle.petType }})</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 解锁提示（关注后可见详细信息） -->
+      <view v-else-if="!profileStore.isFollowing && !profileStore.isFriend && !profileStore.isSelf" class="locked-card">
+        <text class="lock-icon">🔒</text>
+        <text class="lock-text">关注后可查看更多详细信息</text>
+        <button class="unlock-btn" @click="handleFollow">关注 TA</button>
+      </view>
+
+      <!-- Level 2: 好友可见信息 -->
+      <template v-if="profileStore.profile.friendVisibleInfo">
+        <!-- 教育背景 -->
+        <view v-if="profileStore.profile.friendVisibleInfo.education" class="info-card">
+          <view class="card-title">教育背景</view>
+          <view class="card-content">
+            <view v-if="profileStore.profile.friendVisibleInfo.education.school" class="info-row">
+              <text class="label">毕业院校：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.education.school }}</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.education.major" class="info-row">
+              <text class="label">专业：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.education.major }}</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.education.education" class="info-row">
+              <text class="label">学历：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.education.education }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 职业信息 -->
+        <view v-if="profileStore.profile.friendVisibleInfo.career" class="info-card">
+          <view class="card-title">职业信息</view>
+          <view class="card-content">
+            <view v-if="profileStore.profile.friendVisibleInfo.career.industry" class="info-row">
+              <text class="label">行业：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.career.industry }}</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.career.company" class="info-row">
+              <text class="label">公司：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.career.company }}</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.career.workYears" class="info-row">
+              <text class="label">工作年限：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.career.workYears }}年</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.career.incomeRange" class="info-row">
+              <text class="label">收入：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.career.incomeRange }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 家庭背景 -->
+        <view v-if="profileStore.profile.friendVisibleInfo.family" class="info-card">
+          <view class="card-title">家庭背景</view>
+          <view class="card-content">
+            <view v-if="profileStore.profile.friendVisibleInfo.family.hometown" class="info-row">
+              <text class="label">家乡：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.family.hometown }}</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.family.familyMembers" class="info-row">
+              <text class="label">家庭成员：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.family.familyMembers }}人</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.family.isOnlyChild !== null" class="info-row">
+              <text class="label">是否独生子女：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.family.isOnlyChild ? '是' : '否' }}</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.family.familyEconomic" class="info-row">
+              <text class="label">家庭经济：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.family.familyEconomic }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 婚恋状况 -->
+        <view v-if="profileStore.profile.friendVisibleInfo.marital" class="info-card">
+          <view class="card-title">婚恋状况</view>
+          <view class="card-content">
+            <view v-if="profileStore.profile.friendVisibleInfo.marital.maritalStatus" class="info-row">
+              <text class="label">婚姻状况：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.marital.maritalStatus }}</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.marital.hasChildren !== null" class="info-row">
+              <text class="label">是否有孩子：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.marital.hasChildren ? '是' : '否' }}</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.marital.marriagePlan" class="info-row">
+              <text class="label">结婚计划：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.marital.marriagePlan }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 资产状况 -->
+        <view v-if="profileStore.profile.friendVisibleInfo.assets" class="info-card">
+          <view class="card-title">资产状况</view>
+          <view class="card-content">
+            <view v-if="profileStore.profile.friendVisibleInfo.assets.housingStatus" class="info-row">
+              <text class="label">购房情况：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.assets.housingStatus }}</text>
+            </view>
+            <view v-if="profileStore.profile.friendVisibleInfo.assets.carStatus" class="info-row">
+              <text class="label">购车情况：</text>
+              <text>{{ profileStore.profile.friendVisibleInfo.assets.carStatus }}</text>
+            </view>
+          </view>
+        </view>
+      </template>
+
+      <!-- 解锁提示（成为好友后可见） -->
+      <view v-else-if="profileStore.isFollowing && !profileStore.isFriend && !profileStore.isSelf" class="locked-card">
+        <text class="lock-icon">🔒</text>
+        <text class="lock-text">成为好友后可查看更多信息</text>
+        <text v-if="remainingChats > 0" class="lock-hint">还需互发 {{ remainingChats }} 条消息</text>
+      </view>
+
+      <!-- Level 3: 联系方式 -->
+      <view v-if="profileStore.profile.contactInfo" class="info-card">
+        <view class="card-title">联系方式</view>
+        <view class="card-content">
+          <view v-if="profileStore.profile.contactInfo.wechat" class="info-row">
+            <text class="label">微信：</text>
+            <text class="contact-value">{{ profileStore.profile.contactInfo.wechat }}</text>
+            <button class="copy-btn" @click="copyWechat">复制</button>
+          </view>
+          <view v-if="profileStore.profile.contactInfo.qq" class="info-row">
+            <text class="label">QQ：</text>
+            <text class="contact-value">{{ profileStore.profile.contactInfo.qq }}</text>
+            <button class="copy-btn" @click="copyQQ">复制</button>
+          </view>
+        </view>
+      </view>
+
       <!-- 隐私提示区域 -->
       <view v-if="visiblePrivacyHints.length > 0" class="privacy-hints-card">
         <text class="hints-title">可见性说明</text>
@@ -251,6 +470,13 @@ const matchLevelText = computed(() => {
     case 'challenging': return '需要磨合'
     default: return ''
   }
+})
+
+// 剩余需要聊天的消息数
+const remainingChats = computed(() => {
+  const progress = profileStore.profile?.friendshipProgress
+  if (!progress) return 0
+  return Math.max(0, progress.requiredChatCount - progress.chatCount)
 })
 
 // 可显示的隐私提示
@@ -459,6 +685,38 @@ const handleLike = async (post: any) => {
 
 const handleComment = (post: any) => {
   uni.navigateTo({ url: `/pages/square/post?id=${post.id}` })
+}
+
+// 复制微信号
+const copyWechat = () => {
+  const wechat = profileStore.profile?.contactInfo?.wechat
+  if (!wechat) return
+
+  uni.setClipboardData({
+    data: wechat,
+    success: () => {
+      uni.showToast({ title: '已复制微信号', icon: 'success' })
+    },
+    fail: () => {
+      uni.showToast({ title: '复制失败', icon: 'none' })
+    }
+  })
+}
+
+// 复制QQ号
+const copyQQ = () => {
+  const qq = profileStore.profile?.contactInfo?.qq
+  if (!qq) return
+
+  uni.setClipboardData({
+    data: qq,
+    success: () => {
+      uni.showToast({ title: '已复制QQ号', icon: 'success' })
+    },
+    fail: () => {
+      uni.showToast({ title: '复制失败', icon: 'none' })
+    }
+  })
 }
 
 const showMoreActions = () => {
@@ -966,6 +1224,139 @@ const goToFollowersList = () => {
         .hint-text {
           font-size: $font-size-sm;
           color: $text-tertiary;
+        }
+      }
+    }
+
+    // 信息卡片（通用样式）
+    .info-card {
+      background: $bg-primary;
+      margin: 0 $margin-md $margin-md;
+      padding: $padding-lg;
+      border-radius: $radius-lg;
+
+      .card-title {
+        font-size: $font-size-lg;
+        font-weight: $font-weight-bold;
+        color: $text-primary;
+        margin-bottom: $margin-md;
+      }
+
+      .card-content {
+        .info-row {
+          display: flex;
+          align-items: flex-start;
+          margin-bottom: $margin-sm;
+          min-height: 40rpx;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          .label {
+            min-width: 140rpx;
+            color: $text-secondary;
+            font-size: $font-size-sm;
+            flex-shrink: 0;
+          }
+
+          .bio-text,
+          .contact-value {
+            flex: 1;
+            color: $text-primary;
+            font-size: $font-size-sm;
+            line-height: 1.6;
+          }
+
+          .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: $margin-xs;
+            flex: 1;
+
+            .tag {
+              padding: 4rpx 16rpx;
+              background: $bg-tertiary;
+              border-radius: $radius-sm;
+              font-size: $font-size-xs;
+              color: $text-secondary;
+            }
+          }
+
+          .copy-btn {
+            margin-left: auto;
+            padding: 4rpx 24rpx;
+            background: $primary-color;
+            color: $bg-primary;
+            font-size: $font-size-xs;
+            border-radius: $radius-sm;
+            border: none;
+            flex-shrink: 0;
+
+            &::after {
+              border: none;
+            }
+
+            &:active {
+              opacity: 0.8;
+            }
+          }
+        }
+
+        .section-subtitle {
+          font-size: $font-size-base;
+          font-weight: $font-weight-medium;
+          color: $text-primary;
+          margin: $margin-md 0 $margin-sm;
+          padding-top: $margin-sm;
+          border-top: 1px solid $bg-tertiary;
+        }
+      }
+    }
+
+    // 解锁提示卡片
+    .locked-card {
+      background: $bg-primary;
+      margin: 0 $margin-md $margin-md;
+      padding: $padding-xl;
+      border-radius: $radius-lg;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: $margin-sm;
+
+      .lock-icon {
+        font-size: 96rpx;
+        margin-bottom: $margin-sm;
+      }
+
+      .lock-text {
+        font-size: $font-size-base;
+        color: $text-secondary;
+        font-weight: $font-weight-medium;
+      }
+
+      .lock-hint {
+        font-size: $font-size-sm;
+        color: $text-tertiary;
+      }
+
+      .unlock-btn {
+        margin-top: $margin-md;
+        padding: 16rpx 48rpx;
+        background: $primary-color;
+        color: $bg-primary;
+        border-radius: $radius-full;
+        border: none;
+        font-size: $font-size-base;
+        font-weight: $font-weight-medium;
+
+        &::after {
+          border: none;
+        }
+
+        &:active {
+          opacity: 0.8;
         }
       }
     }

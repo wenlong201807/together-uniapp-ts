@@ -325,44 +325,20 @@ const loadBanners = async () => {
     const memoryCache = CacheManager.getMemoryCache();
     const cachedBanners = memoryCache.get<Banner[]>(CACHE_KEYS.BANNERS);
 
-    if (cachedBanners) {
+    if (cachedBanners && cachedBanners.length > 0) {
       banners.value = cachedBanners;
       return;
     }
 
     // 缓存未命中，调用API
     const response = await getBanners();
-    if (response.code === 0 && response.data) {
+    if (response.code === 0 && response.data && response.data.length > 0) {
       banners.value = response.data;
       // 缓存数据
       memoryCache.set(CACHE_KEYS.BANNERS, response.data, CACHE_EXPIRE_TIME.BANNERS);
     }
   } catch (error) {
     console.error('Load banners error:', error);
-    // 使用默认数据
-    banners.value = [
-      {
-        id: 1,
-        title: '欢迎来到社交平台',
-        subtitle: '发现更多有趣的人和事',
-        imageUrl: 'https://picsum.photos/800/400?random=1',
-        linkType: 'activity',
-      },
-      {
-        id: 2,
-        title: '热门话题',
-        subtitle: '参与讨论，分享你的观点',
-        imageUrl: 'https://picsum.photos/800/400?random=2',
-        linkType: 'topic',
-      },
-      {
-        id: 3,
-        title: '附近的人',
-        subtitle: '发现身边的朋友',
-        imageUrl: 'https://picsum.photos/800/400?random=3',
-        linkType: 'user',
-      },
-    ];
   }
 };
 
