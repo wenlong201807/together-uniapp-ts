@@ -108,6 +108,11 @@
             @like="handleUserLike"
             @skip="handleUserSkip"
           />
+
+          <!-- 底部提示 -->
+          <view v-else-if="item.type === 'footer'" class="no-more">
+            <text class="no-more-text">没有更多了</text>
+          </view>
             </view>
           </template>
         </VirtualList>
@@ -115,11 +120,6 @@
         <!-- 加载状态 -->
         <view v-if="loading && recommendationItems.length > 0" class="loading-state">
           <text class="loading-text">加载中...</text>
-        </view>
-
-        <!-- 无更多数据 -->
-        <view v-if="!hasMore && recommendationItems.length > 0" class="no-more">
-          <text class="no-more-text">没有更多内容了</text>
         </view>
       </view>
     </scroll-view>

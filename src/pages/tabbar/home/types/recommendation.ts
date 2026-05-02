@@ -78,7 +78,8 @@ export type RecommendationData =
   | { type: 'hot'; user: UserData; hotScore: HotContentData['hotScore'] }
   | { type: 'nearby'; user: UserData; distance: string }
   | { type: 'topic'; topic: TopicData }
-  | { type: 'new'; user: UserData; joinDays: number };
+  | { type: 'new'; user: UserData; joinDays: number }
+  | { type: 'footer' };
 
 /**
  * 推荐项类型
@@ -115,4 +116,8 @@ export function isTopicItem(item: RecommendationItem): item is RecommendationIte
 
 export function isNewUserItem(item: RecommendationItem): item is RecommendationItem<'new'> {
   return item.type === 'new';
+}
+
+export function isFooterItem(item: RecommendationItem): item is RecommendationItem<'footer'> {
+  return item.type === 'footer';
 }

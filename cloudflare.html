@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workers 连通性测试</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        .test {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .loading {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Cloudflare Workers 连通性测试</h1>
+
+    <div id="test1" class="test loading">
+        <h3>测试 1: 直接访问 Workers 域名</h3>
+        <p>测试中...</p>
+    </div>
+
+    <div id="test2" class="test loading">
+        <h3>测试 2: 代理图片请求</h3>
+        <p>测试中...</p>
+    </div>
+
+    <div id="test3" class="test loading">
+        <h3>测试 3: 加载图片</h3>
+        <p>测试中...</p>
+        <img id="testImg" style="max-width: 100%; display: none;">
+    </div>
+
+    <script>
+        const workerUrl = 'https://image-proxy.zhu1573511441.workers.dev';
+        const testImageUrl = 'http://td42nzl7d.hn-bkt.clouddn.com/album/1_1777356682953_z0wMjVdt.556aaff6-d17d-41c4-bc64-993689a75968';
+
+        // 测试 1: 直接访问
+        fetch(workerUrl)
+            .then(res => {
+                document.getElementById('test1').className = 'test success';
+                console.log('Test 1:', res);
+                document.getElementById('test1').innerHTML = `
+             <h3>✅ 测试 1: 直接访问 Workers 域名</h3>
+             <p>状态: ${res.status} ${res.statusText}</p>
+             <pre>可以访问 Workers 域名</pre>
+           `;
+            })
+            .catch(err => {
+                document.getElementById('test1').className = 'test error';
+                document.getElementById('test1').innerHTML = `
+             <h3>❌ 测试 1: 直接访问 Workers 域名</h3>
+             <p>错误: ${err.message}</p>
+             <pre>${err.stack || err}</pre>
+           `;
+            });
+
+        // 测试 2: 代理请求
+        const proxyUrl = `${workerUrl}?url=${encodeURIComponent(testImageUrl)}`;
+        fetch(proxyUrl)
+            .then(res => {
+                document.getElementById('test2').className = 'test success';
+                console.log('Test 2:', res);
+                document.getElementById('test2').innerHTML = `
+             <h3>✅ 测试 2: 代理图片请求</h3>
+             <p>状态: ${res.status} ${res.statusText}</p>
+             <p>Content-Type: ${res.headers.get('Content-Type')}</p>
+             <pre>代理 URL: ${proxyUrl}</pre>
+           `;
+            })
+            .catch(err => {
+                document.getElementById('test2').className = 'test error';
+                document.getElementById('test2').innerHTML = `
+             <h3>❌ 测试 2: 代理图片请求</h3>
+             <p>错误: ${err.message}</p>
+             <pre>${err.stack || err}</pre>
+           `;
+            });
+
+        // 测试 3: 加载图片
+        const img = document.getElementById('testImg');
+        img.onload = () => {
+            document.getElementById('test3').className = 'test success';
+            console.log('Test 3:', img.naturalWidth, img.naturalHeight);
+            document.getElementById('test3').innerHTML = `
+           <h3>✅ 测试 3: 加载图片</h3>
+           <p>图片加载成功！尺寸: ${img.naturalWidth} x ${img.naturalHeight}</p>
+           <img src="${proxyUrl}" style="max-width: 100%; border: 1px solid #ddd;">
+         `;
+        };
+        img.onerror = (err) => {
+            document.getElementById('test3').className = 'test error';
+            document.getElementById('test3').innerHTML = `
+           <h3>❌ 测试 3: 加载图片</h3>
+           <p>图片加载失败</p>
+           <pre>URL: ${proxyUrl}</pre>
+         `;
+        };
+        img.src = proxyUrl;
+    </script>
+</body>
+
+</html>

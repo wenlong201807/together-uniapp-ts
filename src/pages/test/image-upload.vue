@@ -1,6 +1,6 @@
 <template>
   <view class="test-page">
-    <view class="header">
+    <view v-if="!isWechat" class="header">
       <text class="title">H5 图片上传测试</text>
     </view>
 
@@ -173,6 +173,7 @@ const logs = ref<string[]>([])
 const selectedImages = ref<ImageInfo[]>([])
 const qiniuUrls = ref<string[]>([])
 const uploading = ref(false)
+const isWechat = ref(false)  // 是否微信浏览器
 const browserInfo = ref<BrowserInfo>({
   browser: '未知',
   isMobile: false,
@@ -229,6 +230,9 @@ onMounted(() => {
   // 检测浏览器
   browserInfo.value = detectBrowser()
 
+  // 检测是否微信浏览器
+  isWechat.value = /MicroMessenger/i.test(navigator.userAgent)
+
   // 检测平台
   // #ifdef H5
   platform.value = 'H5'
@@ -236,9 +240,13 @@ onMounted(() => {
   addLog('✅ H5 环境检测成功')
   addLog(`✅ 浏览器: ${browserInfo.value.browser}`)
   addLog(`✅ 设备: ${deviceType.value}`)
+  if (isWechat.value) {
+    addLog('✅ 微信浏览器环境')
+  }
   addLog('✅ H5ImageUploader 组件已导入')
   addLog('✅ v-img-proxy 指令已注册')
   console.log('[测试页面] UserAgent:', browserInfo.value.userAgent)
+  console.log('[测试页面] 是否微信浏览器:', isWechat.value)
   // #endif
 
   // #ifdef APP-PLUS

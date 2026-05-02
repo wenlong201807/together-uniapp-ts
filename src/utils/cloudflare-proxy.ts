@@ -37,14 +37,60 @@ export function convertToHttpsUrl(qiniuUrl: string): string {
 
     const proxyUrl = `${workerUrl}?url=${encodeURIComponent(qiniuUrl)}`
     console.log('[convertToHttpsUrl] 转换成功')
+    console.log('[convertToHttpsUrl] 原始 URL:', qiniuUrl)
     console.log('[convertToHttpsUrl] Worker URL:', workerUrl)
     console.log('[convertToHttpsUrl] 代理 URL:', proxyUrl)
+
+    // 测试代理 URL 是否可访问
+    testProxyUrl(proxyUrl, qiniuUrl)
+
     return proxyUrl
   }
 
   // 其他情况直接返回
   console.log('[convertToHttpsUrl] 不是 HTTP/HTTPS 协议，返回原 URL')
   return qiniuUrl
+}
+
+/**
+ * 测试代理 URL 是否可访问
+ */
+async function testProxyUrl(proxyUrl: string, originalUrl: string) {
+  try {
+    console.log('[testProxyUrl] 开始测试代理 URL:', proxyUrl)
+
+    const response = await fetch(proxyUrl, {
+      method: 'HEAD',
+      mode: 'cors'
+    })
+
+    console.log('[testProxyUrl] 响应状态:', response.status, response.statusText)
+    console.log('[testProxyUrl] 响应头:', Object.fromEntries(response.headers.entries()))
+
+    if (!response.ok) {
+      console.error('[testProxyUrl] ❌ 代理请求失败!')
+      console.error('[testProxyUrl] 状态码:', response.status)
+      console.error('[testProxyUrl] 原始', originalUrl)
+      console.error('[testProxyUrl] 代理 URL:', proxyUrl)
+
+      // 尝试直接访问原始 URL
+      console.log('[testProxyUrl] 尝试直接访问原始 URL...')
+      const directResponse = await fetch(originalUrl, {
+        method: 'HEAD',
+        mode: 'no-cors'
+      })
+      console.log('[testProxyUrl] 原始 URL 响应:', directResponse.type, directResponse.status)
+    } else {
+      console.log('[testProxyUrl] ✅ 代理 URL 可访问')
+    }
+  } catch (error) {
+    console.error('[testProxyUrl] ❌ 测试代理 URL 失败:', error)
+    console.error('[testProxyUrl] 错误详情:', {
+      message: (error as Error).message,
+      originalUrl,
+      proxyUrl
+    })
+  }
 }
 
 /**

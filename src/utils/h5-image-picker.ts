@@ -98,16 +98,28 @@ function createFileInput(options: H5ImagePickerOptions): HTMLInputElement {
  */
 export function h5ChooseImage(options: H5ImagePickerOptions = {}): Promise<H5ImageResult> {
   return new Promise((resolve, reject) => {
+    console.log('[h5ChooseImage] 开始选择图片，选项:', options)
+    console.log('[h5ChooseImage] UserAgent:', navigator.userAgent)
+
     const input = createFileInput(options)
+    console.log('[h5ChooseImage] Input 元素已创建:', {
+      type: input.type,
+      accept: input.accept,
+      multiple: input.multiple,
+      capture: input.getAttribute('capture')
+    })
 
     // 文件选择完成
     input.onchange = async (e) => {
+      console.log('[h5ChooseImage] onchange 触发')
       const files = Array.from((e.target as HTMLInputElement).files || [])
+      console.log('[h5ChooseImage] 选择的文件数量:', files.length)
 
       // 移除 input 元素
       document.body.removeChild(input)
 
       if (files.length === 0) {
+        console.error('[h5ChooseImage] 未选择文件')
         reject(new Error('未选择文件'))
         return
       }
@@ -119,6 +131,7 @@ export function h5ChooseImage(options: H5ImagePickerOptions = {}): Promise<H5Ima
       // 检查文件类型
       const invalidFiles = selectedFiles.filter(f => !f.type.startsWith('image/'))
       if (invalidFiles.length > 0) {
+        console.error('[h5ChooseImage] 包含非图片文件:', invalidFiles)
         reject(new Error('只能选择图片文件'))
         return
       }
@@ -127,6 +140,7 @@ export function h5ChooseImage(options: H5ImagePickerOptions = {}): Promise<H5Ima
       const maxSize = (options.maxSize || 10) * 1024 * 1024
       const oversizedFiles = selectedFiles.filter(f => f.size > maxSize)
       if (oversizedFiles.length > 0) {
+        console.error('[h5ChooseImage] 文件过大:', oversizedFiles)
         reject(new Error(`图片大小不能超过 ${options.maxSize || 10}MB`))
         return
       }
@@ -135,6 +149,7 @@ export function h5ChooseImage(options: H5ImagePickerOptions = {}): Promise<H5Ima
         // 处理图片（压缩）
         const sizeType = options.sizeType || ['compressed']
         const needCompress = sizeType.includes('compressed')
+        console.log('[h5ChooseImage] 是否需要压缩:', needCompress)
 
         const processedFiles = needCompress
           ? await Promise.all(selectedFiles.map(f => compressImage(f, {
@@ -146,24 +161,42 @@ export function h5ChooseImage(options: H5ImagePickerOptions = {}): Promise<H5Ima
 
         // 创建 blob URL
         const tempFilePaths = processedFiles.map(f => URL.createObjectURL(f))
+        console.log('[h5ChooseImage] 创建 Blob URLs:', tempFilePaths)
 
         resolve({
           tempFilePaths,
           tempFiles: processedFiles
         })
       } catch (error) {
+        console.error('[h5ChooseImage] 处理图片失败:', error)
         reject(error)
       }
     }
 
     // 用户取消选择
     input.oncancel = () => {
+      console.log('[h5ChooseImage] 用户取消选择')
       document.body.removeChild(input)
       reject(new Error('用户取消选择'))
     }
 
+    // 添加错误监听
+    input.onerror = (error) => {
+      console.error('[h5ChooseImage] Input 元素错误:', error)
+      document.body.removeChild(input)
+      reject(new Error('文件选择器错误'))
+    }
+
     // 触发选择
-    input.click()
+    console.log('[h5ChooseImage] 触发 input.click()')
+    try {
+      input.click()
+      console.log('[h5ChooseImage] input.click() 执行成功')
+    } catch (error) {
+      console.error('[h5ChooseImage] input.click() 执行失败:', error)
+      document.body.removeChild(input)
+      reject(error)
+    }
   })
 }
 

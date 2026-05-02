@@ -83,6 +83,22 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
         items.value = [...items.value, ...newItems];
       }
 
+      // 如果没有更多数据，添加 footer 项
+      if (!hasMore.value && items.value.length > 0) {
+        // 检查是否已经有 footer 项
+        const hasFooter = items.value.some(item => item.type === 'footer');
+        if (!hasFooter) {
+          items.value.push({
+            id: 'footer',
+            type: 'footer',
+            data: { type: 'footer' },
+          } as RecommendationItem);
+        }
+      } else {
+        // 如果还有更多数据，移除 footer 项（如果存在）
+        items.value = items.value.filter(item => item.type !== 'footer');
+      }
+
       currentPage.value = page;
     } catch (error) {
       console.error('[useRecommendation] 获取推荐数据失败:', error);
