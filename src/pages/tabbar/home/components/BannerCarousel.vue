@@ -18,7 +18,7 @@
             :src="banner.imageUrl"
             :priority="index === 0 ? 'critical' : 'high'"
             :lazy="false"
-            mode="aspectFit"
+            mode="aspectFill"
           />
           <view class="banner-content">
             <text class="banner-title">{{ banner.title }}</text>
@@ -74,10 +74,12 @@ const handleBannerClick = (banner: Banner) => {
 
 .banner-carousel {
   margin-bottom: $margin-lg;
+  min-height: 320rpx;
 
   .swiper {
     width: 100%;
     height: 320rpx;
+    min-height: 320rpx;
     border-radius: $radius-lg;
     overflow: hidden;
 
