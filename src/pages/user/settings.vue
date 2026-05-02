@@ -3,7 +3,7 @@
     <view class="settings-list">
       <view class="settings-item">
         <text class="settings-label">版本</text>
-        <text class="settings-value">1.0.0</text>
+        <text class="settings-value">{{ appVersion }}</text>
       </view>
       <view class="settings-item" @click="clearCache">
         <text class="settings-label">清除缓存</text>
@@ -41,11 +41,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores'
 
 const authStore = useAuthStore()
 const showServiceModal = ref(false)
+
+// 从 Vite 注入的全局变量获取版本号
+const appVersion = computed(() => {
+  return __APP_VERSION__ || '1.0.0'
+})
 
 const clearCache = () => {
   uni.showModal({

@@ -83,12 +83,12 @@ function getFileExtension(filePath: string): string {
 
 /**
  * 上传文件到七牛云
- * @param filePath 本地文件路径
+ * @param filePath 本地文件路径或 File 对象
  * @param options 上传选项
  * @returns 上传结果
  */
 export async function uploadFile(
-  filePath: string,
+  filePath: string | File,
   options?: {
     type?: 'square' | 'avatar' | 'certificate' | 'album';
   }
@@ -99,13 +99,27 @@ export async function uploadFile(
     type = 'square';
   }
 
+  // 处理 File 对象
+  let actualFilePath: string;
+  let fileObject: File | null = null;
+
+  if (filePath instanceof File) {
+    // 如果是 File 对象，创建 blob URL
+    fileObject = filePath;
+    actualFilePath = URL.createObjectURL(filePath);
+    console.log('[uploadFile] File 对象转换为 blob URL:', actualFilePath);
+  } else {
+    actualFilePath = filePath;
+  }
+
   // 1. 获取七牛云上传凭证
-  const tokenRes = await getUploadToken({ type, fileName: filePath.split('/').pop() });
+  const fileName = fileObject ? fileObject.name : (actualFilePath.split('/').pop() || 'image.jpg');
+  const tokenRes = await getUploadToken({ type, fileName });
   const { token, key, domain } = tokenRes;
 
   // 2. 准备文件数据
   let fileData: ArrayBuffer;
-  const ext = getFileExtension(filePath);
+  const ext = getFileExtension(actualFilePath);
   const mimeType = getMimeType(ext);
 
   // 检测运行环境
@@ -113,14 +127,14 @@ export async function uploadFile(
   const isUniApp = typeof uni !== 'undefined';
   const hasFileSystemManager = isUniApp && typeof (uni as any).getFileSystemManager === 'function';
 
-  console.log('UploadFile debug - isH5:', isH5, 'isUniApp:', isUniApp, 'hasFileSystemManager:', hasFileSystemManager, 'filePath:', filePath);
+  console.log('UploadFile debug - isH5:', isH5, 'isUniApp:', isUniApp, 'hasFileSystemManager:', hasFileSystemManager, 'actualFilePath:', actualFilePath);
 
   if (hasFileSystemManager && !isH5) {
     // 小程序端
     console.log('Using mini program upload');
     const fs = (uni as any).getFileSystemManager();
     const fileContent = await fs.readFile({
-      filePath: filePath,
+      filePath: actualFilePath,
       encoding: 'binary'
     });
     const binary = atob(fileContent.data);
@@ -129,15 +143,19 @@ export async function uploadFile(
       array[i] = binary.charCodeAt(i);
     }
     fileData = array.buffer;
-  } else if (isH5 && filePath) {
-    // H5端 - blob URL 或 data URL 或临时文件路径
-    console.log('Using H5 upload, filePath starts with:', filePath.substring(0, 50));
-    if (filePath.startsWith('blob:')) {
-      const response = await fetch(filePath);
+  } else if (isH5 && actualFilePath) {
+    // H5端 - 优先使用 File 对象
+    console.log('Using H5 upload, actualFilePath starts with:', actualFilePath.substring(0, 50));
+    if (fileObject) {
+      // 直接从 File 对象读取
+      console.log('Reading from File object');
+      fileData = await fileObject.arrayBuffer();
+    } else if (actualFilePath.startsWith('blob:')) {
+      const response = await fetch(actualFilePath);
       fileData = await response.arrayBuffer();
-    } else if (filePath.startsWith('data:')) {
+    } else if (actualFilePath.startsWith('data:')) {
       // data URL
-      const base64 = filePath.split(',')[1];
+      const base64 = actualFilePath.split(',')[1];
       const binary = atob(base64);
       const array = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) {
@@ -147,7 +165,7 @@ export async function uploadFile(
     } else {
       // H5端临时文件路径或其他路径
       try {
-        const response = await fetch(filePath);
+        const response = await fetch(actualFilePath);
         fileData = await response.arrayBuffer();
       } catch (e) {
         console.error('Fetch file error:', e);
@@ -164,7 +182,7 @@ export async function uploadFile(
   return new Promise((resolve, reject) => {
     uni.uploadFile({
       url: 'https://up-z2.qiniup.com', // 华南区域
-      filePath: filePath,
+      filePath: actualFilePath,
       name: 'file',
       formData: {
         token: token,
@@ -174,15 +192,22 @@ export async function uploadFile(
         if (uploadRes.statusCode === 200) {
           console.log('Qiniu upload success:', uploadRes.data);
 
+          // 释放 blob URL
+          if (fileObject && actualFilePath.startsWith('blob:')) {
+            URL.revokeObjectURL(actualFilePath);
+          }
+
           // 4. 保存文件记录到后端
           try {
             let originalName: string;
-            if (filePath.startsWith('data:')) {
+            if (fileObject) {
+              originalName = fileObject.name;
+            } else if (actualFilePath.startsWith('data:')) {
               originalName = `image.${ext}`;
-            } else if (filePath.startsWith('blob:')) {
+            } else if (actualFilePath.startsWith('blob:')) {
               originalName = `image.${ext}`;
-            } else if (filePath.includes('/')) {
-              originalName = filePath.split('/').pop() || `image.${ext}`;
+            } else if (actualFilePath.includes('/')) {
+              originalName = actualFilePath.split('/').pop() || `image.${ext}`;
             } else {
               originalName = `image.${ext}`;
             }

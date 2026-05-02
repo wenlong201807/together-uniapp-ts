@@ -1,6 +1,6 @@
 /**
  * vConsole 调试工具配置
- * 仅在开发环境和 H5 平台启用
+ * 通过后端接口控制是否启用
  */
 
 import VConsole from 'vconsole'
@@ -9,11 +9,11 @@ let vConsole: VConsole | null = null
 
 /**
  * 初始化 vConsole
+ * @param enabled 是否启用（从后端配置获取）
  */
-export function initVConsole() {
+export function initVConsole(enabled: boolean = false) {
   // #ifdef H5
-  // 只在开发环境启用
-  if (import.meta.env.DEV) {
+  if (enabled) {
     if (!vConsole) {
       vConsole = new VConsole({
         theme: 'dark',
@@ -25,6 +25,9 @@ export function initVConsole() {
       })
       console.log('[vConsole] 初始化成功')
     }
+  } else {
+    // 如果配置为关闭，销毁已存在的实例
+    destroyVConsole()
   }
   // #endif
 }

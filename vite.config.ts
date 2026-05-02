@@ -1,6 +1,12 @@
 import { defineConfig, loadEnv } from 'vite';
 import uni from '@dcloudio/vite-plugin-uni';
 import path from 'path';
+import { readFileSync } from 'fs';
+
+// 读取 package.json 获取版本号
+const packageJson = JSON.parse(
+  readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')
+);
 
 // 加载环境变量
 const env = loadEnv('', process.cwd());
@@ -9,6 +15,10 @@ const env = loadEnv('', process.cwd());
 export default defineConfig({
   base: './',
   plugins: [uni()],
+  define: {
+    // 注入版本号到全局变量
+    __APP_VERSION__: JSON.stringify(packageJson.version),
+  },
   css: {
     preprocessorOptions: {
       scss: {

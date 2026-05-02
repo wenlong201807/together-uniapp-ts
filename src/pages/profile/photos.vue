@@ -8,13 +8,13 @@
       </view>
       <view class="stat-divider" />
       <view class="stat-item">
-        <text class="stat-value">{{ 20 - photos.length }}</text>
+        <text class="stat-value">{{ remainingCount }}</text>
         <text class="stat-label">还可上传</text>
       </view>
       <view class="stat-divider" />
       <view class="stat-item">
-        <view class="stat-value completion-icon" :class="{ 'completed': photos.length >= 3 }">
-          <text v-if="photos.length >= 3" class="icon-check">✓</text>
+        <view class="stat-value completion-icon" :class="{ 'completed': isCompleted }">
+          <text v-if="isCompleted" class="icon-check">✓</text>
           <text v-else class="icon-cross">✕</text>
         </view>
         <text class="stat-label">完成度</text>
@@ -22,10 +22,10 @@
     </view>
 
     <!-- 提示信息 -->
-    <view v-if="photos.length < 3" class="tips-card">
+    <view v-if="!isCompleted" class="tips-card">
       <text class="tips-icon">💡</text>
       <view class="tips-content">
-        <text class="tips-title">至少上传3张照片</text>
+        <text class="tips-title">至少上传{{ MIN_PHOTOS_REQUIRED }}张照片</text>
         <text class="tips-desc">真实照片可以提高匹配成功率</text>
       </view>
     </view>
@@ -49,31 +49,26 @@
           </view>
         </view>
       </view>
-
-      <!-- 上传按钮 -->
-      <!-- #ifdef H5 -->
-      <view v-if="photos.length < 20" class="photo-item upload-wrapper">
-        <H5ImageUploader
-          ref="uploaderRef"
-          :max-count="1"
-          :max-size="10"
-          :show-tips="false"
-          @change="handleH5ImageChange"
-        />
-      </view>
-      <!-- #endif -->
-
-      <!-- #ifdef APP-PLUS -->
-      <view
-        v-if="photos.length < 20"
-        class="photo-item upload-btn"
-        @tap="handleUpload"
-      >
-        <text class="upload-icon">+</text>
-        <text class="upload-text">上传照片</text>
-      </view>
-      <!-- #endif -->
     </view>
+
+    <!-- 上传按钮区域 -->
+    <view v-if="canUploadMore" class="upload-section">
+      <view class="upload-btn-bar" @tap="handleUploadClick">
+        <text class="upload-icon">📷</text>
+        <text class="upload-text">上传照片</text>
+        <text class="upload-hint">最多上传{{ MAX_PHOTOS }}张</text>
+      </view>
+    </view>
+
+    <!-- #ifdef H5 -->
+    <!-- H5 图片选择逻辑组件（无UI） -->
+    <H5ImageUploader
+      ref="uploaderRef"
+      :max-count="MAX_PHOTOS"
+      :max-size="10"
+      @change="handleH5ImageChange"
+    />
+    <!-- #endif -->
 
     <!-- 编辑按钮 -->
     <view v-if="photos.length > 0" class="edit-button">
@@ -116,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getPhotos, addPhoto, deletePhoto, setAvatar } from '@/api/profile'
 import { uploadFile } from '@/api/modules/file'
 import { useAuthStore } from '@/stores'
@@ -127,6 +122,10 @@ import H5ImageUploader from '@/components/business/H5ImageUploader.vue'
 // #endif
 
 const authStore = useAuthStore()
+
+// 常量定义
+const MAX_PHOTOS = 20
+const MIN_PHOTOS_REQUIRED = 3
 
 // 照片列表
 const photos = ref<UserPhoto[]>([])
@@ -142,6 +141,11 @@ const selectedPhoto = ref<UserPhoto | null>(null)
 // H5 上传组件引用
 const uploaderRef = ref<InstanceType<typeof H5ImageUploader>>()
 // #endif
+
+// 计算属性
+const canUploadMore = computed(() => photos.value.length < MAX_PHOTOS)
+const remainingCount = computed(() => MAX_PHOTOS - photos.value.length)
+const isCompleted = computed(() => photos.value.length >= MIN_PHOTOS_REQUIRED)
 
 // 加载照片列表
 onMounted(async () => {
@@ -161,24 +165,17 @@ const loadPhotos = async () => {
   }
 }
 
-// #ifdef H5
-// H5 - 图片选择变化
-const handleH5ImageChange = async (files: File[]) => {
-  console.log('[Photos] H5 选择图片:', files.length)
-
-  if (files.length === 0) return
-
+// 公共上传逻辑
+const uploadPhotos = async (files: File[] | string[]) => {
   uni.showLoading({
     title: '上传中...',
     mask: true,
   })
 
   try {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-
+    for (const file of files) {
       // 上传到七牛云
-      const uploadRes = await uploadFile(file, { type: 'album' })
+      const uploadRes = await uploadFile(file as any, { type: 'album' })
 
       // 添加照片记录
       await addPhoto({
@@ -195,9 +192,6 @@ const handleH5ImageChange = async (files: File[]) => {
       icon: 'success',
     })
 
-    // 清空上传组件
-    uploaderRef.value?.clear()
-
     // 重新加载列表
     await loadPhotos()
   } catch (error: any) {
@@ -209,55 +203,42 @@ const handleH5ImageChange = async (files: File[]) => {
     })
   }
 }
-// #endif
 
-// #ifdef APP-PLUS
-// App - 上传照片
-const handleUpload = () => {
+// 点击上传按钮
+const handleUploadClick = () => {
+  // #ifdef H5
+  uni.showActionSheet({
+    itemList: ['从相册选择', '拍照'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        uploaderRef.value?.chooseFromAlbum()
+      } else if (res.tapIndex === 1) {
+        uploaderRef.value?.chooseFromCamera()
+      }
+    }
+  })
+  // #endif
+
+  // #ifdef APP-PLUS
   uni.chooseImage({
-    count: 20 - photos.value.length,
+    count: remainingCount.value,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
     success: async (res) => {
-      const tempFilePaths = res.tempFilePaths
-
-      uni.showLoading({
-        title: '上传中...',
-        mask: true,
-      })
-
-      try {
-        for (const filePath of tempFilePaths) {
-          // 上传到七牛云
-          const uploadRes = await uploadFile(filePath, { type: 'album' })
-
-          // 添加照片记录
-          await addPhoto({
-            photoUrl: uploadRes.url,
-            photoPath: uploadRes.filePath,
-            category: '生活照',
-            isPublic: true,
-          })
-        }
-
-        uni.hideLoading()
-        uni.showToast({
-          title: '上传成功',
-          icon: 'success',
-        })
-
-        // 重新加载列表
-        await loadPhotos()
-      } catch (error: any) {
-        uni.hideLoading()
-        console.error('[Photos] 上传失败:', error)
-        uni.showToast({
-          title: error.message || '上传失败',
-          icon: 'none',
-        })
-      }
+      await uploadPhotos(res.tempFilePaths)
     },
   })
+  // #endif
+}
+
+// #ifdef H5
+// H5 - 图片选择变化
+const handleH5ImageChange = async (files: File[]) => {
+  console.log('[Photos] H5 选择图片:', files.length)
+
+  if (files.length === 0) return
+
+  await uploadPhotos(files)
 }
 // #endif
 
@@ -362,7 +343,8 @@ const handleSetAvatar = async () => {
 .photos-container {
   min-height: 100vh;
   background: #f5f5f5;
-  padding: 24rpx;
+  // 容器宽度计算：750rpx - (206rpx × 3 + 12rpx × 2) = 78rpx，左右各 39rpx
+  padding: 24rpx 39rpx;
   padding-bottom: 120rpx;
 }
 
@@ -475,15 +457,16 @@ const handleSetAvatar = async () => {
 // ========== 照片网格 ==========
 .photos-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  // 图片尺寸：(750rpx - 39rpx × 2 - 12rpx × 2) / 3 = 206rpx
+  grid-template-columns: repeat(3, 206rpx);
   gap: 12rpx;
-  margin-bottom: 140rpx; // 为底部按钮留出空间
+  margin-bottom: 32rpx;
 }
 
 .photo-item {
   position: relative;
-  width: 100%;
-  padding-bottom: 100%;
+  width: 206rpx;
+  height: 206rpx;
   background: #fff;
   border-radius: 20rpx;
   overflow: hidden;
@@ -552,40 +535,43 @@ const handleSetAvatar = async () => {
   line-height: 1;
 }
 
-.upload-btn {
+// ========== 上传按钮区域 ==========
+.upload-section {
+  margin-bottom: 140rpx;
+}
+
+.upload-btn-bar {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #fafbfc;
-  border: 3rpx dashed #d0d7de;
+  gap: 16rpx;
+  height: 100rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.25);
   transition: all 0.3s ease;
 
   &:active {
-    background: #f6f8fa;
-    border-color: #667eea;
-    transform: scale(0.95);
+    transform: scale(0.98);
+    box-shadow: 0 2rpx 12rpx rgba(102, 126, 234, 0.2);
   }
-}
 
-.upload-wrapper {
-  padding: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
+  .upload-icon {
+    font-size: 40rpx;
+    line-height: 1;
+  }
 
-.upload-icon {
-  font-size: 56rpx;
-  color: #667eea;
-  margin-bottom: 12rpx;
-  font-weight: 300;
-}
+  .upload-text {
+    font-size: 32rpx;
+    color: #fff;
+    font-weight: 600;
+  }
 
-.upload-text {
-  font-size: 26rpx;
-  color: #667eea;
-  font-weight: 500;
+  .upload-hint {
+    font-size: 24rpx;
+    color: rgba(255, 255, 255, 0.8);
+    margin-left: 8rpx;
+  }
 }
 
 // ========== 编辑按钮 ==========

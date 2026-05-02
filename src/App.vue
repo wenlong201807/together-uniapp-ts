@@ -5,6 +5,10 @@ import { useNPS } from '@/composables/useNPS';
 import { wsManager } from '@/utils';
 import NPSModal from '@/components/business/NPSModal.vue';
 import MessageBubbleContainer from '@/components/business/MessageBubbleContainer.vue';
+// #ifdef H5
+import { initVConsole } from '@/utils/vconsole';
+import { getPublicConfigWithCache } from '@/api/modules/system-config';
+// #endif
 
 const { npsVisible, npsTriggerType, npsTriggerScene, closeNPS, onNPSSuccess } = useNPS();
 const notificationStore = useNotificationStore();
@@ -20,6 +24,30 @@ const updateBubbleState = () => {
   notificationStore.updateExpandState(isInChatList);
 };
 
+// 从后端获取系统配置并初始化 vConsole
+const initSystemConfig = async () => {
+  // #ifdef H5
+  try {
+    // 使用带缓存的配置获取，减少请求
+    const config = await getPublicConfigWithCache();
+
+    // 获取 debug.vconsole_enabled 配置
+    const vConsoleEnabled = config?.debug?.vconsole_enabled ?? false;
+    console.log('[App] vConsole 配置:', vConsoleEnabled);
+
+    // 根据配置初始化 vConsole
+    initVConsole(vConsoleEnabled);
+  } catch (error) {
+    console.error('[App] 获取系统配置失败:', error);
+
+    // 配置获取失败时，开发环境默认开启，生产环境默认关闭
+    const isDev = import.meta.env.DEV;
+    console.log('[App] 使用默认 vConsole 配置:', isDev);
+    initVConsole(isDev);
+  }
+  // #endif
+};
+
 onLaunch(() => {
   console.log('App Launch');
 
@@ -31,6 +59,9 @@ onLaunch(() => {
   if (authStore.token) {
     wsManager.connect();
   }
+
+  // 初始化系统配置（包括 vConsole）
+  initSystemConfig();
 
   console.log('Auth initialized, userInfo:', authStore.userInfo);
 });

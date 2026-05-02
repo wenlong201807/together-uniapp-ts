@@ -12,7 +12,7 @@ export interface UserProfile {
   height?: number
   weight?: number
   occupation?: string
-  income?: number
+  incomeRange?: string
   education?: string
   bio?: string
   showLocation?: boolean

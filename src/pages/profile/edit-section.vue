@@ -151,8 +151,12 @@
         </view>
 
         <view class="form-item">
-          <text class="form-label">收入 (万/年)</text>
-          <input v-model.number="formData.income" type="number" class="form-input" placeholder="请输入年收入" />
+          <text class="form-label">收入范围</text>
+          <picker :value="incomeRangeIndex" :range="incomeRangeOptions" @change="onIncomeRangeChange">
+            <view class="form-picker" :class="{ placeholder: !formData.incomeRange }">
+              {{ formData.incomeRange || '请选择收入范围' }}
+            </view>
+          </picker>
         </view>
       </template>
 
@@ -456,6 +460,7 @@ const sectionConfig = computed(() => sectionConfigs[section.value] || sectionCon
 
 // 选项数据
 const educationOptions = ['高中', '大专', '本科', '硕士', '博士']
+const incomeRangeOptions = ['5万以下', '5-10万', '10-20万', '20-30万', '30-50万', '50万以上']
 const bodyTypeOptions = ['偏瘦', '标准', '健壮', '偏胖']
 const zodiacOptions = ['白羊座', '金牛座', '双子座', '巨蟹座', '狮子座', '处女座', '天秤座', '天蝎座', '射手座', '摩羯座', '水瓶座', '双鱼座']
 const chineseZodiacOptions = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']
@@ -475,6 +480,7 @@ const carOptions = ['无车', '有车']
 
 // 计算选中的索引
 const educationIndex = computed(() => educationOptions.indexOf(formData.value.education || ''))
+const incomeRangeIndex = computed(() => incomeRangeOptions.indexOf(formData.value.incomeRange || ''))
 const zodiacIndex = computed(() => zodiacOptions.indexOf(formData.value.zodiacSign || ''))
 const chineseZodiacIndex = computed(() => chineseZodiacOptions.indexOf(formData.value.chineseZodiac || ''))
 
@@ -492,6 +498,10 @@ const onDateChange = (e: any) => {
 
 const onEducationChange = (e: any) => {
   formData.value.education = educationOptions[e.detail.value]
+}
+
+const onIncomeRangeChange = (e: any) => {
+  formData.value.incomeRange = incomeRangeOptions[e.detail.value]
 }
 
 const onZodiacChange = (e: any) => {
@@ -579,10 +589,6 @@ const validateForm = (): boolean => {
       uni.showToast({ title: '请输入有效的工作年限(0-50年)', icon: 'none' })
       return false
     }
-    if (formData.value.income && formData.value.income < 0) {
-      uni.showToast({ title: '请输入有效的收入', icon: 'none' })
-      return false
-    }
   }
 
   if (section.value === 'family') {
@@ -642,7 +648,7 @@ const handleSave = async () => {
         industry: formData.value.industry,
         company: formData.value.company,
         workYears: formData.value.workYears,
-        income: formData.value.income,
+        incomeRange: formData.value.incomeRange,
       }
     } else if (section.value === 'lifestyle') {
       // 生活方式
