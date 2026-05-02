@@ -19,16 +19,16 @@
       @refresherrefresh="handleRefresh"
       @scroll="handleScroll"
     >
-      <!-- Banner轮播 -->
-      <BannerCarousel
-        :banners="banners"
-        @banner-click="handleBannerClick"
-      />
-
       <!-- 快速入口 -->
       <QuickActions
         :actions="quickActions"
         @action-click="handleActionClick"
+      />
+
+      <!-- Banner轮播 -->
+      <BannerCarousel
+        :banners="banners"
+        @banner-click="handleBannerClick"
       />
 
       <!-- 推荐流 -->

@@ -78,11 +78,10 @@ const handleLogin = async () => {
   try {
     // 加密密码后再发送
     const encryptedPassword = CryptoUtil.encryptPassword(formData.value.password);
-    const aa = await authStore.login({
+    await authStore.login({
       mobile: formData.value.mobile,
       password: encryptedPassword,
     });
-    console.log(99, aa);
     uni.showToast({
       title: '登录成功',
     });
