@@ -139,3 +139,16 @@ export function unlikeTopicPost(postId: number): Promise<ApiResponse<{ success: 
   return request.delete(`/square/posts/${postId}/like`);
 }
 
+/**
+ * 创建话题
+ */
+export interface CreateTopicParams {
+  name: string;
+  description?: string;
+  coverImage: string;
+}
+
+export function createTopic(params: CreateTopicParams): Promise<ApiResponse<TopicDetail>> {
+  return request.post('/topics', params);
+}
+

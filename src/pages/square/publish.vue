@@ -7,6 +7,11 @@
     </view>
 
     <view class="publish-form">
+      <!-- 话题选择器（用户主动选择） -->
+      <view v-if="!topicTitle" class="form-item">
+        <TopicPicker v-model="formData.topicId" />
+      </view>
+
       <view class="form-item">
         <textarea
           v-model="formData.content"
@@ -55,6 +60,7 @@ import { ref, onMounted } from 'vue'
 import { useSquareStore } from '@/stores'
 import { fileApi } from '@/api'
 import { triggerAfterFirstPost } from '@/composables/useNPS'
+import TopicPicker from '@/components/TopicPicker.vue'
 
 const squareStore = useSquareStore()
 

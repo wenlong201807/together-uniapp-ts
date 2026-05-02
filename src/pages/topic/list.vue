@@ -18,6 +18,9 @@
           @click="handleClearSearch"
         />
       </view>
+      <view class="create-btn" @click="handleCreateTopic">
+        <uni-icons type="plus" size="20" color="#fff" />
+      </view>
     </view>
 
     <!-- 热门话题 -->
@@ -104,6 +107,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { getTopics, getHotTopics, searchTopics, type TopicDetail } from '@/api';
+import { formatCount } from '@/utils/format';
 
 const keyword = ref('');
 const topics = ref<TopicDetail[]>([]);
@@ -208,12 +212,11 @@ const handleTopicClick = (topicId: number) => {
   });
 };
 
-// 格式化数量
-const formatCount = (count: number): string => {
-  if (count >= 10000) {
-    return (count / 10000).toFixed(1) + 'w';
-  }
-  return count.toString();
+// 创建话题
+const handleCreateTopic = () => {
+  uni.navigateTo({
+    url: '/pages/topic/create',
+  });
 };
 </script>
 
@@ -224,11 +227,15 @@ const formatCount = (count: number): string => {
 }
 
 .search-bar {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
   padding: 20rpx 30rpx;
   background-color: #fff;
   border-bottom: 1rpx solid #eee;
 
   .search-input-wrapper {
+    flex: 1;
     display: flex;
     align-items: center;
     padding: 16rpx 24rpx;
@@ -240,6 +247,17 @@ const formatCount = (count: number): string => {
       margin: 0 16rpx;
       font-size: 28rpx;
     }
+  }
+
+  .create-btn {
+    width: 72rpx;
+    height: 72rpx;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 }
 
