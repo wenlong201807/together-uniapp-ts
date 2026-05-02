@@ -2,6 +2,7 @@ import { API_CONFIG } from '@/config'
 import { useChatStore } from '@/stores'
 import { useAuthStore } from '@/stores'
 import { io, Socket } from 'socket.io-client'
+import { logger } from '@/stores/utils/message-utils'
 
 class WebSocketManager {
   private socket: Socket | null = null
@@ -20,7 +21,7 @@ class WebSocketManager {
 
   async connect() {
     if (this.isConnecting || (this.socket && this.socket.connected)) {
-      console.log('WebSocket: Already connected or connecting')
+      logger.log('WebSocket: Already connected or connecting')
       return
     }
 
@@ -30,10 +31,10 @@ class WebSocketManager {
     const authStore = useAuthStore()
     let token = authStore.token || uni.getStorageSync('token')
 
-    console.log('WebSocket: Token:', token ? 'present' : 'missing')
+    logger.log('WebSocket: Token:', token ? 'present' : 'missing')
 
     if (!token) {
-      console.error('WebSocket: No token available')
+      logger.error('WebSocket: No token available')
       this.isConnecting = false
       return
     }
@@ -48,27 +49,27 @@ class WebSocketManager {
 
         // 如果tok或已过期，先刷新
         if (timeUntilExpiry < 5 * 60 * 1000) {
-          console.log('WebSocket: Token expiring soon or expired, refreshing...')
+          logger.log('WebSocket: Token expiring soon or expired, refreshing...')
           try {
             await authStore.refreshAccessToken()
             token = authStore.token || uni.getStorageSync('token')
-            console.log('WebSocket: Token refreshed successfully')
+            logger.log('WebSocket: Token refreshed successfully')
           } catch (error) {
-            console.error('WebSocket: Failed to refresh token:', error)
+            logger.error('WebSocket: Failed to refresh token:', error)
             this.isConnecting = false
             return
           }
         }
       }
     } catch (error) {
-      console.error('WebSocket: Failed to parse token:', error)
+      logger.error('WebSocket: Failed to parse token:', error)
     }
 
     // 使用 Socket.IO 客户端连接
     // wsURL 格式: ws://host:port 或 http://host:port
     // path 选项指定 Socket.IO 服务器路径（完整路径，包含 /socket.io）
     const wsUrl = API_CONFIG.wsURL.replace('/api/v1/ws', '')
-    console.log('WebSocket: Connecting to', wsUrl, 'path: /api/v1/ws/socket.io')
+    logger.log('WebSocket: Connecting to', wsUrl, 'path: /api/v1/ws/socket.io')
 
     this.socket = io(wsUrl, {
       path: '/api/v1/ws/socket.io',  // 修复：完整的 Socket.IO 路径
@@ -98,7 +99,7 @@ class WebSocketManager {
       )
       return JSON.parse(jsonPayload)
     } catch (error) {
-      console.error('Failed to parse JWT:', error)
+      logger.error('Failed to parse JWT:', error)
       return null
     }
   }
@@ -107,34 +108,34 @@ class WebSocketManager {
     if (!this.socket) return
 
     this.socket.on('connect', () => {
-      console.log('WebSocket: Connected')
+      logger.log('WebSocket: Connected')
       this.isConnecting = false
       this.reconnectAttempts = 0
       this.startHeartbeat()
     })
 
     this.socket.on('connected', (data) => {
-      console.log('WebSocket: Server confirmed connection', data)
+      logger.log('WebSocket: Server confirmed connection', data)
     })
 
     this.socket.on('message', (data) => {
-      console.log('WebSocket: Received message', data)
+      logger.log('WebSocket: Received message', data)
       this.handleMessage(data)
     })
 
     this.socket.on('pong', (data) => {
-      console.log('WebSocket: Received pong', data)
+      logger.log('WebSocket: Received pong', data)
     })
 
     this.socket.on('disconnect', (reason) => {
-      console.log('WebSocket: Disconnected', reason)
+      logger.log('WebSocket: Disconnected', reason)
       this.isConnecting = false
       this.stopHeartbeat()
       this.handleReconnect()
     })
 
     this.socket.on('connect_error', (error) => {
-      console.error('WebSocket: Connection error', error)
+      logger.error('WebSocket: Connection error', error)
       this.isConnecting = false
       this.stopHeartbeat()
       this.handleReconnect()
@@ -142,7 +143,7 @@ class WebSocketManager {
   }
 
   private handleMessage(data: any) {
-    console.log('[WebSocket] 收到原始消息:', JSON.stringify(data))
+    logger.log('[WebSocket] 收到原始消息:', JSON.stringify(data))
     const chatStore = useChatStore()
 
     // 验证消息格式
@@ -153,18 +154,18 @@ class WebSocketManager {
     // 职责分离：根据消息类型调用不同的处理方法
     if (data.type === 'message' && isValidMessage(data.data)) {
       // 接收到别人发来的消息
-      console.log('[WebSocket] 处理接收消息 (message):', data.data)
+      logger.log('[WebSocket] 处理接收消息 (message):', data.data)
       chatStore.addReceivedMessage(data.data)
     } else if (data.type === 'message_sent' && isValidMessage(data.data)) {
       // 我发送的消息确认（多端同步）
-      console.log('[WebSocket] 处理发送确认 (message_sent):', data.data)
+      logger.log('[WebSocket] 处理发送确认 (message_sent):', data.data)
       chatStore.confirmSentMessage(data.data)
     } else if (isValidMessage(data)) {
       // 兼容旧格式：直接是消息对象（默认当作接收消息处理）
-      console.log('[WebSocket] 处理直接消息对象（兼容模式）:', data)
+      logger.log('[WebSocket] 处理直接消息对象（兼容模式）:', data)
       chatStore.addReceivedMessage(data)
     } else {
-      console.warn('[WebSocket] 无效消息格式:', data)
+      logger.warn('[WebSocket] 无效消息格式:', data)
     }
   }
 
@@ -186,17 +187,17 @@ class WebSocketManager {
   private handleReconnect() {
     // 如果是手动断开连接，不进行重连
     if (this.manualDisconnect) {
-      console.log('WebSocket: Manual disconnect, skip reconnection')
+      logger.log('WebSocket: Manual disconnect, skip reconnection')
       return
     }
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('WebSocket: Max reconnect attempts reached')
+      logger.error('WebSocket: Max reconnect attempts reached')
       return
     }
 
     this.reconnectAttempts++
-    console.log(`WebSocket: Reconnecting (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+    logger.log(`WebSocket: Reconnecting (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
 
     this.reconnectTimer = setTimeout(() => {
       this.socket = null
@@ -207,14 +208,14 @@ class WebSocketManager {
   send(event: string, data: any) {
     if (this.socket && this.socket.connected) {
       this.socket.emit(event, data)
-      console.log('WebSocket: Message sent', event, data)
+      logger.log('WebSocket: Message sent', event, data)
     } else {
-      console.error('WebSocket: Not connected')
+      logger.error('WebSocket: Not connected')
     }
   }
 
   disconnect() {
-    console.log('WebSocket: Manual disconnect initiated')
+    logger.log('WebSocket: Manual disconnect initiated')
     this.manualDisconnect = true // 标记为手动断开
     this.stopHeartbeat()
 
