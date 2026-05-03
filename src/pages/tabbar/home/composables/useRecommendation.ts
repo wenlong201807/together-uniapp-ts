@@ -102,6 +102,17 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
       currentPage.value = page;
     } catch (error) {
       console.error('[useRecommendation] 获取推荐数据失败:', error);
+
+      // TODO: 添加告警通知管理员 - API 失败降级到 Mock 数据
+      // 需要实现：发送告警到监控系统（如钉钉/企业微信/Sentry）
+      console.warn('[ALERT] API 失败，已降级到 Mock 数据。错误信息:', {
+        error: error instanceof Error ? error.message : String(error),
+        page,
+        pageSize,
+        city: currentCity.value,
+        timestamp: new Date().toISOString()
+      });
+
       // 降级到模拟数据
       if (!useMockData) {
         console.log('[useRecommendation] 降级到Mock数据');
@@ -113,7 +124,8 @@ export function useRecommendation(options: UseRecommendationOptions = {}) {
         }
         hasMore.value = mockData.length === pageSize;
       }
-      throw error;
+      // 不再抛出错误，让调用方能正常结束
+      // throw error;
     } finally {
       loading.value = false;
     }

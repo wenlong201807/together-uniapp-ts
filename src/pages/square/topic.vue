@@ -158,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { getTopicDetail, getTopicPosts, joinTopic, leaveTopic, likeTopicPost, unlikeTopicPost } from '@/api/modules/topic';
 import type { TopicDetail, TopicPost } from '@/api/modules/topic';
@@ -399,6 +399,9 @@ const handleJoinToggle = async () => {
         icon: 'success'
       });
     }
+
+    // 标记需要刷新话题列表
+    uni.setStorageSync('shouldRefreshTopicList', true);
   } catch (error: any) {
     console.error('Join/Leave topic error:', error);
     // 回滚

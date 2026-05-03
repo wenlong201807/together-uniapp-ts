@@ -10,8 +10,8 @@
         <input
           v-model="formData.name"
           class="form-input"
-          placeholder="请输入话题名称（1-100字）"
-          maxlength="100"
+          placeholder="请输入话题名称（1-20字）"
+          maxlength="20"
           @blur="checkTopicName"
         />
         <text v-if="nameError" class="error-text">{{ nameError }}</text>
@@ -26,10 +26,10 @@
         <textarea
           v-model="formData.description"
           class="form-textarea"
-          placeholder="请输入话题描述（最多180字）"
-          maxlength="180"
+          placeholder="请输入话题描述（最多80字）"
+          maxlength="80"
         />
-        <text class="char-count">{{ formData.description?.length || 0 }}/180</text>
+        <text class="char-count">{{ formData.description?.length || 0 }}/80</text>
       </view>
 
       <!-- 封面图片 -->
@@ -122,19 +122,15 @@ const uploadCustomCover = () => {
       uni.showLoading({ title: '上传中...', mask: true });
 
       try {
-        const uploadRes = await fileApi.uploadImage(tempFilePath);
-        if (uploadRes.code === 0) {
-          formData.value.coverImage = uploadRes.data.url;
-          selectedCoverId.value = ''; // 清除默认封面选择
-          uni.hideLoading();
-          uni.showToast({
-            title: '上传成功',
-            icon: 'success',
-            duration: 1500,
-          });
-        } else {
-          throw new Error(uploadRes.message || '上传失败');
-        }
+        const uploadRes = await fileApi.uploadFile(tempFilePath, { type: 'square' });
+        formData.value.coverImage = uploadRes.url;
+        selectedCoverId.value = ''; // 清除默认封面选择
+        uni.hideLoading();
+        uni.showToast({
+          title: '上传成功',
+          icon: 'success',
+          duration: 1500,
+        });
       } catch (error: any) {
         uni.hideLoading();
         let errorMsg = '上传失败';
@@ -212,11 +208,41 @@ const checkTopicName = async () => {
   }, 500);
 };
 
+// 立即检查话题名称（不防抖，用于提交前的最终验证）
+const checkTopicNameImmediate = async () => {
+  if (!formData.value.name.trim()) {
+    nameError.value = '';
+    return;
+  }
+
+  try {
+    const res = await searchTopics({
+      keyword: formData.value.name.trim(),
+      page: 1,
+      pageSize: 10,
+    });
+
+    if (res.code === 0) {
+      // 精确匹配检查
+      const exactMatch = res.data.list.find(
+        (topic) => topic.name === formData.value.name.trim()
+      );
+      if (exactMatch) {
+        nameError.value = '该话题名称已存在';
+      } else {
+        nameError.value = '';
+      }
+    }
+  } catch (error: any) {
+    console.error('检查话题名称失败:', error);
+  }
+};
+
 // 是否可以提交
 const canSubmit = computed(() => {
   return (
     formData.value.name.trim().length > 0 &&
-    formData.value.name.trim().length <= 100 &&
+    formData.value.name.trim().length <= 20 &&
     formData.value.coverImage.length > 0 &&
     !nameError.value
   );
@@ -226,12 +252,13 @@ const canSubmit = computed(() => {
 const handleSubmit = async () => {
   if (!canSubmit.value || submitting.value) return;
 
-  // 最后再检查一次名称
-  await checkTopicName();
+  // 最后再检查一次名称（立即检查，不防抖）
+  await checkTopicNameImmediate();
   if (nameError.value) {
     uni.showToast({
       title: nameError.value,
       icon: 'none',
+      duration: 2000,
     });
     return;
   }
@@ -251,17 +278,20 @@ const handleSubmit = async () => {
         icon: 'success',
       });
 
-      // 延迟跳转到话题详情页
+      // 延迟返回到搜索页面
       setTimeout(() => {
-        uni.navigateBack({
-          success: () => {
-            // 返回后刷新列表（通过事件总线通知）
-            uni.$emit('topic-created', res.data);
-          },
+        // 返回到搜索页面，并传递新创建的话题数据
+        uni.navigateTo({
+          url: `/pages/search/topic?newTopic=${encodeURIComponent(JSON.stringify(res.data))}`,
           fail: () => {
-            // 如果无法返回（比如直接进入创建页），则跳转到详情页
-            uni.redirectTo({
-              url: `/pages/topic/detail?id=${res.data.id}`,
+            // 如果跳转失败，尝试返回上一页
+            uni.navigateBack({
+              fail: () => {
+                // 如果无法返回，则跳转到话题详情页
+                uni.redirectTo({
+                  url: `/pages/topic/detail?id=${res.data.id}`,
+                });
+              },
             });
           },
         });
@@ -275,6 +305,8 @@ const handleSubmit = async () => {
     // 细化错误提示
     if (error.message?.includes('已存在')) {
       errorMsg = '话题名称已存在，请换一个名称';
+      // 同时设置 nameError，让输入框下方也显示错误
+      nameError.value = '该话题名称已存在';
     } else if (error.message?.includes('timeout') || error.message?.includes('超时')) {
       errorMsg = '请求超时，请检查网络后重试';
     } else if (error.message?.includes('network') || error.message?.includes('网络')) {
@@ -346,11 +378,28 @@ const handleSubmit = async () => {
 
 .form-input {
   width: 100%;
-  padding: 24rpx;
+  height: 64rpx;
+  padding: 16rpx;
   background-color: #f5f5f5;
   border-radius: 12rpx;
   font-size: 28rpx;
   color: #333;
+
+  // 修复 uni-input 组件输入问题
+  ::v-deep .uni-input-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  ::v-deep .uni-input-placeholder {
+    pointer-events: none;
+  }
+
+  ::v-deep .uni-input-input {
+    flex: 1;
+    height: auto;
+    line-height: normal;
+  }
 }
 
 .form-textarea {

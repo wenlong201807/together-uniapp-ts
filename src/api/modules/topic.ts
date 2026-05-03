@@ -64,6 +64,16 @@ export function getHotTopics(limit?: number): Promise<ApiResponse<{ list: TopicD
 }
 
 /**
+ * 获取我参与的话题
+ */
+export function getMyTopics(params?: {
+  page?: number;
+  pageSize?: number;
+}): Promise<ApiResponse<{ list: TopicDetail[]; total: number; hasMore: boolean }>> {
+  return request.get('/topics/my-follows', params);
+}
+
+/**
  * 搜索话题
  */
 export function searchTopics(params: {

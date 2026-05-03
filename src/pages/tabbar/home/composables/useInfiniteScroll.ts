@@ -48,8 +48,12 @@ export function useInfiniteScroll(options: UseInfiniteScrollOptions) {
       await onRefresh();
     } catch (error) {
       console.error('Refresh error:', error);
+      // 确保即使出错也要结束刷新状态
     } finally {
-      refreshing.value = false;
+      // 使用 setTimeout 确保刷新动画有足够时间显示
+      setTimeout(() => {
+        refreshing.value = false;
+      }, 300);
     }
   };
 

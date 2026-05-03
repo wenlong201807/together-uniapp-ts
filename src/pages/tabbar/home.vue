@@ -249,15 +249,15 @@ const {
   hasMore,
   fetchRecommendations,
   loadMore,
-  refresh,
+  refresh: refreshRecommendations,
   trackAction,
   updateCity,
 } = useRecommendation({ useMockData: false });
 
 // 无限滚动
-const { refreshing, handleScroll } = useInfiniteScroll({
+const { refreshing, handleScroll, refresh } = useInfiniteScroll({
   onLoadMore: loadMore,
-  onRefresh: refresh,
+  onRefresh: refreshRecommendations,
 });
 
 // 当前城市
@@ -367,7 +367,7 @@ const handleCitySelect = async (city: string) => {
 
   // 更新推荐流的城市筛选并刷新数据
   updateCity(city);
-  await refresh(city);
+  await refreshRecommendations(city);
 };
 
 // Banner事件
@@ -443,9 +443,19 @@ const handleTopicJoin = async (topic: any) => {
 
 // 刷新
 const handleRefresh = async () => {
-  await refresh();
-  // 清理过期缓存
-  CacheManager.clearAllExpired();
+  try {
+    await refresh();
+    // 清理过期缓存
+    CacheManager.clearAllExpired();
+  } catch (error) {
+    console.error('[Home] Refresh failed:', error);
+    // 即使失败也要确保刷新状态结束
+    uni.showToast({
+      title: '刷新失败',
+      icon: 'none',
+      duration: 2000
+    });
+  }
 };
 
 // 可视区域变化处理（用于动态优先级调整）
@@ -548,7 +558,9 @@ onUnmounted(() => {
   .scroll-container {
     flex: 1;
     height: calc(100vh - 120rpx);
-    padding: $padding-lg;
+    padding: 0 $padding-lg $padding-lg;
+    padding-top: calc(88rpx + 32rpx); // 顶部导航高度 + 32rpx 呼吸空间
+    box-sizing: border-box;
 
     .recommendation-feed {
       .section-header {
