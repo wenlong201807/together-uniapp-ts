@@ -1,28 +1,28 @@
-// 雪碧图头像基础样式
-.sprite-avatar {
-  width: 100%;
-  height: 100%;
-  background-image: url('/static/images/avatars_sprite.png');
-  background-size: 700px 700px;
-  background-repeat: no-repeat;
-  display: block;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
+// 雪碧图头像基础样式（已禁用 - 缺少 avatars_sprite.png 文件）
+// .sprite-avatar {
+//   width: 100%;
+//   height: 100%;
+//   background-image: url('/static/images/avatars_sprite.png');
+//   background-size: 700px 700px;
+//   background-repeat: no-repeat;
+//   display: block;
+//   border-radius: 50%;
+//   flex-shrink: 0;
+// }
 
-// 生成 49 个头像位置类 (7x7 网格)
+// 生成 49 个头像位置类 (7x7 网格) - 已禁用
 // 雪碧图: 700x700px, 每个头像: 100x100px
 // 使用像素值而不是百分比，确保精确定位
-@for $row from 0 through 6 {
-  @for $col from 0 through 6 {
-    $i: $row * 7 + $col + 1;
-    $x-px: $col * 100px;
-    $y-px: $row * 100px;
-    .avatar-#{$i} {
-      background-position: -#{$x-px} -#{$y-px};
-    }
-  }
-}
+// @for $row from 0 through 6 {
+//   @for $col from 0 through 6 {
+//     $i: $row * 7 + $col + 1;
+//     $x-px: $col * 100px;
+//     $y-px: $row * 100px;
+//     .avatar-#{$i} {
+//       background-position: -#{$x-px} -#{$y-px};
+//     }
+//   }
+// }
 
 // 头像选择器网格布局
 .avatar-selector {

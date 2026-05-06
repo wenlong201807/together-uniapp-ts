@@ -34,6 +34,18 @@ export default defineConfig({
     commonjsOptions: {
       include: [/socket\.io-client/, /debug/, /ms/, /node_modules/],
     },
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // 忽略 vconsole 的 eval 警告
+        if (
+          warning.code === 'EVAL' &&
+          warning.id?.includes('vconsole')
+        ) {
+          return;
+        }
+        warn(warning);
+      },
+    },
   },
   server: {
     port: Number(env.VITE_APP_PORT) || 8106,

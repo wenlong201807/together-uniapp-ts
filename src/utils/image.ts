@@ -42,7 +42,7 @@ export function ensureHttpsArray(urls: (string | undefined | null)[]): string[] 
 export function getThumbnail(url: string | undefined | null, width: number, height?: number): string {
   const httpsUrl = ensureHttps(url)
 
-  if (!httpsUrl || !httpsUrl.includes('clouddn.com')) {
+  if (!httpsUrl) {
     return httpsUrl
   }
 

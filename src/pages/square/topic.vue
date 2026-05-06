@@ -113,7 +113,7 @@
                 <image
                   v-for="(img, index) in post.images.slice(0, 3)"
                   :key="index"
-                  :src="img"
+                  v-img-proxy="img"
                   mode="aspectFill"
                   class="post-image"
                   @click.stop="previewImage(post.images, index)"

@@ -4,7 +4,7 @@
       <view class="user-info">
         <image
           class="avatar"
-          :src="user.avatar"
+          v-img-proxy="user.avatar"
           mode="aspectFill"
         />
         <view class="user-details">
@@ -32,7 +32,7 @@
         v-for="(photo, photoIndex) in user.photos.slice(0, 3)"
         :key="photoIndex"
         class="photo"
-        :src="photo"
+        v-img-proxy="photo"
         mode="aspectFill"
         style="width: 6.25rem; height: 6.25rem;"
       />

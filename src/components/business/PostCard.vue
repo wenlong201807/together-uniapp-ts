@@ -32,7 +32,7 @@
         <image
           class="post-image"
           :class="{ loaded: imageLoaded[index] }"
-          :src="img"
+          v-img-proxy="img"
           mode="aspectFill"
           :lazy-load="true"
           @load="handleImageLoad(index)"

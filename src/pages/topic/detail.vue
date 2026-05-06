@@ -83,7 +83,7 @@
           >
             <!-- 用户信息 -->
             <view class="post-header">
-              <image :src="post.user.avatar" mode="aspectFill" class="user-avatar" />
+              <image v-img-proxy="post.user.avatar" mode="aspectFill" class="user-avatar" />
               <view class="user-info">
                 <text class="user-nickname">{{ post.user.nickname }}</text>
                 <text class="post-time">{{ formatTime(post.createTime) }}</text>
@@ -98,7 +98,7 @@
               <image
                 v-for="(img, index) in post.images.slice(0, 9)"
                 :key="index"
-                :src="img"
+                v-img-proxy="img"
                 mode="aspectFill"
                 class="post-image"
                 @click.stop="handlePreviewImage(post.images, index)"

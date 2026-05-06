@@ -13,7 +13,7 @@
     <!-- 卡片头部 -->
     <view class="card-header">
       <view class="user-info">
-        <image class="avatar" :src="user.avatar" mode="aspectFill" />
+        <image class="avatar" v-img-proxy="user.avatar" mode="aspectFill" />
         <view class="user-details">
           <view class="user-name-row">
             <text class="username">{{ user.nickname }}</text>
@@ -44,7 +44,7 @@
         v-for="(photo, index) in user.photos.slice(0, 3)"
         :key="index"
         class="photo"
-        :src="photo"
+        v-img-proxy="photo"
         mode="aspectFill"
         :lazy-load="true"
       />
