@@ -295,7 +295,7 @@ const handleImageChange = (files: File[]) => {
     addLog(`    📍 Blob URL: ${url}`)
 
     if (isProxy) {
-      addLog(`    ⚡ 将通过 Cloudflare Workers 代理`)
+      addLog(`    ⚡ 检测到 HTTP URL`)
     }
   })
 
@@ -366,8 +366,7 @@ const handleUploadToQiniu = async () => {
       })
 
       if (selectedImages.value[i].isProxy) {
-        addLog(`   ⚡ 检测到 HTTP URL，将通过 Cloudflare Workers 代理`)
-        addLog(`   📍 代理 URL: https://image-proxy.zhu1573511441.workers.dev?url=${encodeURIComponent(uploadRes.url)}`)
+        addLog(`   ⚡ 检测到 HTTP URL，将自动转换为 HTTPS CDN 地址`)
       }
     }
 

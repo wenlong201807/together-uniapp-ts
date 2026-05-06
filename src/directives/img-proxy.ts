@@ -1,6 +1,6 @@
-// 图片代理指令 - 自动将 HTTP 图片 URL 转换为 HTTPS 代理 URL
+// 图片 URL 转换指令 - 自动将七牛云 URL 转换为 CDN URL
 import type { Directive } from 'vue'
-import { convertToHttpsUrl } from '@/utils/cloudflare-proxy'
+import { ensureHttps } from '@/utils/image-url'
 
 // 存储每个元素的观察器
 const observerMap = new WeakMap<HTMLElement, MutationObserver>()
@@ -11,7 +11,7 @@ const observerMap = new WeakMap<HTMLElement, MutationObserver>()
  *
  * 功能：
  * 1. 自动拦截图片 src 属性
- * 2. 将 HTTP 七牛云 URL 转换为 HTTPS 代理 URL
+ * 2. 将七牛云 URL 转换为 CDN URL
  * 3. 支持单张图片和多张图片（v-for）场景
  * 4. 兼容 uni-app 的 image 组件
  */
@@ -51,8 +51,8 @@ function updateImageSrc(el: HTMLElement, url: string) {
   console.log('[v-img-proxy] 元素标签:', el.tagName)
   console.log('[v-img-proxy] 元素类名:', el.className)
 
-  // 转换 URL
-  const httpsUrl = convertToHttpsUrl(url)
+  // 转换 URL（七牛云域名 → CDN 域名，并确保 HTTPS）
+  const httpsUrl = ensureHttps(url)
 
   console.log('[v-img-proxy] 转换后 URL:', httpsUrl)
   console.log('[v-img-proxy] 是否发生转换:', url !== httpsUrl)
