@@ -66,13 +66,15 @@ const friendsWithUnread = computed(() => {
   // 合并好友信息和会话信息
   const merged = friends.map(friend => {
     const conv = conversationMap.get(friend.friendId);
+    // friend 是 Friendship 类型，friend.friend 才是好友的用户信息
+    const friendUser = friend.friend || friend.user;
     return {
       id: friend.id,
       friendId: friend.friendId,
       userId: friend.friendId,
-      nickname: friend.user?.nickname || '未知用户',
-      avatarId: friend.user?.avatarId,
-      avatarUrl: friend.user?.avatarUrl,
+      nickname: friendUser?.nickname || '未知用户',
+      avatarId: friendUser?.avatarId,
+      avatarUrl: friendUser?.avatarUrl,
       unreadCount: conv?.unreadCount || 0,
       lastMessage: conv?.lastMessage || '',
       lastMessageTime: conv?.lastMessageTime || conv?.lastTime || '',

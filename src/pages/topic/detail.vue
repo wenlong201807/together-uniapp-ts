@@ -9,7 +9,7 @@
     <view v-else-if="topic" class="topic-detail">
       <!-- 话题头部 -->
       <view class="topic-header">
-        <image :src="topic.coverImage" mode="aspectFill" class="cover-image" />
+        <image v-img-proxy="topic.coverImage" mode="aspectFill" class="cover-image" />
         <view class="header-overlay">
           <view class="topic-info">
             <view class="topic-title-row">

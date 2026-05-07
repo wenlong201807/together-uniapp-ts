@@ -4,6 +4,11 @@ import { ensureHttps } from '@/utils/image-url'
 
 // 存储每个元素的观察器
 const observerMap = new WeakMap<HTMLElement, MutationObserver>()
+// 存储每个元素的超时定时器
+const timeoutMap = new WeakMap<HTMLElement, number>()
+
+// 是否启用调试日志
+const DEBUG = import.meta.env.DEV && true // 临时开启调试
 
 /**
  * v-img-proxy 指令
@@ -34,6 +39,13 @@ export const imgProxy: Directive = {
       observer.disconnect()
       observerMap.delete(el)
     }
+
+    // 清理超时定时器
+    const timeoutId = timeoutMap.get(el)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      timeoutMap.delete(el)
+    }
   }
 }
 
@@ -42,25 +54,29 @@ export const imgProxy: Directive = {
  */
 function updateImageSrc(el: HTMLElement, url: string) {
   if (!url) {
-    console.log('[v-img-proxy] URL 为空，跳过转换')
+    if (DEBUG) console.log('[v-img-proxy] URL 为空，跳过转换')
     return
   }
 
-  console.log('[v-img-proxy] ========== 开始处理 ==========')
-  console.log('[v-img-proxy] 原始 URL:', url)
-  console.log('[v-img-proxy] 元素标签:', el.tagName)
-  console.log('[v-img-proxy] 元素类名:', el.className)
+  if (DEBUG) {
+    console.log('[v-img-proxy] ========== 开始处理 ==========')
+    console.log('[v-img-proxy] 原始 URL:', url)
+    console.log('[v-img-proxy] 元素标签:', el.tagName)
+    console.log('[v-img-proxy] 元素类名:', el.className)
+  }
 
   // 转换 URL（七牛云域名 → CDN 域名，并确保 HTTPS）
   const httpsUrl = ensureHttps(url)
 
-  console.log('[v-img-proxy] 转换后 URL:', httpsUrl)
-  console.log('[v-img-proxy] 是否发生转换:', url !== httpsUrl)
+  if (DEBUG) {
+    console.log('[v-img-proxy] 转换后 URL:', httpsUrl)
+    console.log('[v-img-proxy] 是否发生转换:', url !== httpsUrl)
+  }
 
   // 方式1: 标准 img 标签
   if (el.tagName === 'IMG') {
     el.setAttribute('src', httpsUrl)
-    console.log('[v-img-proxy] ✅ 已设置 src 属性到 IMG 元素')
+    if (DEBUG) console.log('[v-img-proxy] ✅ 已设置 src 属性到 IMG 元素')
     return
   }
 
@@ -71,17 +87,17 @@ function updateImageSrc(el: HTMLElement, url: string) {
     const divElement = el.querySelector('div')
     if (divElement) {
       divElement.style.backgroundImage = `url("${httpsUrl}")`
-      console.log('[v-img-proxy] ✅ 已设置 background-image 到 uni-image 的 div 子元素')
+      if (DEBUG) console.log('[v-img-proxy] ✅ 已设置 background-image 到 uni-image 的 div 子元素')
     }
 
     // 同时设置 img 的 src（如果存在）
     const imgElement = el.querySelector('img')
     if (imgElement) {
       imgElement.setAttribute('src', httpsUrl)
-      console.log('[v-img-proxy] ✅ 已设置 src 属性到 uni-image 的 img 子元素')
+      if (DEBUG) console.log('[v-img-proxy] ✅ 已设置 src 属性到 uni-image 的 img 子元素')
     } else {
       // img 标签可能还未创建，使用 MutationObserver 监听
-      console.log('[v-img-proxy] img 标签尚未创建，启动 MutationObserver 监听')
+      if (DEBUG) console.log('[v-img-proxy] img 标签尚未创建，启动 MutationObserver 监听')
       setupMutationObserver(el, httpsUrl)
     }
 
@@ -91,19 +107,19 @@ function updateImageSrc(el: HTMLElement, url: string) {
   // 方式3: 查找子元素中的 uni-image
   const uniImage = el.querySelector('uni-image')
   if (uniImage) {
-    console.log('[v-img-proxy] 找到子元素 uni-image')
+    if (DEBUG) console.log('[v-img-proxy] 找到子元素 uni-image')
     const divElement = uniImage.querySelector('div')
     if (divElement) {
       divElement.style.backgroundImage = `url("${httpsUrl}")`
-      console.log('[v-img-proxy] ✅ 已设置 background-image 到子元素 uni-image > div')
+      if (DEBUG) console.log('[v-img-proxy] ✅ 已设置 background-image 到子元素 uni-image > div')
     }
 
     const imgElement = uniImage.querySelector('img')
     if (imgElement) {
       imgElement.setAttribute('src', httpsUrl)
-      console.log('[v-img-proxy] ✅ 已设置 src 属性到子元素 uni-image > img')
+      if (DEBUG) console.log('[v-img-proxy] ✅ 已设置 src 属性到子元素 uni-image > img')
     } else {
-      console.log('[v-img-proxy] img 标签尚未创建，启动 MutationObserver 监听')
+      if (DEBUG) console.log('[v-img-proxy] img 标签尚未创建，启动 MutationObserver 监听')
       setupMutationObserver(uniImage as HTMLElement, httpsUrl)
     }
 
@@ -114,29 +130,38 @@ function updateImageSrc(el: HTMLElement, url: string) {
   const imgElement = el.querySelector('img')
   if (imgElement) {
     imgElement.setAttribute('src', httpsUrl)
-    console.log('[v-img-proxy] ✅ 已设置 src 属性到子元素 img')
+    if (DEBUG) console.log('[v-img-proxy] ✅ 已设置 src 属性到子元素 img')
     return
   }
 
   // 方式5: 直接设置 src 属性（兼容其他情况）
   if (el.tagName === 'IMAGE') {
     el.setAttribute('src', httpsUrl)
-    console.log('[v-img-proxy] ✅ 已设置 src 属性到 IMAGE 元素')
+    if (DEBUG) console.log('[v-img-proxy] ✅ 已设置 src 属性到 IMAGE 元素')
     return
   }
 
-  console.warn('[v-img-proxy] ❌ 未找到合适的图片元素，无法设置 URL')
-  console.log('[v-img-proxy] 元素子节点:', Array.from(el.children).map(c => c.tagName).join(', '))
+  if (DEBUG) {
+    console.warn('[v-img-proxy] ❌ 未找到合适的图片元素，无法设置 URL')
+    console.log('[v-img-proxy] 元素子节点:', Array.from(el.children).map(c => c.tagName).join(', '))
+  }
 }
 
 /**
  * 设置 MutationObserver 监听 img 标签的创建
+ * 添加 5 秒超时机制，防止内存泄漏
  */
 function setupMutationObserver(el: HTMLElement, httpsUrl: string) {
   // 如果已经有观察器，先断开
   const existingObserver = observerMap.get(el)
   if (existingObserver) {
     existingObserver.disconnect()
+  }
+
+  // 清理旧的超时定时器
+  const existingTimeout = timeoutMap.get(el)
+  if (existingTimeout) {
+    clearTimeout(existingTimeout)
   }
 
   // 创建新的观察器
@@ -148,15 +173,26 @@ function setupMutationObserver(el: HTMLElement, httpsUrl: string) {
           if (node.nodeName === 'IMG') {
             const imgElement = node as HTMLImageElement
             imgElement.setAttribute('src', httpsUrl)
-            console.log('[v-img-proxy] 🔄 MutationObserver: 检测到新增 img 标签，已设置 src')
-            // 设置成功后断开观察器
-            observer.disconnect()
-            observerMap.delete(el)
+            if (DEBUG) console.log('[v-img-proxy] 🔄 MutationObserver: 检测到新增 img 标签，已设置 src')
+            // 设置成功后断开观察器并清理
+            cleanup()
           }
         })
       }
     }
   })
+
+  // 清理函数
+  const cleanup = () => {
+    observer.disconnect()
+    observerMap.delete(el)
+
+    const timeoutId = timeoutMap.get(el)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      timeoutMap.delete(el)
+    }
+  }
 
   // 开始观察
   observer.observe(el, {
@@ -167,7 +203,15 @@ function setupMutationObserver(el: HTMLElement, httpsUrl: string) {
   // 保存观察器引用
   observerMap.set(el, observer)
 
-  console.log('[v-img-proxy] 🔍 MutationObserver 已启动，等待 img 标签创建')
+  // 设置 5 秒超时，防止内存泄漏
+  const timeoutId = window.setTimeout(() => {
+    if (DEBUG) console.warn('[v-img-proxy] ⏱️ MutationObserver 超时（5秒），自动断开')
+    cleanup()
+  }, 5000)
+
+  timeoutMap.set(el, timeoutId)
+
+  if (DEBUG) console.log('[v-img-proxy] 🔍 MutationObserver 已启动，等待 img 标签创建（5秒超时）')
 }
 
 export default imgProxy

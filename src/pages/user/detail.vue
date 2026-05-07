@@ -572,11 +572,91 @@ const handleFollow = async () => {
 
 const handleAddFriend = async () => {
   try {
-    await friendApi.addFriend(profileStore.targetUserId)
-    uni.showToast({ title: '添加好友成功', icon: 'success' })
-    await profileStore.refreshProfile()
+    // 先检查好友状态
+    const statusRes = await friendApi.getFriendshipStatus(profileStore.targetUserId)
+    const status = statusRes.data
+    const nickname = profileStore.profile?.nickname || '该用户'
+
+    // 如果已经是好友
+    if (status.isFriend) {
+      uni.showToast({
+        title: '已经是好友了',
+        icon: 'none'
+      })
+      return
+    }
+
+    // 如果未关注
+    if (!status.isFollowing) {
+      uni.showModal({
+        title: '提示',
+        content: `请先关注 ${nickname}`,
+        confirmText: '去关注',
+        success: async (res) => {
+          if (res.confirm) {
+            await handleFollow()
+          }
+        }
+      })
+      return
+    }
+
+    // 检查聊天次数
+    const remainingChats = status.requiredChatCount - status.chatCount
+    if (remainingChats > 0) {
+      uni.showModal({
+        title: '提示',
+        content: `需要与 ${nickname} 互发 ${remainingChats} 条消息后才能添加好友`,
+        confirmText: '去聊天',
+        success: (res) => {
+          if (res.confirm) {
+            uni.navigateTo({
+              url: `/pages/chat/detail?userId=${profileStore.targetUserId}&nickname=${nickname}`
+            })
+          }
+        }
+      })
+      return
+    }
+
+    // 检查是否可以添加好友
+    if (!status.caddFriend) {
+      uni.showModal({
+           content: `添加好友需要 ${status.requiredPoints} 积分，当前积分：${status.currentPoints}`,
+        showCancel: false
+      })
+      return
+    }
+
+    // 确认添加好友
+    uni.showModal({
+      title: '添加好友',
+      content: `需要消耗 ${status.requiredPoints} 积分添加 ${nickname} 为好友`,
+      confirmText: '确认添加',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            const result = await friendApi.addFriend(profileStore.targetUserId)
+            uni.showToast({
+              title: `添加成功，消耗 ${result.data.pointsConsumed} 积分`,
+              icon: 'success'
+            })
+            await profileStore.refreshProfile()
+          } catch (error: any) {
+            uni.showToast({
+              title: error.message || '添加失败',
+              icon: 'none'
+            })
+          }
+        }
+      }
+    })
   } catch (error: any) {
-    uni.showToast({ title: error.message || '添加失败', icon: 'none' })
+    console.error('Add friend error:', error)
+    uni.showToast({
+      title: error.message || '操作失败',
+      icon: 'none'
+    })
   }
 }
 

@@ -242,22 +242,11 @@ const certImageMap = computed(() => {
   const map: Record<string, string> = {};
 
   if (!myCerts.value || myCerts.value.length === 0) {
-    if (import.meta.env.DEV) {
-      console.log('[certImageMap] myCerts为空');
-    }
     return map;
-  }
-
-  if (import.meta.env.DEV) {
-    console.log('[certImageMap] myCerts数据:', JSON.stringify(myCerts.value));
   }
 
   // 按类型分组
   const typeGroups = groupCertsByType(myCerts.value);
-
-  if (import.meta.env.DEV) {
-    console.log('[certImageMap] 分组后的数据:', JSON.stringify(typeGroups));
-  }
 
   // 为每个类型找出优先级最高的图片
   Object.keys(typeGroups).forEach((type) => {
@@ -277,25 +266,13 @@ const certImageMap = computed(() => {
 
     const imageUrl = sortedCerts[0]?.imageUrl || '';
     map[type] = imageUrl;
-
-    if (import.meta.env.DEV) {
-      console.log(`[certImageMap] 类型 ${type} 的图片URL:`, imageUrl);
-    }
   });
-
-  if (import.meta.env.DEV) {
-    console.log('[certImageMap] 最终图片映射:', JSON.stringify(map));
-  }
 
   return map;
 });
 
 const getCertImage = (code: string) => {
-  const imageUrl = certImageMap.value[code] || '';
-  if (import.meta.env.DEV) {
-    console.log(`[getCertImage] 获取类型 ${code} 的图片:`, imageUrl);
-  }
-  return imageUrl;
+  return certImageMap.value[code] || '';
 };
 
 // 使用 computed 缓存状态计算结果

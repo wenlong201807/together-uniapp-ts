@@ -31,16 +31,10 @@
       >
         <image
           class="post-image"
-          :class="{ loaded: imageLoaded[index] }"
           v-img-proxy="img"
           mode="aspectFill"
           :lazy-load="true"
-          @load="handleImageLoad(index)"
-          @error="handleImageError(index)"
         />
-        <view v-if="!imageLoaded[index]" class="image-placeholder">
-          <view class="placeholder-shimmer" />
-        </view>
       </view>
     </view>
 
@@ -98,6 +92,7 @@ import { ref, reactive, computed } from 'vue';
 import { formatTime } from '@/utils';
 import { useAuthStore } from '@/stores';
 import Avatar from '@/components/common/Avatar.vue';
+import { ensureHttps } from '@/utils/image-url';
 
 const props = defineProps<{
   post: any;
@@ -186,8 +181,13 @@ const handleShare = () => {
 };
 
 const previewImage = (index: number) => {
+  // 将所有图片 URL 转换为 CDN URL
+  const cdnUrls = (props.post.images || []).map((url: string) => {
+    return ensureHttps(url);
+  });
+
   uni.previewImage({
-    urls: props.post.images || [],
+    urls: cdnUrls,
     current: index,
   });
 };
@@ -372,12 +372,6 @@ const submitReport = () => {
     .post-image {
       width: 100%;
       height: 100%;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-
-      &.loaded {
-        opacity: 1;
-      }
     }
 
     .image-placeholder {

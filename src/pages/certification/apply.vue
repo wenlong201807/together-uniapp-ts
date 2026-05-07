@@ -7,9 +7,17 @@
       <view class="form-item">
         <text class="label">上传证件照片</text>
         <view class="upload-area" @click="chooseImage">
+          <!-- 本地预览：使用原始 blob URL -->
           <image
-            v-if="formData.localPreviewUrl || formData.imageUrl"
-            v-img-proxy="formData.localPreviewUrl || formData.imageUrl"
+            v-if="formData.localPreviewUrl"
+            :src="formData.localPreviewUrl"
+            mode="aspectFit"
+            class="preview-image"
+          />
+          <!-- 云端 URL：使用 CDN 代理 -->
+          <image
+            v-else-if="formData.imageUrl"
+            v-img-proxy="formData.imageUrl"
             mode="aspectFit"
             class="preview-image"
           />

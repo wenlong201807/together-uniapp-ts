@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(lsof *)",
+      "Bash(curl -I \"https://img.wetogether.best/proxy/square-join/12_1778059875991_i3eD0Wzz.fa70dc1f-4620-4121-85a1-9fef91ff08b1\")",
+      "Bash(grep -E \"\\\\.\\(ts|vue\\)$\")"
+    ]
+  }
+}

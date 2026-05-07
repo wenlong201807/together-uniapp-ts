@@ -157,13 +157,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore, usePointsStore } from '@/stores';
 import { getAvatarDisplay } from '@/utils/avatar';
 import { APP_CONFIG } from '@/config';
 import { useNPS } from '@/composables/useNPS';
 import NPSModal from '@/components/business/NPSModal.vue';
+import { eventBus, EVENTS } from '@/utils/event-bus';
 import '@/assets/styles/avatar.scss';
 
 const authStore = useAuthStore();
@@ -171,12 +172,33 @@ const pointsStore = usePointsStore();
 const isSigning = ref(false);
 const { npsVisible, npsTriggerType, npsTriggerScene, manualTrigger, closeNPS, onNPSSuccess } = useNPS();
 
+// 强制刷新标记，用于触发 computed 重新计算
+const avatarRefreshKey = ref(0);
+
 // 计算头像显示信息
 const avatarDisplay = computed(() => {
+  // 依赖 avatarRefreshKey 确保响应式更新
+  avatarRefreshKey.value;
   return getAvatarDisplay(
     authStore.userInfo?.avatarId,
     authStore.userInfo?.avatarUrl
   );
+});
+
+// 监听头像更新事件
+const handleAvatarUpdate = (payload: { userId: number; avatarId?: number; avatarUrl?: string }) => {
+  if (authStore.userInfo && payload.userId === authStore.userInfo.id) {
+    // 触发 computed 重新计算
+    avatarRefreshKey.value++;
+  }
+};
+
+onMounted(() => {
+  eventBus.on(EVENTS.AVATAR_UPDATED, handleAvatarUpdate);
+});
+
+onUnmounted(() => {
+  eventBus.off(EVENTS.AVATAR_UPDATED, handleAvatarUpdate);
 });
 
 onShow(() => {
