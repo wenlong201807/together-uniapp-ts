@@ -35,6 +35,7 @@
         v-for="reply in comment.replies"
         :key="reply.id"
         :comment="reply"
+        :post-id="postId"
         @reply="handleReply"
       />
       <view v-if="hasMore" class="load-more" @click="loadMoreReplies">

@@ -60,8 +60,10 @@ onMounted(async () => {
 
 const loadPostDetail = async () => {
   try {
-    // 只获取帖子详情，评论由 BilibiliComment 组件自行加载
-    // 避免重复调用 fetchComments 导致 store 状态竞争
+    // 先重置 store 中的 currentPost 和 comments，防止 BilibiliComment
+    // 用上一次访问的旧 postId 初始化，导致评论跨帖子显示
+    squareStore.currentPost = null;
+    squareStore.comments = [];
     await squareStore.fetchPost(postId.value);
   } catch (error) {
     console.error('Load post detail error:', error);

@@ -156,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAuthStore, useSquareStore } from '@/stores';
 import { useNetworkStatus } from '@/composables/useNetworkStatus';
 import { useDebounceButton } from '@/composables/useDebounce';
@@ -188,6 +188,13 @@ const isFocused = ref(false);
 const replyingComment = ref<Comment | null>(null);
 const replyingRoot = ref<Comment | null>(null);
 const expandedComments = ref<Set<number>>(new Set());
+
+// 防御性监听：postId 变化时重新加载评论，防止跨帖子显示
+watch(() => props.postId, (newPostId, oldPostId) => {
+  if (newPostId && newPostId !== oldPostId) {
+    loadComments(true);
+  }
+});
 
 // 计算属性
 const placeholder = computed(() => {
