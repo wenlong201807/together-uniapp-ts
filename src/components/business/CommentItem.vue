@@ -51,6 +51,7 @@ import type { Comment } from '@/types';
 
 interface Props {
   comment: Comment;
+  postId?: number;
 }
 
 const props = defineProps<Props>();
@@ -81,6 +82,7 @@ const loadReplies = async () => {
     const res = await squareApi.getReplies(props.comment.id, {
       page: currentPage.value,
       pageSize: 5,
+      postId: props.postId,
     });
 
     if (currentPage.value === 1) {

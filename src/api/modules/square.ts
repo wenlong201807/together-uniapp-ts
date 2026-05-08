@@ -75,7 +75,7 @@ export const squareApi = {
 
   getReplies: (
     commentId: number,
-    params?: { page?: number; pageSize?: number },
+    params?: { page?: number; pageSize?: number; postId?: number },
   ) => {
     return request.get<{ list: Comment[]; total: number }>(
       `/square/comments/${commentId}/replies`,

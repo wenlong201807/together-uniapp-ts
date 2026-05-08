@@ -320,6 +320,7 @@ const viewAllReplies = async (comment: Comment) => {
         const replies = await squareStore.getReplies(comment.id, {
           page: 1,
           pageSize: comment.replyCount || 20,
+          postId: props.postId,
         });
 
         comment.replies = replies;
@@ -439,7 +440,7 @@ const loadMore = async () => {
 
 // 初始化
 onMounted(async () => {
-  await loadComments();
+  await loadComments(true);
 });
 </script>
 

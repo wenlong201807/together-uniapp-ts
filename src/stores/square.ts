@@ -53,6 +53,8 @@ export const useSquareStore = defineStore('square', () => {
     postId: number,
     params?: { page?: number; pageSize?: number; sort?: 'time' | 'hot' },
   ) => {
+    // 切换帖子时先清空评论，避免显示旧帖子的评论
+    comments.value = [];
     const res = await squareApi.getComments(postId, params);
     comments.value = res.data.list;
     return res.data;
