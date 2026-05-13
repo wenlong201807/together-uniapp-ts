@@ -1,0 +1,131 @@
+<template>
+  <view class="horizontal-topic-card" @click="handleClick">
+    <view class="cover-wrapper">
+      <image
+        v-if="coverUrl"
+        class="cover"
+        v-img-proxy="coverUrl"
+        mode="aspectFill"
+      />
+      <view v-else class="cover-placeholder">
+        <text class="placeholder-icon">💬</text>
+      </view>
+    </view>
+    <view class="topic-info">
+      <text class="topic-name">{{ topic.name }}</text>
+      <text class="topic-stats">{{ formatCount(topic.participantCount) }}人参与</text>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+
+interface Topic {
+  id: number;
+  name: string;
+  description?: string;
+  participantCount: number;
+  postCount: number;
+  coverImage?: string;
+  coverImages?: string[];
+}
+
+interface Props {
+  topic: Topic;
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  click: [topic: Topic];
+}>();
+
+const coverUrl = computed(() => {
+  if (props.topic.coverImages && props.topic.coverImages.length > 0) {
+    return props.topic.coverImages[0];
+  }
+  return props.topic.coverImage || '';
+});
+
+const formatCount = (count?: number): string => {
+  if (!count && count !== 0) return '0';
+  if (count >= 10000) return `${(count / 10000).toFixed(1)}w`;
+  return count.toString();
+};
+
+const handleClick = () => {
+  emit('click', props.topic);
+};
+</script>
+
+<style scoped lang="scss">
+@use '@/assets/styles/design-tokens.scss' as *;
+
+.horizontal-topic-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 240rpx;
+  flex-shrink: 0;
+  padding: $padding-md;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.04), rgba(118, 75, 162, 0.04));
+  border-radius: $radius-lg;
+  border: 2rpx solid rgba(102, 126, 234, 0.12);
+  transition: transform 0.2s;
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  .cover-wrapper {
+    width: 160rpx;
+    height: 160rpx;
+    border-radius: $radius-md;
+    overflow: hidden;
+    margin-bottom: $margin-sm;
+
+    .cover {
+      width: 100%;
+      height: 100%;
+    }
+
+    .cover-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(102, 126, 234, 0.1);
+
+      .placeholder-icon {
+        font-size: 64rpx;
+      }
+    }
+  }
+
+  .topic-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+
+    .topic-name {
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      color: $text-primary;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: center;
+      margin-bottom: 4rpx;
+    }
+
+    .topic-stats {
+      font-size: $font-size-xs;
+      color: $text-tertiary;
+    }
+  }
+}
+</style>

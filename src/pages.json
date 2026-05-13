@@ -9,20 +9,21 @@
     {
       "path": "pages/auth/login",
       "style": {
-        "navigationBarTitleText": "登录"
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/auth/register",
       "style": {
-        "navigationBarTitleText": "注册"
+        "navigationBarTitleText": "注册",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/auth/forgot-password",
-      "style": {
-        "navigationBarTitleText": "忘记密码"
-      }
+      "navigationBarTitleText": "忘记密码",
+      "navigationStyle": "custom"
     },
     {
       "path": "pages/tabbar/home",
@@ -51,200 +52,232 @@
     {
       "path": "pages/chat/list",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "聊天列表"
       }
     },
     {
       "path": "pages/chat/detail",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "聊天详情"
       }
     },
     {
       "path": "pages/friend/list",
-      "style": {
+      "style": {  
+        "navigationStyle": "custom",
         "navigationBarTitleText": "好友列表"
       }
     },
     {
       "path": "pages/friend/following",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "关注列表"
       }
     },
     {
       "path": "pages/friend/followers",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "粉丝列表"
       }
     },
     {
       "path": "pages/friend/blacklist",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "黑名单"
       }
     },
     {
       "path": "pages/square/index",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "广场"
       }
     },
     {
       "path": "pages/square/post",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "帖子详情"
       }
     },
     {
       "path": "pages/square/publish",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "发布帖子"
       }
     },
     {
       "path": "pages/square/topic",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "话题详情"
       }
     },
     {
       "path": "pages/search/topic",
       "style": {
-        "navigationBarTitleText": "搜索话题",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "搜索话题"
       }
     },
     {
       "path": "pages/topic/list",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "话题列表"
       }
     },
     {
       "path": "pages/topic/detail",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "话题详情"
       }
     },
     {
       "path": "pages/topic/create",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "创建话题"
       }
     },
     {
       "path": "pages/user/profile",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "个人资料"
       }
     },
     {
       "path": "pages/user/detail",
-      "style": {
+      "style": {  
+        "navigationStyle": "custom",
         "navigationBarTitleText": "用户详情"
       }
     },
     {
       "path": "pages/user/settings",
-      "style": {
+      "style": {  
+        "navigationStyle": "custom",
         "navigationBarTitleText": "设置"
       }
     },
     {
       "path": "pages/points/index",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "积分明细"
       }
     },
     {
       "path": "pages/certification/index",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "认证中心"
       }
     },
     {
       "path": "pages/certification/apply",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "认证申请"
       }
     },
     {
       "path": "pages/mbti/intro",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "MBTI测试"
       }
     },
     {
       "path": "pages/mbti/test",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "答题中"
       }
     },
     {
       "path": "pages/mbti/result",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "测试结果"
       }
     },
     {
       "path": "pages/profile/edit",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "编辑资料"
       }
     },
     {
       "path": "pages/profile/edit-section",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "编辑资料"
       }
     },
     {
       "path": "pages/profile/interests",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "兴趣管理"
       }
     },
     {
       "path": "pages/profile/photos",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "照片管理"
-      }
-    },
-    {
-      "path": "pages/test/image-upload",
-      "style": {
-        "navigationBarTitleText": "H5 图片上传测试"
       }
     },
     {
       "path": "pages/profile/mate-preferences",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "择偶要求"
       }
     },
     {
       "path": "pages/profile/privacy",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "隐私设置"
       }
     },
     {
       "path": "pages/profile/values",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "价值观问答"
       }
     },
     {
       "path": "pages/profile/certification",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "认证申请"
       }
     },
     {
       "path": "pages/nearby/index",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "附近的人"
+      }
+    },
+    {
+      "path": "pages/recommend/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "推荐列表"
       }
     }
   ],

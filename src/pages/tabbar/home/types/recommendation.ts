@@ -22,10 +22,12 @@ export interface UserData {
 export interface TopicData {
   id: number;
   title: string;
+  name?: string; // alias: some API responses use 'name' instead of 'title'
   description?: string;
   participantCount: number;
   postCount: number;
   coverImages?: string[];
+  coverImage?: string;
 }
 
 /**
