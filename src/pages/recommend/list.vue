@@ -16,23 +16,6 @@
       </view>
     </scroll-view>
 
-    <!-- Search Bar -->
-    <view class="search-bar">
-      <view class="search-input-wrapper">
-        <text class="search-icon">🔍</text>
-        <input
-          class="search-input"
-          v-model="searchKeyword"
-          :placeholder="searchPlaceholder"
-          confirm-type="search"
-          @confirm="handleSearch"
-        />
-        <view v-if="searchKeyword" class="search-clear" @click="clearSearch">
-          <text class="clear-icon">✕</text>
-        </view>
-      </view>
-    </view>
-
     <!-- Content List -->
     <scroll-view
       class="content-scroll"
@@ -45,7 +28,7 @@
       <!-- Empty State -->
       <view v-if="!loading && items.length === 0" class="empty-state">
         <text class="empty-icon">📭</text>
-        <text class="empty-text">{{ searchKeyword ? '未找到相关内容' : '暂无数据' }}</text>
+        <text class="empty-text">暂无数据</text>
       </view>
 
       <!-- List Items -->
@@ -117,9 +100,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { getRecommendationFeed } from '@/api/home';
-import { getTopics, searchTopics } from '@/api/modules/topic';
+import { getTopics } from '@/api/modules/topic';
 import { getNearbyUsers } from '@/api/modules/nearby';
 import RecommendationCard from '@/pages/tabbar/home/components/RecommendationCard.vue';
 import HotCard from '@/pages/tabbar/home/components/HotCard.vue';
@@ -148,7 +131,6 @@ const tabs: TabConfig[] = [
 
 // State
 const activeType = ref<string>('');
-const searchKeyword = ref('');
 const items = ref<RecommendationItem[]>([]);
 const loading = ref(false);
 const refreshing = ref(false);
@@ -157,20 +139,10 @@ const currentPage = ref(1);
 const cursor = ref<string | undefined>(undefined);
 const pageSize = 20;
 
-// Search placeholder based on active type
-const searchPlaceholder = computed(() => {
-  switch (activeType.value) {
-    case 'topic': return '搜索话题';
-    case 'nearby': return '搜索附近的人';
-    default: return '搜索用户、话题';
-  }
-});
-
 // Switch tab
 const switchTab = (type: string) => {
   if (activeType.value === type) return;
   activeType.value = type;
-  searchKeyword.value = '';
   resetAndFetch();
 };
 
@@ -192,34 +164,7 @@ const fetchData = async (page: number) => {
     let newItems: RecommendationItem[] = [];
     const type = activeType.value as RecommendationType;
 
-    if (type === 'topic' && searchKeyword.value) {
-      // Search topics
-      const res = await searchTopics({
-        keyword: searchKeyword.value,
-        page,
-        pageSize,
-      });
-      if (res.code === 0 && res.data) {
-        newItems = (res.data.list || []).map((t: TopicDetail) => ({
-          id: `topic-${t.id}`,
-          type: 'topic' as RecommendationType,
-          data: {
-            type: 'topic',
-            topic: {
-              id: t.id,
-              title: t.name,
-              name: t.name,
-              description: t.description,
-              participantCount: t.participantCount,
-              postCount: t.postCount,
-              coverImage: t.coverImage,
-              coverImages: t.coverImages,
-            },
-          },
-        }));
-        hasMore.value = res.data.hasMore;
-      }
-    } else if (type === 'topic') {
+    if (type === 'topic') {
       // List topics
       const res = await getTopics({ page, pageSize });
       if (res.code === 0 && res.data) {
@@ -298,14 +243,20 @@ const fetchData = async (page: number) => {
   }
 };
 
-// Pull-down refresh
+// Pull-down refresh - restore to initial state
 const handleRefresh = async () => {
   refreshing.value = true;
+
+  // Reset all state to initial
   currentPage.value = 1;
   hasMore.value = true;
   cursor.value = undefined;
+  items.value = [];
+
   try {
     await fetchData(1);
+  } catch (error) {
+    console.error('[RecommendList] Refresh error:', error);
   } finally {
     setTimeout(() => {
       refreshing.value = false;
@@ -317,17 +268,6 @@ const handleRefresh = async () => {
 const handleLoadMore = () => {
   if (!hasMore.value || loading.value) return;
   fetchData(currentPage.value + 1);
-};
-
-// Search
-const handleSearch = () => {
-  resetAndFetch();
-};
-
-// Clear search
-const clearSearch = () => {
-  searchKeyword.value = '';
-  resetAndFetch();
 };
 
 // Card click handlers
@@ -380,10 +320,15 @@ onMounted(() => {
   background: $bg-secondary;
 
   .tabs-scroll {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     width: 100%;
     white-space: nowrap;
     background: $bg-primary;
     border-bottom: 1rpx solid rgba(0, 0, 0, 0.06);
+    z-index: 100;
 
     .tabs {
       display: flex;
@@ -425,42 +370,9 @@ onMounted(() => {
     }
   }
 
-  .search-bar {
-    padding: $padding-sm $padding-md;
-    background: $bg-primary;
-
-    .search-input-wrapper {
-      display: flex;
-      align-items: center;
-      background: $bg-secondary;
-      border-radius: $radius-full;
-      padding: 12rpx 24rpx;
-
-      .search-icon {
-        font-size: 28rpx;
-        margin-right: $margin-xs;
-      }
-
-      .search-input {
-        flex: 1;
-        font-size: $font-size-base;
-        color: $text-primary;
-        background: transparent;
-      }
-
-      .search-clear {
-        padding: 4rpx 12rpx;
-
-        .clear-icon {
-          font-size: $font-size-sm;
-          color: $text-tertiary;
-        }
-      }
-    }
-  }
-
   .content-scroll {
     flex: 1;
+    margin-top: 100rpx;
     padding: 0 $padding-md;
 
     .list-item {
