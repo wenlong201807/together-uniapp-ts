@@ -66,13 +66,27 @@ class WebSocketManager {
     }
 
     // 使用 Socket.IO 客户端连接
-    // wsURL 格式: ws://host:port 或 http://host:port
-    // path 选项指定 Socket.IO 服务器路径（完整路径，包含 /socket.io）
-    const wsUrl = API_CONFIG.wsURL.replace('/api/v1/ws', '')
-    logger.log('WebSocket: Connecting to', wsUrl, 'path: /api/v1/ws/socket.io')
+    // wsURL 支持两种格式：
+    //   1) ws://host:port/api/v1/ws → 替换后 baseUrl=ws://host:port, path=/api/v1/ws/socket.io
+    //   2) wss://host/ws              → 替换后 baseUrl=wss://host,     path=/ws/socket.io (Nginx 重写 /ws/ → /api/v1/ws/)
+    let wsBaseUrl = API_CONFIG.wsURL
+    let socketPath = '/api/v1/ws/socket.io'
 
-    this.socket = io(wsUrl, {
-      path: '/api/v1/ws/socket.io',  // 修复：完整的 Socket.IO 路径
+    // 优先匹配 /api/v1/ws 格式（本地开发环境）
+    if (wsBaseUrl.endsWith('/api/v1/ws')) {
+      wsBaseUrl = wsBaseUrl.replace('/api/v1/ws', '')
+      socketPath = '/api/v1/ws/socket.io'
+    }
+    // 其次匹配 /ws 格式（staging/production 通过 Nginx 代理）
+    else if (wsBaseUrl.endsWith('/ws')) {
+      wsBaseUrl = wsBaseUrl.slice(0, -3) // 去掉末尾 /ws
+      socketPath = '/ws/socket.io'
+    }
+
+    logger.log('WebSocket: Connecting to', wsBaseUrl, 'path:', socketPath)
+
+    this.socket = io(wsBaseUrl, {
+      path: socketPath,
       auth: {
         token: token
       },
