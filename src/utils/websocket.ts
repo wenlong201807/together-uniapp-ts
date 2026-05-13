@@ -66,9 +66,6 @@ class WebSocketManager {
     }
 
     // 使用 Socket.IO 客户端连接
-    // wsURL 支持两种格式：
-    //   1) ws://host:port/api/v1/ws → 替换后 baseUrl=ws://host:port, path=/api/v1/ws/socket.io
-    //   2) wss://host/ws              → 替换后 baseUrl=wss://host,     path=/ws/socket.io (Nginx 重写 /ws/ → /api/v1/ws/)
     let wsBaseUrl = API_CONFIG.wsURL
     let socketPath = '/api/v1/ws/socket.io'
 
@@ -77,7 +74,7 @@ class WebSocketManager {
       wsBaseUrl = wsBaseUrl.replace('/api/v1/ws', '')
       socketPath = '/api/v1/ws/socket.io'
     }
-    // 其次匹配 /ws 格式（staging/production 通过 Nginx 代理）
+    // 其次匹配 /ws 格式（需要 Nginx rewrite /ws/ → /api/v1/ws/ 支持）
     else if (wsBaseUrl.endsWith('/ws')) {
       wsBaseUrl = wsBaseUrl.slice(0, -3) // 去掉末尾 /ws
       socketPath = '/ws/socket.io'
