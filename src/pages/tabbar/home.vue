@@ -2,13 +2,15 @@
   <view class="home-container">
     <!-- 顶部导航 -->
     <TopNavigation
-      ref="topNavRef"
       :city="currentCity"
       :unread-count="unreadCount"
       @location-click="handleLocationClick"
       @search-click="handleSearchClick"
       @message-click="handleMessageClick"
     />
+
+    <!-- 顶部导航占位（fixed导航不在文档流中，需要占位避免内容被遮挡） -->
+    <view class="nav-placeholder" />
 
     <!-- 滚动容器 -->
     <scroll-view
@@ -17,7 +19,9 @@
       :refresher-enabled="true"
       :refresher-triggered="refreshing"
       @refresherrefresh="handleRefresh"
+      @refresherrestore="handleRefresherRestore"
     >
+
       <!-- 快速入口 -->
       <QuickActions
         :actions="quickActions"
@@ -89,12 +93,13 @@ import GuideOverlay from '@/components/GuideOverlay.vue';
 import { useNPS, NPSScene } from '@/composables/useNPS';
 import { useGuide } from '@/composables/useGuide';
 import { useHomeSections, SECTION_CONFIGS } from './home/composables/useHomeSections';
-import { initImageLoader, cleanupImageLoader, getGlobalPerformanceMonitor } from '@/utils/imageLoader/index';
+import { initImageLoader, cleanupImageLoader } from '@/utils/imageLoader/index';
 import { CacheManager, CACHE_KEYS, CACHE_EXPIRE_TIME } from '@/utils/cache';
 import { getBanners } from '@/api/home';
 import type { Banner } from './home/components/BannerCarousel.vue';
 import type { QuickAction } from './home/components/QuickActions.vue';
 import type { GuideConfig } from '@/types/guide';
+import { isTopicItem } from './home/types/recommendation';
 import type { RecommendationItem, RecommendationType } from './home/types/recommendation';
 
 const { npsVisible, npsTriggerType, npsTriggerScene, checkAndTrigger, closeNPS, onNPSSuccess } = useNPS();
@@ -106,7 +111,6 @@ const {
   sectionLoading: homeSectionLoading,
   fetchAllSections,
   refresh: refreshSections,
-  updateCity: updateSectionsCity,
 } = useHomeSections();
 
 // 首页引导配置
@@ -139,35 +143,35 @@ const homeGuideConfig: GuideConfig = {
   ],
 };
 
-// 初始化图片加载器（副作用初始化，启动内存监控和性能统计）
+// 初始化图片加载器（模块级标志，组件卸载时重置以便重新挂载时可以重新初始化）
 let imageLoaderInitialized = false;
 
-// 获取性能监控器
-const performanceMonitor = getGlobalPerformanceMonitor();
-
-// 组件引用
-const topNavRef = ref();
+// 组件引用（预留）
+// const topNavRef = ref();
 
 // 刷新状态
 const refreshing = ref(false);
 
-// 当前城市
-const currentCity = ref('定位中...');
+// 是否正在加载数据（防止重复加载，含初始加载和下拉刷新）
+const isLoadingData = ref(false);
+
+// 当前城市（直接从缓存读取，避免 '定位中...' 闪烁）
+const currentCity = ref(uni.getStorageSync('selectedCity') || '全国');
 
 // 城市选择弹窗
 const showCitySelector = ref(false);
 
 // 未读消息数
+// TODO: 接入消息 WebSocket 或轮询更新未读数
 const unreadCount = ref(0);
 
 // Banner数据
 const banners = ref<Banner[]>([]);
 
 let cleanupTimer: number | null = null;
-let perfTimer: number | null = null;
 
-// 快速入口
-const quickActions = ref<QuickAction[]>([
+// 快速入口（静态配置，无需响应式）
+const quickActions: QuickAction[] = [
   {
     id: 'publish',
     icon: '📝',
@@ -204,25 +208,27 @@ const quickActions = ref<QuickAction[]>([
       uni.navigateTo({ url: '/pages/nearby/index' });
     },
   },
-]);
+];
 
 // 加载 Banner
-const loadBanners = async () => {
+const loadBanners = async (forceRefresh = false) => {
   try {
-    // 先从缓存读取
-    const memoryCache = CacheManager.getMemoryCache();
-    const cachedBanners = memoryCache.get<Banner[]>(CACHE_KEYS.BANNERS);
-
-    if (cachedBanners && cachedBanners.length > 0) {
-      banners.value = cachedBanners;
-      return;
+    // 先从缓存读取（非强制刷新时）
+    if (!forceRefresh) {
+      const memoryCache = CacheManager.getMemoryCache();
+      const cachedBanners = memoryCache.get<Banner[]>(CACHE_KEYS.BANNERS);
+      if (cachedBanners && cachedBanners.length > 0) {
+        banners.value = cachedBanners;
+        return;
+      }
     }
 
-    // 缓存未命中，调用API
+    // 缓存未命中或强制刷新，调用API
     const response = await getBanners();
     if (response.code === 0 && response.data && response.data.length > 0) {
       banners.value = response.data;
       // 缓存数据
+      const memoryCache = CacheManager.getMemoryCache();
       memoryCache.set(CACHE_KEYS.BANNERS, response.data, CACHE_EXPIRE_TIME.BANNERS);
     }
   } catch (error) {
@@ -232,17 +238,14 @@ const loadBanners = async () => {
 
 // 顶部导航事件
 const handleLocationClick = () => {
-  console.log('Location clicked');
   showCitySelector.value = true;
 };
 
 const handleSearchClick = () => {
-  console.log('Search clicked');
   uni.navigateTo({ url: '/pages/search/topic' });
 };
 
 const handleMessageClick = () => {
-  console.log('Message clicked');
   uni.navigateTo({ url: '/pages/chat/list' });
 };
 
@@ -250,23 +253,22 @@ const handleMessageClick = () => {
 const handleCitySelect = async (city: string) => {
   currentCity.value = city;
   uni.setStorageSync('selectedCity', city);
-  updateSectionsCity(city);
+  // refreshSections(city) 内部已包含 updateCity 逻辑，无需重复调用
   await refreshSections(city);
 };
 
 // Banner事件
-const handleBannerClick = (banner: Banner) => {
-  console.log('Banner clicked:', banner);
+const handleBannerClick = (_banner: Banner) => {
+  // TODO: 根据 banner 配置跳转到对应页面
 };
 
 // 快速入口事件
 const handleActionClick = (action: QuickAction) => {
-  console.log('Action clicked:', action);
+  action.handler?.();
 };
 
 // 横向分区 "查看更多" 事件
 const handleSectionMore = (type: RecommendationType) => {
-  console.log('Section more:', type);
   uni.navigateTo({
     url: `/pages/recommend/list?type=${type}`,
   });
@@ -274,109 +276,102 @@ const handleSectionMore = (type: RecommendationType) => {
 
 // 横向分区卡片点击事件
 const handleSectionItemClick = (item: RecommendationItem) => {
-  console.log('Section item clicked:', item);
-  if (item.type === 'topic') {
-    const topicData = (item.data as any).topic;
+  if (isTopicItem(item)) {
+    const topicData = item.data.topic;
     if (topicData) {
       uni.navigateTo({ url: `/pages/square/topic?id=${topicData.id}` });
     }
-  } else {
-    const userData = (item.data as any).user;
+  } else if ('user' in item.data) {
+    const userData = item.data.user;
     if (userData) {
       uni.navigateTo({ url: `/pages/user/detail?id=${userData.id}` });
     }
   }
 };
 
+// 滚动复位事件
+const handleRefresherRestore = () => {
+  refreshing.value = false;
+};
+
 // 刷新
 const handleRefresh = async () => {
+  if (isLoadingData.value) return;
+  isLoadingData.value = true;
   try {
     refreshing.value = true;
     await Promise.all([
-      loadBanners(),
+      loadBanners(true),
       refreshSections(),
     ]);
     CacheManager.clearAllExpired();
   } catch (error) {
-    console.error('[Home] Refresh failed:', error);
+    // 静默处理刷新失败，避免控制台输出
     uni.showToast({
       title: '刷新失败',
       icon: 'none',
       duration: 2000,
     });
   } finally {
-    setTimeout(() => {
-      refreshing.value = false;
-    }, 300);
+    refreshing.value = false;
+    isLoadingData.value = false;
   }
 };
 
 // 初始化
 onMounted(async () => {
-  // 清理旧的离线缓存数据
+  // 防止初始加载与下拉刷新并发竞争
+  if (isLoadingData.value) return;
+  isLoadingData.value = true;
+
   try {
-    const cacheKeys = uni.getStorageInfoSync().keys || [];
-    const imageCacheKeys = cacheKeys.filter(key => key.startsWith('img_cache_'));
-    imageCacheKeys.forEach(key => {
-      uni.removeStorageSync(key);
-    });
-    if (imageCacheKeys.length > 0) {
-      console.log(`[Home] Cleared ${imageCacheKeys.length} offline image cache items`);
+    // 清理旧的离线缓存数据
+    try {
+      const cacheKeys = uni.getStorageInfoSync().keys || [];
+      const imageCacheKeys = cacheKeys.filter(key => key.startsWith('img_cache_'));
+      imageCacheKeys.forEach(key => {
+        uni.removeStorageSync(key);
+      });
+    } catch {
+      // 缓存清理失败不影响主流程
     }
-  } catch (error) {
-    console.warn('[Home] Failed to clear offline cache:', error);
-  }
 
-  // 初始化图片加载器（异步）
-  if (!imageLoaderInitialized) {
-    await initImageLoader({
-      maxConcurrent: 3,
-      maxCacheSize: 50,
-      memoryThreshold: 30 * 1024 * 1024,
-      enableMonitoring: true,
-      enableOfflineCache: false,
-    });
-    imageLoaderInitialized = true;
-  }
-
-  // 获取保存的城市或使用默认值"全国"
-  const savedCity = uni.getStorageSync('selectedCity');
-  currentCity.value = savedCity || '全国';
-
-  // 并行加载数据
-  const results = await Promise.allSettled([
-    loadBanners(),
-    fetchAllSections(),
-  ]);
-
-  // 检查加载结果
-  results.forEach((result, index) => {
-    if (result.status === 'rejected') {
-      console.error(`数据加载失败 [${index}]:`, result.reason);
+    // 初始化图片加载器（异步）
+    if (!imageLoaderInitialized) {
+      await initImageLoader({
+        maxConcurrent: 3,
+        maxCacheSize: 50,
+        memoryThreshold: 30 * 1024 * 1024,
+        enableMonitoring: true,
+        enableOfflineCache: false,
+      });
+      imageLoaderInitialized = true;
     }
-  });
 
-  // 检查并触发NPS
-  checkAndTrigger({
-    scene: NPSScene.PERIODIC,
-    delay: 3000,
-  });
+    // 并行加载数据
+    await Promise.allSettled([
+      loadBanners(),
+      fetchAllSections(),
+    ]);
 
-  // 启动首页引导
-  setTimeout(() => {
-    startGuide(homeGuideConfig);
-  }, 1000);
+    // 检查并触发NPS
+    checkAndTrigger({
+      scene: NPSScene.PERIODIC,
+      delay: 3000,
+    });
 
-  // 定期清理过期缓存
-  cleanupTimer = setInterval(() => {
-    CacheManager.clearAllExpired();
-  }, 10 * 60 * 1000) as unknown as number;
+    // 启动首页引导
+    setTimeout(() => {
+      startGuide(homeGuideConfig);
+    }, 1000);
 
-  // 定期上报性能数据（每5分钟）
-  perfTimer = setInterval(() => {
-    const metrics = performanceMonitor.getMetrics();
-    console.log('[Performance] Metrics:', performanceMonitor.generateReport());
-  }, 5 * 60 * 1000);
+    // 定期清理过期缓存
+    cleanupTimer = setInterval(() => {
+      CacheManager.clearAllExpired();
+    }, 10 * 60 * 1000) as unknown as number;
+  } finally {
+    isLoadingData.value = false;
+  }
 });
 
 // 组件卸载时清理定时器和图片加载器
@@ -385,11 +380,9 @@ onUnmounted(() => {
     clearInterval(cleanupTimer);
     cleanupTimer = null;
   }
-  if (perfTimer) {
-    clearInterval(perfTimer);
-    perfTimer = null;
-  }
   cleanupImageLoader();
+  // 重置模块级标志，确保组件重新挂载时可以重新初始化图片加载器
+  imageLoaderInitialized = false;
 });
 </script>
 
@@ -402,11 +395,18 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
 
+  // 占位：为 fixed 导航留出空间，确保 scroll-container 不被遮挡
+  .nav-placeholder {
+    height: calc(88rpx + 32rpx); // 导航高度 + 呼吸空间
+    flex-shrink: 0;
+  }
+
   .scroll-container {
     flex: 1;
-    height: calc(100vh - 120rpx);
+    // scroll-view 需要显式固定高度，这里用 100vh 减去导航占位和底部 tabbar
+    // nav-placeholder: 88rpx + 32rpx = 120rpx, tabbar: 120rpx
+    height: calc(100vh - 120rpx - 120rpx);
     padding: 0 $padding-lg $padding-lg;
-    padding-top: calc(88rpx + 32rpx); // 顶部导航高度 + 32rpx 呼吸空间
     box-sizing: border-box;
 
     .recommendation-sections {

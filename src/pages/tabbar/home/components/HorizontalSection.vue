@@ -29,30 +29,30 @@
           <!-- Topic type uses HorizontalTopicCard -->
           <template v-if="type === 'topic'">
             <HorizontalTopicCard
-              v-for="item in items"
-              :key="item.id"
-              :topic="(item.data as any).topic || item.data"
-              @click="handleItemClick($event, item)"
+              v-for="card in topicCards"
+              :key="card.id"
+              :topic="card.topic"
+              @click="handleItemClick($event, card.item)"
             />
           </template>
 
           <!-- Other types use HorizontalUserCard -->
           <template v-else>
             <HorizontalUserCard
-              v-for="item in items"
-              :key="item.id"
-              :user="(item.data as any).user || item.data"
-              :distance="(item.data as any).distance"
-              :join-days="(item.data as any).joinDays"
+              v-for="card in userCards"
+              :key="card.id"
+              :user="card.user"
+              :distance="card.distance"
+              :join-days="card.joinDays"
               :badge="cardBadge"
               :badge-color="badgeColor"
-              @click="handleItemClick($event, item)"
+              @click="handleItemClick($event, card.item)"
             />
           </template>
 
-          <!-- Empty placeholder when items < 5 -->
+          <!-- Empty placeholder -->
           <view
-            v-if="items.length === 0 && !loading"
+            v-if="items.length === 0"
             class="empty-card"
           >
             <text class="empty-text">暂无数据</text>
@@ -67,7 +67,8 @@
 import { computed } from 'vue';
 import HorizontalUserCard from './HorizontalUserCard.vue';
 import HorizontalTopicCard from './HorizontalTopicCard.vue';
-import type { RecommendationItem, RecommendationType } from '../types/recommendation';
+import { isTopicItem } from '../types/recommendation';
+import type { RecommendationItem, RecommendationType, TopicData, UserData } from '../types/recommendation';
 
 interface Props {
   title: string;
@@ -100,6 +101,43 @@ const colorMap: Record<string, string> = {
   nearby: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   new: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
 };
+
+// 类型安全的数据提取 + computed 缓存，避免每次渲染创建新对象导致子组件无意义重渲染
+const topicCards = computed(() => {
+  if (props.type !== 'topic') return [];
+  return props.items.map(item => {
+    // 利用类型守卫安全提取 topic 数据
+    const topic = isTopicItem(item) ? item.data.topic : (item.data as unknown as { topic: TopicData }).topic;
+    return {
+      id: item.id,
+      item,
+      topic: {
+        id: topic.id,
+        name: topic.name || topic.title || '',
+        description: topic.description,
+        participantCount: topic.participantCount || 0,
+        postCount: topic.postCount || 0,
+        coverImage: topic.coverImage,
+        coverImages: topic.coverImages,
+      },
+    };
+  });
+});
+
+const userCards = computed(() => {
+  if (props.type === 'topic') return [];
+  return props.items.map(item => {
+    // 所有非 topic 类型都有 user 字段
+    const data = item.data as { user?: UserData; distance?: string; joinDays?: number };
+    return {
+      id: item.id,
+      item,
+      user: data.user || ({} as UserData),
+      distance: data.distance,
+      joinDays: data.joinDays,
+    };
+  });
+});
 
 const cardBadge = computed(() => badgeMap[props.type]);
 const badgeColor = computed(() => colorMap[props.type] || colorMap.personalized);

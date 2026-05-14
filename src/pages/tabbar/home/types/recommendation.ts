@@ -80,8 +80,7 @@ export type RecommendationData =
   | { type: 'hot'; user: UserData; hotScore: HotContentData['hotScore'] }
   | { type: 'nearby'; user: UserData; distance: string }
   | { type: 'topic'; topic: TopicData }
-  | { type: 'new'; user: UserData; joinDays: number }
-  | { type: 'footer' };
+  | { type: 'new'; user: UserData; joinDays: number };
 
 /**
  * 推荐项类型
@@ -89,37 +88,34 @@ export type RecommendationData =
 export type RecommendationType = RecommendationData['type'];
 
 /**
- * 推荐项接口
+ * 推荐项类型（discriminated union，支持 TypeScript 自动类型窄化）
  */
-export interface RecommendationItem<T extends RecommendationType = RecommendationType> {
-  id: string;
-  type: T;
-  data: Extract<RecommendationData, { type: T }>;
-}
+export type RecommendationItem =
+  | { id: string; type: 'personalized'; data: { type: 'personalized'; user: UserData } }
+  | { id: string; type: 'hot'; data: { type: 'hot'; user: UserData; hotScore: HotContentData['hotScore'] } }
+  | { id: string; type: 'nearby'; data: { type: 'nearby'; user: UserData; distance: string } }
+  | { id: string; type: 'topic'; data: { type: 'topic'; topic: TopicData } }
+  | { id: string; type: 'new'; data: { type: 'new'; user: UserData; joinDays: number } };
 
 /**
  * 类型守卫函数
  */
-export function isPersonalizedItem(item: RecommendationItem): item is RecommendationItem<'personalized'> {
+export function isPersonalizedItem(item: RecommendationItem): item is Extract<RecommendationItem, { type: 'personalized' }> {
   return item.type === 'personalized';
 }
 
-export function isHotItem(item: RecommendationItem): item is RecommendationItem<'hot'> {
+export function isHotItem(item: RecommendationItem): item is Extract<RecommendationItem, { type: 'hot' }> {
   return item.type === 'hot';
 }
 
-export function isNearbyItem(item: RecommendationItem): item is RecommendationItem<'nearby'> {
+export function isNearbyItem(item: RecommendationItem): item is Extract<RecommendationItem, { type: 'nearby' }> {
   return item.type === 'nearby';
 }
 
-export function isTopicItem(item: RecommendationItem): item is RecommendationItem<'topic'> {
+export function isTopicItem(item: RecommendationItem): item is Extract<RecommendationItem, { type: 'topic' }> {
   return item.type === 'topic';
 }
 
-export function isNewUserItem(item: RecommendationItem): item is RecommendationItem<'new'> {
+export function isNewUserItem(item: RecommendationItem): item is Extract<RecommendationItem, { type: 'new' }> {
   return item.type === 'new';
-}
-
-export function isFooterItem(item: RecommendationItem): item is RecommendationItem<'footer'> {
-  return item.type === 'footer';
 }

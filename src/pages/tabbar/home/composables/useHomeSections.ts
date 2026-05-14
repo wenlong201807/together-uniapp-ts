@@ -22,6 +22,7 @@ export { SECTION_CONFIGS };
 export function useHomeSections(options?: { city?: string }) {
   const loading = ref(false);
   const currentCity = ref(options?.city || '全国');
+  const initialized = ref(false); // 标记是否已完成首次加载
 
   // Each section holds up to 5 items
   const sections = reactive<Record<string, RecommendationItem[]>>({
@@ -54,7 +55,12 @@ export function useHomeSections(options?: { city?: string }) {
       });
 
       if (response.code === 0 && response.data) {
-        sections[type] = response.data.data.slice(0, 5);
+        const sectionData = response.data.data;
+        if (Array.isArray(sectionData) && sectionData.length > 0) {
+          sections[type] = sectionData.slice(0, 5);
+        } else {
+          throw new Error('Empty section data');
+        }
       } else {
         throw new Error(response.message || 'Failed to fetch section data');
       }
@@ -70,29 +76,36 @@ export function useHomeSections(options?: { city?: string }) {
   /**
    * Fetch all sections in parallel
    */
-  const fetchAllSections = async () => {
+  const fetchAllSections = async (force = false) => {
+    // 如果已经初始化且非强制刷新，则不再重复加载
+    if (initialized.value && !force) {
+      return;
+    }
     loading.value = true;
     try {
       await Promise.allSettled(
         SECTION_CONFIGS.map((config) => fetchSection(config.type))
       );
+      initialized.value = true;
     } finally {
       loading.value = false;
     }
   };
 
   /**
-   * Refresh all sections (e.g., on city change)
+   * Refresh all sections (e.g., on city change or pull-down refresh)
    */
   const refresh = async (city?: string) => {
     if (city !== undefined) {
       currentCity.value = city;
     }
-    await fetchAllSections();
+    // 强制刷新，重置初始化状态
+    initialized.value = false;
+    await fetchAllSections(true);
   };
 
   /**
-   * Update city filter
+   * Update city filter (kept for external consumers)
    */
   const updateCity = (city: string) => {
     currentCity.value = city;
@@ -105,7 +118,6 @@ export function useHomeSections(options?: { city?: string }) {
     currentCity,
     fetchAllSections,
     refresh,
-    updateCity,
     SECTION_CONFIGS,
   };
 }
