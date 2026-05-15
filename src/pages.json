@@ -31,7 +31,8 @@
       "path": "pages/tabbar/home",
       "style": {
         "navigationBarTitleText": "首页",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "disableScroll": true
       }
     },
     {
@@ -283,7 +284,8 @@
       "path": "pages/recommend/list",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "推荐列表"
+        "navigationBarTitleText": "推荐列表",
+         "disableScroll": true
       }
     }
   ],
