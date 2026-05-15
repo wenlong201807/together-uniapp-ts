@@ -1,6 +1,6 @@
 {
   "name": "uni-preset-vue",
-  "version": "1.0.40",
+  "version": "1.0.41",
   "scripts": {
     "dev:custom": "uni -p",
     "dev:h5": "uni --mode dev",
