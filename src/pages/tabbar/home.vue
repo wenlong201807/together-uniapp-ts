@@ -16,6 +16,7 @@
     <scroll-view
       class="scroll-container"
       scroll-y
+      :style="{ height: scrollContainerHeight }"
       :refresher-enabled="isAtTop"
       :refresher-threshold="80"
       :refresher-triggered="refreshing"
@@ -159,6 +160,9 @@ const isAtTop = ref(true);
 
 // 导航占位高度（状态栏 + 导航内容高度）
 const navPlaceholderHeight = ref(0);
+
+// scroll-view 显式高度（解决移动端浏览器滚动回顶部遮挡问题）
+const scrollContainerHeight = ref('auto');
 
 // 是否正在加载数据（防止重复加载，含初始加载和下拉刷新）
 const isLoadingData = ref(false);
@@ -334,16 +338,30 @@ const handleRefresh = async () => {
 
 // 初始化
 onMounted(async () => {
-  // 计算导航占位高度
+  // 计算导航占位高度 + scroll-view 显式高度
+  // 必须使用实际测量值而非估算，否则滚动回顶部时固定导航会遮挡内容
   try {
     const sysInfo = uni.getSystemInfoSync();
-    const statusBarH = sysInfo.statusBarHeight || 0;
-    // 导航内容高度：padding-md(24rpx) + 内容(72rpx) + padding-md(24rpx) ≈ 120rpx ≈ 60px
-    // rpx 转 px: 在 375pt 宽度设备上 1rpx = 0.5px，但实际比例由设备决定
-    const navContentHeight = 44; // 估算导航内容区域高度（px）
-    navPlaceholderHeight.value = statusBarH + navContentHeight;
+    const windowHeight = sysInfo.windowHeight || 0;
+
+    // 测量 TopNavigation 的实际渲染高度
+    const query = uni.createSelectorQuery();
+    query.select('.top-navigation').boundingClientRect();
+    query.exec((res) => {
+      const navRect = res?.[0];
+      if (navRect && navRect.height) {
+        navPlaceholderHeight.value = navRect.height;
+      } else {
+        // 降级：statusBar + 导航内容估算
+        const statusBarH = sysInfo.statusBarHeight || 0;
+        navPlaceholderHeight.value = statusBarH + 44;
+      }
+      // scroll-view 高度 = 窗口高度 - 导航占位
+      scrollContainerHeight.value = `${windowHeight - navPlaceholderHeight.value}px`;
+    });
   } catch {
-    navPlaceholderHeight.value = 88; // 默认值
+    navPlaceholderHeight.value = 88;
+    scrollContainerHeight.value = 'auto';
   }
 
   // 防止初始加载与下拉刷新并发竞争
@@ -431,6 +449,9 @@ onUnmounted(() => {
     flex: 1;
     padding: $padding-md $padding-lg $padding-lg;
     box-sizing: border-box;
+    // 显式高度由 JS 计算（移动端浏览器 100vh 和 flex:1 不可靠）
+    // 如果 JS 未能设置高度，flex:1 作为降级
+
 
     .recommendation-sections {
       margin-top: $margin-md;
