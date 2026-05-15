@@ -42,7 +42,8 @@ export const formatDate = (time: string | Date): string => {
  * @param count 数量
  * @returns 格式化后的字符串（如：1.2w）
  */
-export function formatCount(count: number): string {
+export function formatCount(count?: number): string {
+  if (count === undefined || count === null) return '0';
   if (count >= 10000) {
     return (count / 10000).toFixed(1) + 'w';
   }

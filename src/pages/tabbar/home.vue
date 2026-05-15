@@ -1,6 +1,6 @@
 <template>
   <view class="home-container">
-    <!-- 顶部导航 -->
+    <!-- 顶部导航（fixed） -->
     <TopNavigation
       :city="currentCity"
       :unread-count="unreadCount"
@@ -10,16 +10,18 @@
     />
 
     <!-- 顶部导航占位（fixed导航不在文档流中，需要占位避免内容被遮挡） -->
-    <view class="nav-placeholder" />
+    <view class="nav-placeholder" :style="{ height: navPlaceholderHeight + 'px' }" />
 
     <!-- 滚动容器 -->
     <scroll-view
       class="scroll-container"
       scroll-y
-      :refresher-enabled="true"
+      :refresher-enabled="isAtTop"
+      :refresher-threshold="80"
       :refresher-triggered="refreshing"
       @refresherrefresh="handleRefresh"
       @refresherrestore="handleRefresherRestore"
+      @scroll="handleScroll"
     >
 
       <!-- 快速入口 -->
@@ -152,6 +154,12 @@ let imageLoaderInitialized = false;
 // 刷新状态
 const refreshing = ref(false);
 
+// 滚动位置追踪（用于控制 refresher 启用时机）
+const isAtTop = ref(true);
+
+// 导航占位高度（状态栏 + 导航内容高度）
+const navPlaceholderHeight = ref(0);
+
 // 是否正在加载数据（防止重复加载，含初始加载和下拉刷新）
 const isLoadingData = ref(false);
 
@@ -246,7 +254,7 @@ const handleSearchClick = () => {
 };
 
 const handleMessageClick = () => {
-  uni.navigateTo({ url: '/pages/chat/list' });
+  uni.switchTab({ url: '/pages/tabbar/message' });
 };
 
 // 城市选择
@@ -289,6 +297,12 @@ const handleSectionItemClick = (item: RecommendationItem) => {
   }
 };
 
+// 滚动事件：追踪滚动位置，仅在顶部时启用下拉刷新
+const handleScroll = (e: any) => {
+  const scrollTop = e.detail?.scrollTop ?? 0;
+  isAtTop.value = scrollTop <= 5; // 5px 容差，避免临界抖动
+};
+
 // 滚动复位事件
 const handleRefresherRestore = () => {
   refreshing.value = false;
@@ -320,6 +334,18 @@ const handleRefresh = async () => {
 
 // 初始化
 onMounted(async () => {
+  // 计算导航占位高度
+  try {
+    const sysInfo = uni.getSystemInfoSync();
+    const statusBarH = sysInfo.statusBarHeight || 0;
+    // 导航内容高度：padding-md(24rpx) + 内容(72rpx) + padding-md(24rpx) ≈ 120rpx ≈ 60px
+    // rpx 转 px: 在 375pt 宽度设备上 1rpx = 0.5px，但实际比例由设备决定
+    const navContentHeight = 44; // 估算导航内容区域高度（px）
+    navPlaceholderHeight.value = statusBarH + navContentHeight;
+  } catch {
+    navPlaceholderHeight.value = 88; // 默认值
+  }
+
   // 防止初始加载与下拉刷新并发竞争
   if (isLoadingData.value) return;
   isLoadingData.value = true;
@@ -390,23 +416,20 @@ onUnmounted(() => {
 @use '@/assets/styles/design-tokens.scss' as *;
 
 .home-container {
-  min-height: 100vh;
+  height: 100vh;
   background: $bg-secondary;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   // 占位：为 fixed 导航留出空间，确保 scroll-container 不被遮挡
   .nav-placeholder {
-    height: calc(88rpx + 32rpx); // 导航高度 + 呼吸空间
     flex-shrink: 0;
   }
 
   .scroll-container {
     flex: 1;
-    // scroll-view 需要显式固定高度，这里用 100vh 减去导航占位和底部 tabbar
-    // nav-placeholder: 88rpx + 32rpx = 120rpx, tabbar: 120rpx
-    height: calc(100vh - 120rpx - 120rpx);
-    padding: 0 $padding-lg $padding-lg;
+    padding: $padding-md $padding-lg $padding-lg;
     box-sizing: border-box;
 
     .recommendation-sections {

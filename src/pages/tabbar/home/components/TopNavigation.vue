@@ -1,5 +1,8 @@
 <template>
   <view class="top-navigation">
+    <!-- 状态栏占位 -->
+    <view class="status-bar" :style="{ height: statusBarHeight + 'px' }" />
+    <view class="nav-content">
     <view class="nav-left">
       <view class="location" @click="handleLocationClick">
         <text class="location-icon">📍</text>
@@ -23,11 +26,20 @@
         </view>
       </view>
     </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+
+// 获取状态栏高度（模块级缓存，避免重复调用）
+const statusBarHeight = ref(0);
+try {
+  statusBarHeight.value = uni.getSystemInfoSync().statusBarHeight || 0;
+} catch {
+  statusBarHeight.value = 0;
+}
 
 interface Props {
   city?: string;
@@ -69,116 +81,123 @@ const handleMessageClick = () => {
   left: 0;
   right: 0;
   z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: $padding-md $padding-lg;
   background: $bg-primary;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.3s ease;
 
-  .nav-left {
-    flex-shrink: 0;
-
-    .location {
-      display: flex;
-      align-items: center;
-      padding: $padding-xs $padding-sm;
-      background: $bg-secondary;
-      border-radius: $radius-full;
-      @include transition(all);
-
-      &:active {
-        opacity: 0.7;
-      }
-
-      .location-icon {
-        font-size: $font-size-base;
-        margin-right: 4rpx;
-      }
-
-      .location-text {
-        font-size: $font-size-sm;
-        color: $text-primary;
-        max-width: 120rpx;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .location-arrow {
-        font-size: 20rpx;
-        color: $text-tertiary;
-        margin-left: 4rpx;
-      }
-    }
+  .status-bar {
+    width: 100%;
   }
 
-  .nav-center {
-    flex: 1;
-    margin: 0 $margin-md;
+  .nav-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $padding-md $padding-lg;
 
-    .search-box {
-      display: flex;
-      align-items: center;
-      padding: $padding-sm $padding-md;
-      background: $bg-secondary;
-      border-radius: $radius-full;
-      @include transition(all);
+    .nav-left {
+      flex-shrink: 0;
 
-      &:active {
-        opacity: 0.7;
-      }
-
-      .search-icon {
-        font-size: $font-size-base;
-        margin-right: $margin-xs;
-      }
-
-      .search-placeholder {
-        font-size: $font-size-sm;
-        color: $text-tertiary;
-      }
-    }
-  }
-
-  .nav-right {
-    flex-shrink: 0;
-
-    .message-icon {
-      position: relative;
-      width: 72rpx;
-      height: 72rpx;
-      @include flex-center;
-      background: $bg-secondary;
-      border-radius: $radius-circle;
-      @include transition(all);
-
-      &:active {
-        opacity: 0.7;
-      }
-
-      .icon {
-        font-size: $font-size-lg;
-      }
-
-      .badge {
-        position: absolute;
-        top: 8rpx;
-        right: 8rpx;
-        min-width: 32rpx;
-        height: 32rpx;
-        padding: 0 8rpx;
-        @include flex-center;
-        background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+      .location {
+        display: flex;
+        align-items: center;
+        padding: $padding-xs $padding-sm;
+        background: $bg-secondary;
         border-radius: $radius-full;
-        box-shadow: 0 2rpx 8rpx rgba(255, 107, 107, 0.4);
+        @include transition(all);
 
-        .badge-text {
+        &:active {
+          opacity: 0.7;
+        }
+
+        .location-icon {
+          font-size: $font-size-base;
+          margin-right: 4rpx;
+        }
+
+        .location-text {
+          font-size: $font-size-sm;
+          color: $text-primary;
+          max-width: 120rpx;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .location-arrow {
           font-size: 20rpx;
-          color: #ffffff;
-          font-weight: $font-weight-bold;
-          line-height: 1;
+          color: $text-tertiary;
+          margin-left: 4rpx;
+        }
+      }
+    }
+
+    .nav-center {
+      flex: 1;
+      margin: 0 $margin-md;
+
+      .search-box {
+        display: flex;
+        align-items: center;
+        padding: $padding-sm $padding-md;
+        background: $bg-secondary;
+        border-radius: $radius-full;
+        @include transition(all);
+
+        &:active {
+          opacity: 0.7;
+        }
+
+        .search-icon {
+          font-size: $font-size-base;
+          margin-right: $margin-xs;
+        }
+
+        .search-placeholder {
+          font-size: $font-size-sm;
+          color: $text-tertiary;
+        }
+      }
+    }
+
+    .nav-right {
+      flex-shrink: 0;
+
+      .message-icon {
+        position: relative;
+        width: 72rpx;
+        height: 72rpx;
+        @include flex-center;
+        background: $bg-secondary;
+        border-radius: $radius-circle;
+        @include transition(all);
+
+        &:active {
+          opacity: 0.7;
+        }
+
+        .icon {
+          font-size: $font-size-lg;
+        }
+
+        .badge {
+          position: absolute;
+          top: 8rpx;
+          right: 8rpx;
+          min-width: 32rpx;
+          height: 32rpx;
+          padding: 0 8rpx;
+          @include flex-center;
+          background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+          border-radius: $radius-full;
+          box-shadow: 0 2rpx 8rpx rgba(255, 107, 107, 0.4);
+
+          .badge-text {
+            font-size: 20rpx;
+            color: #ffffff;
+            font-weight: $font-weight-bold;
+            line-height: 1;
+          }
         }
       }
     }

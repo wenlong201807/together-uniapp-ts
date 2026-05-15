@@ -1,3 +1,8 @@
+<!--
+  ⚠️ 已废弃：此页面已合并到 /pages/tabbar/message.vue
+  统一使用 tabbar/message 作为聊天列表入口
+  保留此文件仅为兼容可能的深度链接
+-->
 <template>
   <view class="chat-list-container">
     <view class="chat-list">
@@ -24,7 +29,7 @@
           <view class="avatar-wrapper">
             <image
               class="avatar"
-              :src="conversation.avatarUrl || '/static/images/default-avatar.png'"
+              :src="(conversation as any).avatarUrl || conversation.avatar || '/static/images/default-avatar.png'"
               mode="aspectFill"
             />
             <view v-if="conversation.unreadCount > 0" class="unread-dot" />
@@ -42,7 +47,7 @@
             <view class="conversation-header">
               <text class="nickname">{{ conversation.nickname }}</text>
               <text class="time">{{
-                formatTime(conversation.lastTime)
+                formatTime((conversation as any).lastTime || conversation.lastMessageTime)
               }}</text>
             </view>
             <view class="conversation-content">

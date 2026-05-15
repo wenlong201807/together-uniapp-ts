@@ -10,4 +10,6 @@ export const MESSAGE_PREVIEW_LENGTH = 30; // 消息预览长度
 export const ROUTES = {
   CHAT_LIST: '/pages/tabbar/message',
   CHAT_DETAIL: '/pages/chat/detail',
+  // chat/list 已废弃，统一使用 tabbar/message
+  CHAT_LIST_DEPRECATED: '/pages/chat/list',
 } as const;

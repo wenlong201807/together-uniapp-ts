@@ -12,6 +12,9 @@
           v-img-proxy="user.avatar"
           mode="aspectFill"
         />
+        <view v-if="!user.avatar" class="avatar-fallback">
+          <text class="fallback-text">{{ (user.nickname || '?').charAt(0) }}</text>
+        </view>
         <view class="user-details">
           <view class="user-name-row">
             <text class="username">{{ user.nickname }}</text>
@@ -41,8 +44,11 @@
       <view class="action-btn skip-btn" @click.stop="handleSkip">
         <text class="action-text">跳过</text>
       </view>
-      <view class="action-btn like-btn" @click.stop="handleLike">
+      <view class="action-btn greet-btn" @click.stop="handleGreet">
         <text class="action-text">打招呼</text>
+      </view>
+      <view class="action-btn like-btn" @click.stop="handleLike">
+        <text class="action-text">喜欢</text>
       </view>
     </view>
   </view>
@@ -61,12 +67,17 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
   cardClick: [user: RecommendUser];
+  greet: [user: RecommendUser];
   like: [user: RecommendUser];
   skip: [user: RecommendUser];
 }>();
 
 const handleCardClick = () => {
   emit('cardClick', props.user);
+};
+
+const handleGreet = () => {
+  emit('greet', props.user);
 };
 
 const handleLike = () => {
@@ -128,6 +139,7 @@ const handleSkip = () => {
     .user-info {
       display: flex;
       align-items: center;
+      position: relative;
 
       .avatar {
         width: 96rpx;
@@ -135,6 +147,25 @@ const handleSkip = () => {
         border-radius: $radius-circle;
         margin-right: $margin-md;
         border: 4rpx solid $bg-secondary;
+      }
+
+      .avatar-fallback {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 96rpx;
+        height: 96rpx;
+        border-radius: $radius-circle;
+        background: $bg-tertiary;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .fallback-text {
+          font-size: $font-size-xl;
+          color: $text-secondary;
+          font-weight: $font-weight-bold;
+        }
       }
 
       .user-details {
@@ -226,7 +257,15 @@ const handleSkip = () => {
       }
 
       &.like-btn {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+
+        .action-text {
+          color: #ffffff;
+        }
+      }
+
+      &.greet-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
         .action-text {
           color: #ffffff;

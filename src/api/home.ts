@@ -5,6 +5,7 @@
  */
 import request from './request';
 import type { ApiResponse } from '@/types';
+import type { RecommendationData } from '@/pages/tabbar/home/types/recommendation';
 
 /**
  * 推荐流响应数据
@@ -23,7 +24,7 @@ export interface RecommendationItem {
   type: 'personalized' | 'hot' | 'nearby' | 'topic' | 'new';
   contentId: number;
   score: number;
-  data: any;
+  data: RecommendationData;
 }
 
 /**

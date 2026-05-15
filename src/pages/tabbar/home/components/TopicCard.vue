@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatCount } from '@/utils/format'
 
 export interface Topic {
   id: number;
@@ -71,15 +72,7 @@ const coverImageList = computed(() => {
   return [];
 });
 
-const formatCount = (count?: number): string => {
-  if (!count && count !== 0) {
-    return '0';
-  }
-  if (count >= 10000) {
-    return `${(count / 10000).toFixed(1)}w`;
-  }
-  return count.toString();
-};
+
 
 const handleCardClick = () => {
   emit('cardClick', props.topic);

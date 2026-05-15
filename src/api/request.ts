@@ -245,10 +245,24 @@ class Request {
       // GET 请求使用 params，其他请求使用 data
       if (method === 'GET') {
         if (data) {
-          // 将参数拼接到 URL
-          const params = new URLSearchParams(data).toString();
-          if (params) {
-            requestConfig.url += (requestConfig.url.includes('?') ? '&' : '?') + params;
+          // 将参数拼接到 URL（过滤 undefined/null 值，正确处理数组）
+          const params = new URLSearchParams();
+          for (const [key, value] of Object.entries(data)) {
+            if (value === undefined || value === null) continue;
+            if (Array.isArray(value)) {
+              // 数组参数：重复 key，如 types=hot&types=nearby
+              value.forEach((v) => {
+                if (v !== undefined && v !== null) {
+                  params.append(key, String(v));
+                }
+              });
+            } else {
+              params.append(key, String(value));
+            }
+          }
+          const paramStr = params.toString();
+          if (paramStr) {
+            requestConfig.url += (requestConfig.url.includes('?') ? '&' : '?') + paramStr;
           }
         }
       } else {

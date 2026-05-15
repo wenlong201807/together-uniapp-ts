@@ -1,20 +1,7 @@
 <template>
   <view class="recommend-list-page">
-    <!-- Type Filter Tabs -->
-    <scroll-view class="tabs-scroll" scroll-x :show-scrollbar="false">
-      <view class="tabs">
-        <view
-          v-for="tab in tabs"
-          :key="tab.type"
-          class="tab-item"
-          :class="{ active: activeType === tab.type }"
-          @click="switchTab(tab.type)"
-        >
-          <text class="tab-icon">{{ tab.icon }}</text>
-          <text class="tab-text">{{ tab.label }}</text>
-        </view>
-      </view>
-    </scroll-view>
+    <!-- Status bar safe area -->
+    <view class="status-bar" :style="{ height: statusBarHeight + 'px' }" />
 
     <!-- 离线降级提示 -->
     <view v-if="isMockData" class="offline-banner">
@@ -32,6 +19,15 @@
       @refresherrestore="handleRefresherRestore"
       @scrolltolower="handleLoadMore"
     >
+      <!-- 🔍 调试信息 -->
+      <view style="padding: 20px; background: #f0f0f0; margin: 10px;">
+        <text style="display: block; color: #333;">调试信息</text>
+        <text style="display: block; color: #666;">items.length: {{ items.length }}</text>
+        <text style="display: block; color: #666;">loading: {{ loading }}</text>
+        <text style="display: block; color: #666;">activeType: {{ activeType }}</text>
+        <text style="display: block; color: #666;">scrollHeight: {{ scrollHeight }}</text>
+      </view>
+
       <!-- Loading State -->
       <view v-if="loading && items.length === 0" class="loading-state">
         <text class="loading-text">加载中...</text>
@@ -53,7 +49,7 @@
           v-if="item.type === 'topic'"
           :topic="extractTopic(item)!"
           @card-click="handleTopicClick"
-          @view="handleTopicClick"
+          @view="handleTopicView"
           @join="handleTopicJoin"
         />
 
@@ -63,6 +59,7 @@
           :user="extractUser(item)!"
           :hot-score="extractHotScore(item)!"
           @card-click="handleUserClick"
+          @greet="handleUserGreet"
           @like="handleUserLike"
           @skip="handleUserSkip"
         />
@@ -73,6 +70,7 @@
           :user="extractUser(item)!"
           :distance="extractDistance(item)!"
           @card-click="handleUserClick"
+          @greet="handleUserGreet"
           @like="handleUserLike"
           @skip="handleUserSkip"
         />
@@ -83,6 +81,7 @@
           :user="extractUser(item)!"
           :join-days="extractJoinDays(item)!"
           @card-click="handleUserClick"
+          @greet="handleUserGreet"
           @like="handleUserLike"
           @skip="handleUserSkip"
         />
@@ -92,9 +91,9 @@
           v-else
           :user="extractUser(item)!"
           @card-click="handleUserClick"
+          @greet="handleUserGreet"
           @like="handleUserLike"
           @skip="handleUserSkip"
-          @detail="handleUserDetail"
         />
       </view>
 
@@ -116,7 +115,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { getRecommendationFeed } from '@/api/home';
+import { getRecommendationFeed, trackUserAction } from '@/api/home';
 import { getTopics } from '@/api/modules/topic';
 import { getNearbyUsers } from '@/api/modules/nearby';
 import RecommendationCard from '@/pages/tabbar/home/components/RecommendationCard.vue';
@@ -128,22 +127,6 @@ import { isTopicItem, isHotItem, isNearbyItem, isNewUserItem } from '@/pages/tab
 import type { RecommendationItem, RecommendationType, UserData, TopicData, HotContentData } from '@/pages/tabbar/home/types/recommendation';
 import type { TopicDetail } from '@/api/modules/topic';
 import type { NearbyUser } from '@/api/modules/nearby';
-
-// Tab definitions
-interface TabConfig {
-  type: string; // '' means all
-  label: string;
-  icon: string;
-}
-
-const tabs: TabConfig[] = [
-  { type: '', label: '全部', icon: '📋' },
-  { type: 'personalized', label: '推荐', icon: '✨' },
-  { type: 'hot', label: '热门', icon: '🔥' },
-  { type: 'nearby', label: '附近', icon: '📍' },
-  { type: 'topic', label: '话题', icon: '💬' },
-  { type: 'new', label: '新人', icon: '🌟' },
-];
 
 // State
 const activeType = ref<string>('');
@@ -159,21 +142,18 @@ const pageSize = 20;
 // 请求 ID 机制：防止快速切换标签页时的竞态条件
 let fetchId = 0;
 
-// 计算 scroll-view 高度（必须给 scroll-y 一个固定高度才能滚动）
-const scrollHeight = ref('calc(100vh - 100rpx)');
+// 计算 scroll-view 高度（去掉顶部 tab-bar 后只需减去状态栏）
+const scrollHeight = ref('100vh');
+const statusBarHeight = ref(0);
 
-// 获取系统状态栏高度，动态计算 scroll-view 高度
-const initScrollHeight = () => {
+// 获取系统状态栏高度
+const initLayout = () => {
   try {
     const sysInfo = uni.getSystemInfoSync();
-    const statusBarHeight = sysInfo.statusBarHeight || 0;
-    // rpx 转 px 比率：screenWidth / 750
-    const rpxToPx = sysInfo.screenWidth / 750;
-    // tabs 容器高度 100rpx + 状态栏
-    const tabsHeight = 100 * rpxToPx + statusBarHeight;
-    scrollHeight.value = `calc(100vh - ${tabsHeight}px)`;
+    statusBarHeight.value = sysInfo.statusBarHeight || 0;
+    scrollHeight.value = `calc(100vh - ${statusBarHeight.value}px)`;
   } catch {
-    scrollHeight.value = 'calc(100vh - 100rpx)';
+    scrollHeight.value = '100vh';
   }
 };
 
@@ -199,8 +179,8 @@ const extractUser = (item: RecommendationItem): UserData | undefined => {
   if (isHotItem(item)) return item.data.user;
   if (isNearbyItem(item)) return item.data.user;
   if (isNewUserItem(item)) return item.data.user;
-  // personalized
-  if (item.type === 'personalized') return (item.data as { user: UserData }).user;
+  // personalized — 利用辨别联合类型自动窄化
+  if (item.type === 'personalized') return item.data.user;
   return undefined;
 };
 
@@ -217,13 +197,6 @@ const extractDistance = (item: RecommendationItem): string | undefined => {
 const extractJoinDays = (item: RecommendationItem): number | undefined => {
   if (isNewUserItem(item)) return item.data.joinDays;
   return undefined;
-};
-
-// Switch tab
-const switchTab = (type: string) => {
-  if (activeType.value === type) return;
-  activeType.value = type;
-  resetAndFetch();
 };
 
 // Reset and fetch first page
@@ -288,7 +261,7 @@ const fetchData = async (page: number) => {
               city: u.city,
               bio: u.bio,
               tags: u.tags,
-              photos: [],
+              photos: (u as any).photos || [],
             },
             distance: u.distanceText,
           },
@@ -311,7 +284,6 @@ const fetchData = async (page: number) => {
       }
     }
 
-    // 二次竞态检查后再更新状态
     if (currentFetchId !== fetchId) return;
 
     if (page === 1) {
@@ -376,12 +348,39 @@ const handleUserClick = (user: any) => {
   uni.navigateTo({ url: `/pages/user/detail?id=${user.id}` });
 };
 
-const handleUserLike = (user: any) => {
-  uni.showToast({ title: '已喜欢', icon: 'success' });
-  // TODO: 调用实际点赞 API
+// 打招呼：跳转到聊天对话页
+const handleUserGreet = async (user: any) => {
+  try {
+    await trackUserAction({
+      action: 'view',
+      targetType: 'user',
+      targetId: user.id,
+      timestamp: Date.now(),
+    });
+  } catch {
+    // 上报失败不阻塞跳转
+  }
+  uni.navigateTo({ url: `/pages/chat/detail?userId=${user.id}&nickname=${encodeURIComponent(user.nickname || user.name || '')}` });
 };
 
-const handleUserSkip = (user: any) => {
+// 喜欢：收藏用户
+const handleUserLike = async (user: any) => {
+  try {
+    await trackUserAction({
+      action: 'favorite',
+      targetType: 'user',
+      targetId: user.id,
+      timestamp: Date.now(),
+    });
+    uni.showToast({ title: '已喜欢', icon: 'success' });
+  } catch {
+    uni.showToast({ title: '操作失败', icon: 'none' });
+  }
+};
+
+// 跳过：删除卡片并上报，后续不再推荐
+const handleUserSkip = async (user: any) => {
+  // 先从列表中移除
   const index = items.value.findIndex(item => {
     const userData = extractUser(item);
     return userData?.id === user.id;
@@ -389,18 +388,33 @@ const handleUserSkip = (user: any) => {
   if (index > -1) {
     items.value.splice(index, 1);
   }
+  // 上报跳过行为，后端不再推荐该用户
+  try {
+    await trackUserAction({
+      action: 'skip',
+      targetType: 'user',
+      targetId: user.id,
+      timestamp: Date.now(),
+    });
+  } catch {
+    // 上报失败不影响本地删除
+  }
 };
 
-const handleUserDetail = (user: any) => {
-  uni.navigateTo({ url: `/pages/user/detail?id=${user.id}` });
-};
+
 
 const handleTopicClick = (topic: any) => {
+  // 点击话题卡片：跳转到话题详情页
   uni.navigateTo({ url: `/pages/square/topic?id=${topic.id}` });
 };
 
+const handleTopicView = (_topic: any) => {
+  // 查看话题：跳转到话题列表/搜索页
+  uni.navigateTo({ url: `/pages/search/topic` });
+};
+
 const handleTopicJoin = (topic: any) => {
-  // TODO: 调用实际加入话题 API
+  // 参与讨论：进入话题详情页
   uni.navigateTo({ url: `/pages/square/topic?id=${topic.id}` });
 };
 
@@ -477,7 +491,7 @@ const generateMockFallback = (type: string, count: number): RecommendationItem[]
 
 // Initialize: read type from route params
 onMounted(() => {
-  initScrollHeight();
+  initLayout();
   const pages = getCurrentPages();
   const pageInstance = pages[pages.length - 1];
   const query = (pageInstance as any).options || {};
@@ -497,57 +511,9 @@ onMounted(() => {
   height: 100vh;
   background: $bg-secondary;
 
-  .tabs-scroll {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    white-space: nowrap;
+  .status-bar {
+    flex-shrink: 0;
     background: $bg-primary;
-    border-bottom: 1rpx solid rgba(0, 0, 0, 0.06);
-    z-index: 100;
-    // 状态栏安全区，避免刘海屏遮挡
-    padding-top: var(--status-bar-height, 0px);
-
-    .tabs {
-      display: flex;
-      padding: $padding-sm $padding-md;
-
-      .tab-item {
-        display: flex;
-        align-items: center;
-        padding: 12rpx 24rpx;
-        margin-right: $margin-sm;
-        border-radius: $radius-full;
-        background: $bg-secondary;
-        flex-shrink: 0;
-        transition: all 0.2s;
-
-        .tab-icon {
-          font-size: 28rpx;
-          margin-right: 6rpx;
-        }
-
-        .tab-text {
-          font-size: $font-size-sm;
-          color: $text-secondary;
-          font-weight: $font-weight-medium;
-        }
-
-        &.active {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
-          .tab-text {
-            color: #ffffff;
-          }
-        }
-
-        &:active {
-          opacity: 0.7;
-        }
-      }
-    }
   }
 
   // 离线降级提示横幅
@@ -558,6 +524,7 @@ onMounted(() => {
     right: 0;
     z-index: 101;
     padding: 12rpx 24rpx;
+    padding-top: calc(12rpx + var(--status-bar-height, 0px));
     background: rgba(255, 152, 0, 0.9);
     text-align: center;
 
@@ -568,9 +535,8 @@ onMounted(() => {
   }
 
   .content-scroll {
-    // margin-top 需要动态计算，用 CSS 变量 + 状态栏高度
-    margin-top: calc(100rpx + var(--status-bar-height, 0px));
-    padding: 0 $padding-md;
+    flex: 1;
+    padding: 24rpx $padding-md 0;
 
     .list-item {
       margin-bottom: $margin-md;

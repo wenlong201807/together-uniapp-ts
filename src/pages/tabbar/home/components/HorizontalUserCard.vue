@@ -8,23 +8,21 @@
       />
       <view v-if="badge" class="card-badge" :style="{ background: badgeColor }">
         <text class="badge-icon">{{ badge.icon }}</text>
-        <text class="badge-text">{{ badge.text }}</text>
+      </view>
+      <!-- Default avatar placeholder when no avatar -->
+      <view v-if="!user.avatar" class="avatar-fallback">
+        <text class="fallback-text">{{ (user.nickname || '?').charAt(0) }}</text>
       </view>
     </view>
     <view class="user-info">
-      <text class="nickname">{{ user.nickname }}</text>
+      <text class="nickname">{{ user.nickname || '用户' }}</text>
       <view class="meta-row">
         <text v-if="joinDays" class="meta-item highlight">{{ joinDays }}天加入</text>
         <text v-if="user.age" class="meta-item">{{ user.age }}岁</text>
-        <text v-if="user.city" class="meta-item">{{ user.city }}</text>
         <text v-if="distance" class="meta-item distance">{{ distance }}</text>
       </view>
-      <view v-if="user.tags && user.tags.length" class="tags">
-        <text
-          v-for="(tag, idx) in user.tags.slice(0, 2)"
-          :key="idx"
-          class="tag"
-        >{{ tag }}</text>
+      <view v-if="user.city" class="city-row">
+        <text class="city-text">{{ user.city }}</text>
       </view>
     </view>
   </view>
@@ -66,12 +64,12 @@ const handleClick = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 240rpx;
+  width: 160rpx;
   flex-shrink: 0;
-  padding: $padding-md;
+  padding: $padding-base $padding-sm $padding-base;
   background: $bg-primary;
   border-radius: $radius-lg;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
   transition: transform 0.2s;
 
   &:active {
@@ -83,32 +81,45 @@ const handleClick = () => {
     margin-bottom: $margin-sm;
 
     .avatar {
-      width: 120rpx;
-      height: 120rpx;
+      width: 96rpx;
+      height: 96rpx;
       border-radius: $radius-circle;
-      border: 4rpx solid $bg-secondary;
+      border: 3rpx solid $bg-tertiary;
+    }
+
+    .avatar-fallback {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 96rpx;
+      height: 96rpx;
+      border-radius: $radius-circle;
+      background: $bg-tertiary;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .fallback-text {
+        font-size: $font-size-lg;
+        color: $text-secondary;
+        font-weight: $font-weight-bold;
+      }
     }
 
     .card-badge {
       position: absolute;
-      bottom: -8rpx;
-      left: 50%;
-      transform: translateX(-50%);
+      bottom: -4rpx;
+      right: -4rpx;
+      width: 32rpx;
+      height: 32rpx;
+      border-radius: $radius-circle;
       display: flex;
       align-items: center;
-      padding: 2rpx 12rpx;
-      border-radius: $radius-full;
-      white-space: nowrap;
+      justify-content: center;
+      border: 2rpx solid $bg-primary;
 
       .badge-icon {
         font-size: 18rpx;
-        margin-right: 2rpx;
-      }
-
-      .badge-text {
-        font-size: 18rpx;
-        color: #ffffff;
-        font-weight: $font-weight-bold;
       }
     }
   }
@@ -120,7 +131,7 @@ const handleClick = () => {
     width: 100%;
 
     .nickname {
-      font-size: $font-size-base;
+      font-size: $font-size-sm;
       font-weight: $font-weight-bold;
       color: $text-primary;
       max-width: 100%;
@@ -128,18 +139,18 @@ const handleClick = () => {
       text-overflow: ellipsis;
       white-space: nowrap;
       text-align: center;
-      margin-bottom: 4rpx;
+      margin-bottom: 2rpx;
     }
 
     .meta-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8rpx;
-      margin-bottom: 4rpx;
+      gap: 4rpx;
+      margin-bottom: 2rpx;
 
       .meta-item {
-        font-size: $font-size-xs;
+        font-size: 18rpx;
         color: $text-tertiary;
 
         &.distance {
@@ -153,18 +164,15 @@ const handleClick = () => {
       }
     }
 
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 4rpx;
-
-      .tag {
+    .city-row {
+      .city-text {
         font-size: 18rpx;
-        padding: 2rpx 8rpx;
-        background: rgba(102, 126, 234, 0.08);
-        color: $primary-color;
-        border-radius: $radius-full;
+        color: $text-tertiary;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 120rpx;
+        text-align: center;
       }
     }
   }

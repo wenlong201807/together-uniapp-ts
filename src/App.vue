@@ -20,7 +20,7 @@ const updateBubbleState = () => {
   const route = (currentPage as any)?.route || '';
 
   // 在聊天列表页展开，其他页面折叠
-  const isInChatList = route === 'pages/chat/list';
+  const isInChatList = route === 'pages/tabbar/message' || route === 'pages/chat/list';
   notificationStore.updateExpandState(isInChatList);
 };
 

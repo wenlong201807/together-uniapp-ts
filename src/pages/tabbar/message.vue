@@ -1,42 +1,73 @@
 <template>
   <view class="message-container">
-    <!-- 好友列表 -->
-    <scroll-view class="friend-list" scroll-y :show-scrollbar="false">
-      <view
-        v-for="friend in friendsWithUnread"
-        :key="friend.friendId"
-        class="friend-item"
-        @click="goToChat(friend)"
-      >
-        <view class="avatar-wrapper">
-          <Avatar
-            :avatar-id="friend.avatarId"
-            :avatar-url="friend.avatarUrl"
-            size="large"
-            class="avatar"
-          />
-          <view v-if="friend.unreadCount > 0" class="unread-dot" />
-        </view>
+    <!-- 状态栏占位 -->
+    <view class="status-bar" :style="{ height: statusBarHeight + 'px' }" />
 
-        <view class="friend-info">
-          <view class="friend-header">
-            <text class="nickname">{{ friend.nickname }}</text>
-            <text v-if="friend.lastMessageTime" class="time">
-              {{ formatTime(friend.lastMessageTime) }}
-            </text>
+    <!-- 自定义导航栏 -->
+    <view class="nav-header">
+      <text class="nav-title">消息</text>
+      <view v-if="totalUnreadCount > 0" class="nav-badge">
+        <text class="nav-badge-text">{{ totalUnreadCount > 99 ? '99+' : totalUnreadCount }}</text>
+      </view>
+    </view>
+
+    <!-- 会话列表 -->
+    <scroll-view class="conversation-list" scroll-y :show-scrollbar="false">
+      <!-- 骨架屏 -->
+      <template v-if="loading && friendsWithUnread.length === 0">
+        <view v-for="i in 5" :key="i" class="conversation-skeleton">
+          <view class="skeleton-avatar" />
+          <view class="skeleton-content">
+            <view class="skeleton-line" style="width: 60%; height: 28rpx" />
+            <view class="skeleton-line" style="width: 80%; height: 24rpx; margin-top: 12rpx" />
           </view>
-          <view class="friend-content">
-            <text class="last-message">
-              {{ friend.lastMessage || '开始聊天吧~' }}
-            </text>
-            <view v-if="friend.unreadCount > 0" class="unread-badge">
-              {{ friend.unreadCount > 99 ? '99+' : friend.unreadCount }}
+        </view>
+      </template>
+
+      <!-- 会话列表 -->
+      <template v-else>
+        <view
+          v-for="(friend, index) in friendsWithUnread"
+          :key="friend.friendId"
+          class="conversation-item"
+          :style="{ animationDelay: `${index * 0.05}s` }"
+          @click="goToChat(friend)"
+        >
+          <view class="avatar-wrapper">
+            <Avatar
+              :avatar-id="friend.avatarId"
+              :avatar-url="friend.avatarUrl"
+              size="large"
+              class="avatar"
+            />
+            <view v-if="friend.unreadCount > 0" class="unread-dot" />
+
+            <!-- 气泡角标 -->
+            <view
+              v-if="notificationStore.hasNotification(friend.userId)"
+              class="notification-badge"
+              :class="notificationStore.getNotificationRelationType(friend.userId)"
+            >
+              <text>{{ notificationStore.getNotificationCount(friend.userId) }}</text>
+            </view>
+          </view>
+
+          <view class="conversation-info">
+            <view class="conversation-header">
+              <text class="nickname">{{ friend.nickname }}</text>
+              <text v-if="friend.lastMessageTime" class="time">{{ formatTime(friend.lastMessageTime) }}</text>
+            </view>
+            <view class="conversation-content">
+              <text class="last-message">{{ friend.lastMessage || '开始聊天吧~' }}</text>
+              <view v-if="friend.unreadCount > 0" class="unread-badge">
+                {{ friend.unreadCount > 99 ? '99+' : friend.unreadCount }}
+              </view>
             </view>
           </view>
         </view>
-      </view>
 
-      <Empty v-if="friendsWithUnread.length === 0" text="暂无好友" description="去广场认识新朋友吧" />
+        <Empty v-if="friendsWithUnread.length === 0" text="暂无好友" description="去广场认识新朋友吧" />
+      </template>
     </scroll-view>
   </view>
 </template>
@@ -44,13 +75,27 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
-import { useChatStore, useFriendStore } from '@/stores';
+import { useChatStore, useFriendStore, useNotificationStore } from '@/stores';
 import { formatTime } from '@/utils';
 import Avatar from '@/components/common/Avatar.vue';
 import Empty from '@/components/common/Empty.vue';
 
 const chatStore = useChatStore();
 const friendStore = useFriendStore();
+const notificationStore = useNotificationStore();
+
+const loading = ref(false);
+
+// 状态栏高度
+const statusBarHeight = ref(0);
+try {
+  statusBarHeight.value = uni.getSystemInfoSync().statusBarHeight || 0;
+} catch {
+  statusBarHeight.value = 0;
+}
+
+// 防止 onMounted + onShow 首次加载时重复请求
+let hasInitialized = false;
 
 // 合并好友列表和未读消息
 const friendsWithUnread = computed(() => {
@@ -66,8 +111,7 @@ const friendsWithUnread = computed(() => {
   // 合并好友信息和会话信息
   const merged = friends.map(friend => {
     const conv = conversationMap.get(friend.friendId);
-    // friend 是 Friendship 类型，friend.friend 才是好友的用户信息
-    const friendUser = friend.friend || friend.user;
+    const friendUser = friend.user;
     return {
       id: friend.id,
       friendId: friend.friendId,
@@ -95,14 +139,24 @@ const totalUnreadCount = computed(() => {
 
 onMounted(async () => {
   await loadData();
+  hasInitialized = true;
+
+  // 更新气泡展开状态
+  notificationStore.updateExpandState(true);
+  uni.$emit('onPageShow');
 });
 
 onShow(async () => {
-  // 每次显示页面时刷新数据
-  await loadData();
+  // 非首次显示时才刷新（首次由 onMounted 处理）
+  if (hasInitialized) {
+    await loadData();
+    notificationStore.updateExpandState(true);
+    uni.$emit('onPageShow');
+  }
 });
 
 const loadData = async () => {
+  loading.value = true;
   try {
     await Promise.all([
       chatStore.fetchConversations(),
@@ -110,6 +164,8 @@ const loadData = async () => {
     ]);
   } catch (error) {
     console.error('Load data error:', error);
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -121,10 +177,13 @@ const goToChat = async (friend: any) => {
     });
   }
 
+  // 清除该用户的气泡通知
+  notificationStore.clearNotification(friend.userId);
+
   try {
     const status = await friendStore.getFriendshipStatus(friend.userId);
 
-    if (!status.canChat) {
+    if (!status.isFriend) {
       if (!status.isFollowing) {
         uni.showModal({
           title: '提示',
@@ -162,7 +221,7 @@ const goToChat = async (friend: any) => {
     }
 
     uni.navigateTo({
-      url: `/pages/chat/detail?userId=${friend.userId}&nickname=${friend.nickname}`,
+      url: `/pages/chat/detail?userId=${friend.userId}&nickname=${encodeURIComponent(friend.nickname)}`,
     });
   } catch (error: any) {
     uni.showToast({
@@ -182,33 +241,125 @@ page {
 }
 
 .message-container {
-  height: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: $bg-secondary;
+  overflow: hidden;
 
-  .friend-list {
-    flex: 1;
-    padding: 20rpx;
+  .status-bar {
+    flex-shrink: 0;
+    background: $bg-primary;
+  }
 
-    .friend-item {
+  .nav-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $padding-md $padding-lg;
+    background: $bg-primary;
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+
+    .nav-title {
+      font-size: $font-size-xl;
+      font-weight: $font-weight-bold;
+      color: $text-primary;
+    }
+
+    .nav-badge {
+      min-width: 36rpx;
+      height: 36rpx;
+      padding: 0 10rpx;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);
+      border-radius: 18rpx;
       display: flex;
       align-items: center;
-      padding: 24rpx;
+      justify-content: center;
+
+      .nav-badge-text {
+        font-size: 20rpx;
+        color: #ffffff;
+        font-weight: $font-weight-bold;
+      }
+    }
+  }
+
+  .conversation-list {
+    flex: 1;
+    padding: $padding-md;
+
+    .conversation-skeleton {
+      display: flex;
+      align-items: center;
+      padding: $padding-lg;
       background: $bg-primary;
-      border-radius: 16rpx;
-      margin-bottom: 20rpx;
+      border-radius: $radius-lg;
+      margin-bottom: $margin-md;
+
+      .skeleton-avatar {
+        width: 80rpx;
+        height: 80rpx;
+        border-radius: $radius-circle;
+        background: $bg-tertiary;
+        margin-right: $margin-md;
+        position: relative;
+        overflow: hidden;
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          animation: skeleton-loading 1.5s ease-in-out infinite;
+        }
+      }
+
+      .skeleton-content {
+        flex: 1;
+
+        .skeleton-line {
+          background: $bg-tertiary;
+          border-radius: $radius-xs;
+          position: relative;
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: skeleton-loading 1.5s ease-in-out infinite;
+          }
+        }
+      }
+    }
+
+    .conversation-item {
+      display: flex;
+      align-items: center;
+      padding: $padding-lg;
+      background: $bg-primary;
+      border-radius: $radius-lg;
+      margin-bottom: $margin-md;
       box-shadow: $shadow-xs;
+      animation: conversation-fade-in $duration-base $ease-out both;
       @include transition(all);
 
       &:active {
         transform: scale(0.98);
-        box-shadow: $shadow-sm;
+        background: $bg-secondary;
       }
 
       .avatar-wrapper {
         position: relative;
-        margin-right: 24rpx;
+        margin-right: $margin-md;
         flex-shrink: 0;
 
         .avatar {
@@ -225,50 +376,79 @@ page {
           border: 3rpx solid $bg-primary;
           border-radius: 50%;
           box-shadow: 0 2rpx 8rpx rgba(255, 71, 87, 0.4);
+          animation: dot-pulse 2s ease-in-out infinite;
+        }
+
+        .notification-badge {
+          position: absolute;
+          top: -8rpx;
+          right: -8rpx;
+          min-width: 36rpx;
+          height: 36rpx;
+          padding: 0 8rpx;
+          border-radius: 18rpx;
+          border: 2rpx solid $bg-primary;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20rpx;
+          color: #fff;
+          font-weight: bold;
+          animation: badge-bounce 0.5s ease;
+
+          &.friend {
+            background: #4CAF50;
+            box-shadow: 0 2rpx 8rpx rgba(76, 175, 80, 0.4);
+          }
+
+          &.stranger {
+            background: #FF9800;
+            box-shadow: 0 2rpx 8rpx rgba(255, 152, 0, 0.4);
+          }
         }
       }
 
-      .friend-info {
+      .conversation-info {
         flex: 1;
         min-width: 0;
 
-        .friend-header {
+        .conversation-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 8rpx;
+          margin-bottom: $margin-xs;
 
           .nickname {
-            font-size: 30rpx;
+            font-size: $font-size-base;
             font-weight: $font-weight-medium;
             color: $text-primary;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             flex: 1;
-            margin-right: 16rpx;
+            margin-right: $margin-sm;
           }
 
           .time {
-            font-size: 22rpx;
+            font-size: $font-size-xs;
             color: $text-tertiary;
             flex-shrink: 0;
           }
         }
 
-        .friend-content {
+        .conversation-content {
           display: flex;
           justify-content: space-between;
           align-items: center;
 
           .last-message {
             flex: 1;
-            font-size: 26rpx;
+            font-size: $font-size-sm;
             color: $text-secondary;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            margin-right: 16rpx;
+            margin-right: $margin-sm;
           }
 
           .unread-badge {
@@ -285,10 +465,32 @@ page {
             justify-content: center;
             flex-shrink: 0;
             box-shadow: 0 2rpx 8rpx rgba(255, 71, 87, 0.3);
+            animation: badge-bounce 0.5s ease;
           }
         }
       }
     }
   }
+}
+
+@keyframes skeleton-loading {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes conversation-fade-in {
+  from { opacity: 0; transform: translateX(-20rpx); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+@keyframes badge-bounce {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 </style>

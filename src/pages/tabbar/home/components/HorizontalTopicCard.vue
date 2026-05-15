@@ -65,13 +65,12 @@ const handleClick = () => {
 .horizontal-topic-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: 240rpx;
+  width: 180rpx;
   flex-shrink: 0;
-  padding: $padding-md;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.04), rgba(118, 75, 162, 0.04));
   border-radius: $radius-lg;
-  border: 2rpx solid rgba(102, 126, 234, 0.12);
+  overflow: hidden;
+  background: $bg-primary;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
   transition: transform 0.2s;
 
   &:active {
@@ -79,11 +78,10 @@ const handleClick = () => {
   }
 
   .cover-wrapper {
-    width: 160rpx;
-    height: 160rpx;
-    border-radius: $radius-md;
+    width: 100%;
+    height: 140rpx;
     overflow: hidden;
-    margin-bottom: $margin-sm;
+    position: relative;
 
     .cover {
       width: 100%;
@@ -96,10 +94,10 @@ const handleClick = () => {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(102, 126, 234, 0.1);
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.12));
 
       .placeholder-icon {
-        font-size: 64rpx;
+        font-size: 48rpx;
       }
     }
   }
@@ -107,23 +105,21 @@ const handleClick = () => {
   .topic-info {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    width: 100%;
+    padding: $padding-sm $padding-sm $padding-base;
 
     .topic-name {
-      font-size: $font-size-base;
+      font-size: $font-size-sm;
       font-weight: $font-weight-bold;
       color: $text-primary;
       max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      text-align: center;
-      margin-bottom: 4rpx;
+      margin-bottom: 2rpx;
     }
 
     .topic-stats {
-      font-size: $font-size-xs;
+      font-size: 18rpx;
       color: $text-tertiary;
     }
   }

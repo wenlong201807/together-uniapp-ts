@@ -57,9 +57,11 @@ export function useHomeSections(options?: { city?: string }) {
       if (response.code === 0 && response.data) {
         const sectionData = response.data.data;
         if (Array.isArray(sectionData) && sectionData.length > 0) {
-          sections[type] = sectionData.slice(0, 5);
+          // 防御性过滤：API 可能返回混合类型，只保留当前 section 类型的项
+          sections[type] = sectionData.filter(item => item.type === type).slice(0, 5) as RecommendationItem[];
         } else {
-          throw new Error('Empty section data');
+          // 合法的空数据，不触发 mock 降级
+          sections[type] = [];
         }
       } else {
         throw new Error(response.message || 'Failed to fetch section data');
