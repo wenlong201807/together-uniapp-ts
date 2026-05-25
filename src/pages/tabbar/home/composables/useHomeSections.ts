@@ -68,8 +68,8 @@ export function useHomeSections(options?: { city?: string }) {
       }
     } catch (error) {
       console.error(`[useHomeSections] Fetch section "${type}" failed:`, error);
-      // Fallback to mock data
-      sections[type] = generateMockSectionData(type, 5);
+      // API 失败时清空数据，显示空状态，不使用 mock 数据欺骗用户
+      sections[type] = [];
     } finally {
       sectionLoading[type] = false;
     }
@@ -106,13 +106,6 @@ export function useHomeSections(options?: { city?: string }) {
     await fetchAllSections(true);
   };
 
-  /**
-   * Update city filter (kept for external consumers)
-   */
-  const updateCity = (city: string) => {
-    currentCity.value = city;
-  };
-
   return {
     sections,
     sectionLoading,
@@ -122,75 +115,4 @@ export function useHomeSections(options?: { city?: string }) {
     refresh,
     SECTION_CONFIGS,
   };
-}
-
-// --- Mock Data Generation ---
-
-function generateMockSectionData(type: RecommendationType, count: number): RecommendationItem[] {
-  const result: RecommendationItem[] = [];
-
-  for (let i = 0; i < count; i++) {
-    const baseUser = {
-      id: Math.floor(Math.random() * 10000),
-      nickname: `用户${Math.floor(Math.random() * 1000)}`,
-      avatar: `https://picsum.photos/200?random=${Date.now()}-${i}`,
-      age: 20 + Math.floor(Math.random() * 15),
-      city: ['北京', '上海', '广州', '深圳', '杭州'][Math.floor(Math.random() * 5)],
-      bio: '这是一段个人简介',
-      tags: ['旅行', '美食', '摄影', '音乐', '运动'].slice(0, 2 + Math.floor(Math.random() * 2)),
-      photos: [],
-    };
-
-    let data: any;
-    switch (type) {
-      case 'hot':
-        data = {
-          type: 'hot',
-          user: baseUser,
-          hotScore: {
-            likes: Math.floor(Math.random() * 10000),
-            comments: Math.floor(Math.random() * 1000),
-            favorites: Math.floor(Math.random() * 5000),
-          },
-        };
-        break;
-      case 'nearby':
-        data = {
-          type: 'nearby',
-          user: baseUser,
-          distance: `${(Math.random() * 10).toFixed(1)}km`,
-        };
-        break;
-      case 'topic':
-        data = {
-          type: 'topic',
-          topic: {
-            id: Math.floor(Math.random() * 1000),
-            name: `话题${Math.floor(Math.random() * 100)}`,
-            description: '这是一个有趣的话题',
-            participantCount: Math.floor(Math.random() * 50000),
-            postCount: Math.floor(Math.random() * 100000),
-            coverImages: [`https://picsum.photos/400?random=${Date.now()}-${i}`],
-          },
-        };
-        break;
-      case 'new':
-        data = {
-          type: 'new',
-          user: baseUser,
-          joinDays: Math.floor(Math.random() * 7) + 1,
-        };
-        break;
-      default:
-        data = { type: 'personalized', user: baseUser };
-    }
-
-    result.push({
-      id: `${type}-${Date.now()}-${i}`,
-      type,
-      data,
-    });
-  }
-
-  return result;
 }

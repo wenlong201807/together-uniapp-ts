@@ -13,13 +13,14 @@
     </view>
     <view class="topic-info">
       <text class="topic-name">{{ topic.name }}</text>
-      <text class="topic-stats">{{ formatCount(topic.participantCount) }}人参与</text>
+      <text class="topic-stats">{{ formatDisplayCount(topic.participantCount) }}人参与</text>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { formatCount } from '@/utils/format';
 
 interface Topic {
   id: number;
@@ -48,11 +49,7 @@ const coverUrl = computed(() => {
   return props.topic.coverImage || '';
 });
 
-const formatCount = (count?: number): string => {
-  if (!count && count !== 0) return '0';
-  if (count >= 10000) return `${(count / 10000).toFixed(1)}w`;
-  return count.toString();
-};
+const formatDisplayCount = formatCount;
 
 const handleClick = () => {
   emit('click', props.topic);

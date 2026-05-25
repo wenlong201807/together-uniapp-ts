@@ -6,7 +6,7 @@
     <view class="nav-left">
       <view class="location" @click="handleLocationClick">
         <text class="location-icon">📍</text>
-        <text class="location-text">{{ currentCity }}</text>
+        <text class="location-text">{{ city }}</text>
         <text class="location-arrow">▼</text>
       </view>
     </view>
@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
 // 获取状态栏高度（模块级缓存，避免重复调用）
 const statusBarHeight = ref(0);
@@ -56,8 +56,6 @@ const emit = defineEmits<{
   searchClick: [];
   messageClick: [];
 }>();
-
-const currentCity = computed(() => props.city);
 
 const handleLocationClick = () => {
   emit('locationClick');

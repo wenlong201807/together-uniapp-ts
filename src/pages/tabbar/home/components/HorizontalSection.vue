@@ -146,7 +146,7 @@ const handleMore = () => {
   emit('more', props.type);
 };
 
-const handleItemClick = (_data: any, item: RecommendationItem) => {
+const handleItemClick = (_payload: unknown, item: RecommendationItem) => {
   emit('itemClick', item);
 };
 </script>

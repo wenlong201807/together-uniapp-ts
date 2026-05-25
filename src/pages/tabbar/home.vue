@@ -12,19 +12,8 @@
     <!-- 顶部导航占位（fixed导航不在文档流中，需要占位避免内容被遮挡） -->
     <view class="nav-placeholder" :style="{ height: navPlaceholderHeight + 'px' }" />
 
-    <!-- 滚动容器 -->
-    <scroll-view
-      class="scroll-container"
-      scroll-y
-      :style="{ height: scrollContainerHeight }"
-      :refresher-enabled="isAtTop"
-      :refresher-threshold="80"
-      :refresher-triggered="refreshing"
-      @refresherrefresh="handleRefresh"
-      @refresherrestore="handleRefresherRestore"
-      @scroll="handleScroll"
-    >
-
+    <!-- 内容区域（使用页面级原生滚动，单一滚动条，与 mine 页面一致） -->
+    <view class="content-area">
       <!-- 快速入口 -->
       <QuickActions
         :actions="quickActions"
@@ -51,7 +40,7 @@
           @item-click="handleSectionItemClick"
         />
       </view>
-    </scroll-view>
+    </view>
 
     <!-- NPS反馈弹窗 -->
     <NPSModal
@@ -86,6 +75,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import { onPullDownRefresh } from '@dcloudio/uni-app';
 import TopNavigation from './home/components/TopNavigation.vue';
 import BannerCarousel from './home/components/BannerCarousel.vue';
 import QuickActions from './home/components/QuickActions.vue';
@@ -149,20 +139,8 @@ const homeGuideConfig: GuideConfig = {
 // 初始化图片加载器（模块级标志，组件卸载时重置以便重新挂载时可以重新初始化）
 let imageLoaderInitialized = false;
 
-// 组件引用（预留）
-// const topNavRef = ref();
-
-// 刷新状态
-const refreshing = ref(false);
-
-// 滚动位置追踪（用于控制 refresher 启用时机）
-const isAtTop = ref(true);
-
 // 导航占位高度（状态栏 + 导航内容高度）
 const navPlaceholderHeight = ref(0);
-
-// scroll-view 显式高度（解决移动端浏览器滚动回顶部遮挡问题）
-const scrollContainerHeight = ref('auto');
 
 // 是否正在加载数据（防止重复加载，含初始加载和下拉刷新）
 const isLoadingData = ref(false);
@@ -274,9 +252,9 @@ const handleBannerClick = (_banner: Banner) => {
   // TODO: 根据 banner 配置跳转到对应页面
 };
 
-// 快速入口事件
-const handleActionClick = (action: QuickAction) => {
-  action.handler?.();
+// 快速入口事件（仅 emit，handler 由 QuickActions 内部调用）
+const handleActionClick = (_action: QuickAction) => {
+  // QuickActions 组件内部已调用 handler，此处仅作事件回调保留
 };
 
 // 横向分区 "查看更多" 事件
@@ -301,48 +279,37 @@ const handleSectionItemClick = (item: RecommendationItem) => {
   }
 };
 
-// 滚动事件：追踪滚动位置，仅在顶部时启用下拉刷新
-const handleScroll = (e: any) => {
-  const scrollTop = e.detail?.scrollTop ?? 0;
-  isAtTop.value = scrollTop <= 5; // 5px 容差，避免临界抖动
-};
-
-// 滚动复位事件
-const handleRefresherRestore = () => {
-  refreshing.value = false;
-};
-
-// 刷新
+// 下拉刷新（使用页面级原生 onPullDownRefresh，替代 scroll-view 的 refresher）
 const handleRefresh = async () => {
   if (isLoadingData.value) return;
   isLoadingData.value = true;
   try {
-    refreshing.value = true;
     await Promise.all([
       loadBanners(true),
       refreshSections(),
     ]);
     CacheManager.clearAllExpired();
   } catch (error) {
-    // 静默处理刷新失败，避免控制台输出
     uni.showToast({
       title: '刷新失败',
       icon: 'none',
       duration: 2000,
     });
   } finally {
-    refreshing.value = false;
     isLoadingData.value = false;
+    uni.stopPullDownRefresh();
   }
 };
 
+onPullDownRefresh(() => {
+  handleRefresh();
+});
+
 // 初始化
 onMounted(async () => {
-  // 计算导航占位高度 + scroll-view 显式高度
-  // 必须使用实际测量值而非估算，否则滚动回顶部时固定导航会遮挡内容
+  // 计算导航占位高度（fixed 导航不在文档流中，需要占位避免内容被遮挡）
   try {
     const sysInfo = uni.getSystemInfoSync();
-    const windowHeight = sysInfo.windowHeight || 0;
 
     // 测量 TopNavigation 的实际渲染高度
     const query = uni.createSelectorQuery();
@@ -356,16 +323,16 @@ onMounted(async () => {
         const statusBarH = sysInfo.statusBarHeight || 0;
         navPlaceholderHeight.value = statusBarH + 44;
       }
-      // scroll-view 高度 = 窗口高度 - 导航占位
-      scrollContainerHeight.value = `${windowHeight - navPlaceholderHeight.value}px`;
     });
   } catch {
     navPlaceholderHeight.value = 88;
-    scrollContainerHeight.value = 'auto';
   }
 
   // 防止初始加载与下拉刷新并发竞争
-  if (isLoadingData.value) return;
+  if (isLoadingData.value) {
+    // 极端情况：isLoadingData 被卡住为 true，强制重置以确保页面可加载
+    isLoadingData.value = false;
+  }
   isLoadingData.value = true;
 
   try {
@@ -434,28 +401,27 @@ onUnmounted(() => {
 @use '@/assets/styles/design-tokens.scss' as *;
 
 .home-container {
-  height: 100vh;
+  min-height: 100vh;
   background: $bg-secondary;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 
-  // 占位：为 fixed 导航留出空间，确保 scroll-container 不被遮挡
-  .nav-placeholder {
-    flex-shrink: 0;
-  }
-
-  .scroll-container {
-    flex: 1;
-    padding: $padding-md $padding-lg $padding-lg;
-    box-sizing: border-box;
-    // 显式高度由 JS 计算（移动端浏览器 100vh 和 flex:1 不可靠）
-    // 如果 JS 未能设置高度，flex:1 作为降级
-
+  .content-area {
+    padding: $padding-md $padding-lg 140rpx;
 
     .recommendation-sections {
       margin-top: $margin-md;
     }
   }
+}
+</style>
+
+<style lang="scss">
+/* 隐藏页面级原生滚动条（非 scoped，需穿透到 page 元素） */
+page {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+page::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Webkit */
 }
 </style>

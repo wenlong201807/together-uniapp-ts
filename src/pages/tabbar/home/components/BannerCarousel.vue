@@ -31,18 +31,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import LazyImage from '@/components/LazyImage.vue';
+import type { Banner } from '@/api/home';
 
-export interface Banner {
-  id: number;
-  title: string;
-  subtitle?: string;
-  imageUrl: string;
-  linkType: 'activity' | 'topic' | 'user' | 'external';
-  linkId?: number;
-  linkUrl?: string;
-}
+export type { Banner };
+// Re-export Banner type for backward compatibility with importers
 
 interface Props {
   banners: Banner[];
@@ -57,10 +50,7 @@ const emit = defineEmits<{
   change: [index: number];
 }>();
 
-const currentIndex = ref(0);
-
 const handleChange = (e: any) => {
-  currentIndex.value = e.detail.current;
   emit('change', e.detail.current);
 };
 

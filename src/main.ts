@@ -4,6 +4,13 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
 import App from './App.vue';
 import imgProxy from '@/directives/img-proxy';
 
+// 开发环境启用 vConsole（真机调试）
+if (import.meta.env.DEV) {
+  import('vconsole').then(({ default: VConsole }) => {
+    new VConsole();
+  });
+}
+
 export function createApp() {
   const app = createSSRApp(App);
   const pinia = createPinia();
